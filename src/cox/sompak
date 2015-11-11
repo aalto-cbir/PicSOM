@@ -1,0 +1,263 @@
+// -*- C++ -*-
+
+// $Id: sompak,v 1.2 2012/06/29 09:08:02 jorma Exp $	
+
+#ifndef _cox_sompak_
+#define _cox_sompak_
+
+#include <cox/blas>
+#include <cox/labeled_vector>
+
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <limits>
+
+#include <gzstream.h>
+
+namespace cox {
+
+  ///
+  namespace sompak {
+    using std::vector;
+    using std::string;
+    using std::ifstream;
+    using std::ofstream;
+    using std::istream;
+    using std::ostream;
+    using std::stringstream;
+    using std::cout;
+    using std::endl;
+    using std::flush;
+
+    using cox::blas::from;
+    using cox::blas::labeled_fv_from;
+    using cox::blas::labeled_from;
+
+    ///
+    static int read_vector_length(istream& is) throw (string) {
+      for (;;) {
+	string s;
+	is >> s;
+	if (!is)
+	  throw string("cox::sompak::read_vector_length() failed for eof");
+	// cout << "[" << s << "]" << endl;
+	if (!s.size() || s.substr(0, 1)=="#")
+	  is.ignore(std::numeric_limits<int>::max(), '\n');
+	else {
+	  int l;
+	  stringstream(s) >> l;
+	  if (l<1)
+	    throw string("cox::sompak::read_vector_length() failed for data");
+
+	  return l;
+	}	  
+      }
+    }
+
+    ///
+    inline void write_vector_length(size_t l, ostream& os) throw (string) {
+      os << l << endl;
+    }
+
+    ///
+    template <class T>
+    static vector<T> read_vector(int l, istream& is) throw (string) {
+      string str;
+      do {
+	if (!is)
+	  throw string("cox::sompak::read_vector() feof ?");
+
+	std::getline(is, str);
+      } while (!str.length());
+
+      return from<T>(l, str);
+    }
+
+    ///
+    template <class T>
+    static labeled_float_vector read_labeled_fv(int l, istream& is)
+      throw (string) {
+      string str;
+      do {
+	if (!is)
+	  throw string("cox::sompak::read_labeled_fv() feof ?");
+
+	std::getline(is, str);
+      } while (!str.length());
+
+      return labeled_fv_from<T>(l, str);
+    }
+
+    ///
+    template <class T>
+    inline labeled<T> read_labeled(int l, istream& is)
+      throw (string) {
+      string str;
+      do {
+	if (!is)
+	  throw string("cox::sompak::read_labeled() feof ?");
+
+	std::getline(is, str);
+      } while (!str.length());
+
+      return labeled_from<T>(l, str);
+    }
+
+    ///
+    template <class T>
+    static labeled<vector<T> > read_labeled_vector(int l, istream& is)
+      throw (string) {
+      return read_labeled<vector<T> >(l, is);
+    }
+
+    ///
+    template <class T>
+    static void write_labeled(const labeled<vector<T> >& v,
+			      ostream& os) throw (string) {
+      for (size_t i=0; i<v.size(); i++)
+	os << (i?" ":"") << v[i];
+      if (v.label_set())
+	os << (v.size()?" ":"") << v.label();
+      os << endl;
+    }
+
+    class data {
+    public:
+      ///
+      data() throw(string) : _l(0), _n(0), _l_written(false), _trace(false) {}
+      
+      ///
+      data(const string& fname, bool write = false, bool tra = false)
+	throw(string) :
+	_l(0), _n(0), _l_written(false), _trace(tra) {
+	  open(fname, write);
+	}
+      
+      ///
+      int open(const string& fname, bool write) throw(string) {
+	return write ? open_write(fname) : open_read(fname);
+      }
+      
+      ///
+      int open_read(const string& fname) throw(string) {
+	_l = 0;
+	_n = 0;
+	close();
+	_is.clear();
+	_is.open(fname.c_str());
+	if (!_is) {
+	  _is.close();
+	  throw "cox::sompak::data::open_read(" + fname + ") failed";
+	}
+
+	return _l = read_vector_length(_is);
+      }
+      
+      ///
+      int open_write(const string& fname) throw(string) {
+	close();
+	_n = 0;
+	_os.clear();
+	_os.open(fname.c_str());
+	if (!_os) {
+	  _os.close();
+	  throw "cox::sompak::data::open_write(" + fname + ") failed";
+	}
+
+	return 1;
+      }
+      
+      ///
+      void close() throw(string) {
+	_l_written = false;
+	_is.close();
+	_os.close();
+      }
+
+      ///
+      int vector_length() throw(string) { return _l; }
+      
+      ///
+      labeled_float_vector labeled_next() throw(string) {
+	return read_labeled_fv<float>(_l, _is);
+      }
+      
+      ///
+      template <class T>
+      labeled<vector<T> > next_vector() throw(string) {
+	return next<vector<T> >();
+      }
+
+      ///
+      template <class T>
+      labeled<T> next() throw(string) {
+	if (_trace && (_n%100)==0)
+	  cout << _n << "\r" << flush;
+	_n++;
+	return read_labeled<T>(_l, _is);
+      }
+
+      ///
+      template <class T>
+      operator T() throw(string) {
+	T l;
+	try {
+	  for (;;)
+	    l.push_back(next_vector<typename T::value_type::value_type>());
+	}
+	catch (const string&) {
+	}
+	return l;
+      }
+
+      ///
+      template <class T>
+      void insert(const labeled<vector<T> >& v) throw(string) {
+	if (!_l_written) {
+	  write_vector_length(v.size(), _os);
+	  _l = v.size();
+	  _l_written = true;
+	}
+	if (_l != (int)v.size())
+	  throw string("cox::sompak::insert() : vector size mismatch");
+
+	write_labeled<T>(v, _os);
+      }
+
+      ///
+      template <class T>
+      void insert(const vector<T>& v) throw(string) {
+	insert(labeled<vector<T> >(v));
+      }
+
+    private:
+      ///
+      int _l;
+
+      ///
+      int _n;
+      
+      ///
+      // ifstream _is;
+      igzstream _is;
+
+      ///
+      ofstream _os;
+
+      ///
+      bool _l_written;
+
+      ///
+      bool _trace;
+
+    }; // class data
+
+    
+  } // namespace sompak
+
+} // namespace cox
+
+#endif // _cox_sompak_
+

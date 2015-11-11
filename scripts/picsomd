@@ -1,0 +1,73 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:          picsomd
+# Required-Start:    $all
+# Required-Stop:     $all
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start the picsom demo server.
+### END INIT INFO
+
+# $Id: picsomd,v 1.4 2014/09/21 22:13:37 jorma Exp $	
+
+DIR=/home/ubuntu/picsom/build/c++
+DEMONUSER=ubuntu
+DEMONGROUP=ubuntu
+OPERATION=-forge
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+EXE=picsom.linux64.fast
+DAEMON=$DIR/$EXE
+NAME=picsomd
+DESC="picsom demo server"
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+DEBUGOPTS=
+#DEBUGOPTS=-Ddetections
+#DEBUGOPTS="-Dhttp -Ddetections=2"
+
+DAEMON_OPTS="$DEBUGOPTS -pidfile $PIDFILE $OPERATION"
+
+test -x $DAEMON || exit 0
+
+set -e
+
+. /lib/lsb/init-functions
+
+cd $DIR
+
+case "$1" in
+    start)
+        rm -f $PIDFILE
+	touch $PIDFILE
+	chmod 644 $PIDFILE
+        chown ${DEMONUSER}:${DEMONGROUP} $PIDFILE
+
+        log_daemon_msg "Starting $DESC" $NAME
+	### start-stop-daemon --start --oknodo --quiet ...
+
+        su -c "$DAEMON $DAEMON_OPTS" $DEMONUSER
+        log_end_msg 0
+        ;;
+    stop)
+        log_daemon_msg "Stopping $DESC" $NAME
+	kill `cat $PIDFILE` 
+        rm -f $PIDFILE
+        log_end_msg 0
+        ;;
+    restart)
+        $0 stop
+        $0 start
+        ;;
+    status)
+        status_of_proc -p "$PIDFILE" "$DAEMON" "$EXE" && exit 0 || exit $?
+        ;;
+    *)
+        echo "Usage: $SCRIPTNAME {start|stop|restart|status}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

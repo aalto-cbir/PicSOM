@@ -1,0 +1,660 @@
+\input texinfo                @c -*- Texinfo -*-
+@c %**start of header
+@setfilename features.info
+@settitle @code{features}
+@setchapternewpage off
+@c %**end of header
+
+@set RCSID $Id: features.texi,v 1.22 2008/10/31 11:54:53 jorma Exp $
+@set VERSION $Revision: 1.22 $
+@set PICSOMVERSION 2.0
+@set UPDATED $Date: 2008/10/31 11:54:53 $
+
+@c Combine the variable and function indices:
+@syncodeindex vr fn
+@c Combine the program and concept indices:
+@syncodeindex pg cp
+
+@c **********************************************************************
+@ifinfo
+@dircategory PicSOM
+@direntry
+* features: (features.info).              Image feature extraction in PicSOM.
+@end direntry
+
+This file documents the features used in PicSOM and the way they are
+calculated and stored.  This is version @value{VERSION} of the
+specification, last updated @value{UPDATED}, corresponding to PicSOM
+version @value{PICSOMVERSION}.
+
+Copyright (C) 1999,2000,2003 HUT/CIS
+
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+@end ifinfo
+
+@c **********************************************************************
+@titlepage
+@title PicSOM features
+@subtitle Features used in PicSOM
+@subtitle @code{features} version @value{VERSION}.
+@subtitle @value{UPDATED}
+@author Sami Brandt, Markus Koskela, Jorma Laaksonen, Hannes Muurinen
+@author @b{PicSOM Development Group}
+@author @b{P.O.BOX 5400}
+@author @b{Laboratory of Computer and Information Science}
+@author @b{Helsinki University of Technology}
+@author @b{Fin-02015 HUT, FINLAND}
+@email{picsom@@mail.cis.hut.fi}
+@page
+@vskip 0pt plus 1filll
+Copyright @copyright{} 1999,2000,2003 HUT/CIS
+
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+@end titlepage
+@page
+
+@c **********************************************************************
+@node Top, Overview, , (dir)
+@top Features
+
+The @code{features} files are used by @code{PicSOM} in various
+situations including the creation of the TS-SOM maps.
+
+This edition of the @cite{features}, last updated @value{UPDATED},
+documents @code{features} file format version @value{VERSION} which
+corresponds to @code{PicSOM} version @value{PICSOMVERSION}.
+
+@ifnottex
+This manual describes @code{features} format and contains the following
+chapters:
+@end ifnottex
+
+@menu
+* Overview::               Overview of CBIR features.
+* Raw features::           Raw "features" which just extract pixel values.
+* Color features::         Color features implemented.
+* Texture features::       Texture features implemented.
+* Shape features::         Shape features implemented.
+* Structure features::     Structure features implemented.
+* Text features::          Text features implemented.
+* Message features::       Message features implemented.
+* Video features::         Video features implemented.
+* Audio features::         Audio features implemented.
+* Areas of calculation::   How features relate to image areas?
+* Implementation::         Implementation of feature extraction.
+* Command line switches::  Command line switches.
+@end menu
+
+@c **********************************************************************
+@node Overview, Raw features, Top, Top
+@chapter Overview of CBIR features
+
+Feature extraction is a fundamental part of a content-based image
+retrieval system. In PicSOM there are color, texture, shape and text 
+features implemented. Structure features are going to be incorporated 
+in it in the future.
+
+@c **********************************************************************
+@node Raw features, Color features, Overview, Top
+@chapter Raw features
+
+There exist a special "feature extraction" method named @code{raw} for
+extracting pixel values for images.  The use of the @code{raw} method is
+aimed for making use of existing segmentation results like this:
+
+@example
+
+%> features -X img.seg raw -o head.width=100 -o region=l-eye:27x19 \
+            -o convert=z img.png
+# <?xml version="1.0"?>
+# <feature> ... </feature>
+513
+-0.7137415 -1.047032 -1.22348 ...
+
+@end example
+
+In the above example @code{l-eye} is a segmentation result of type
+@code{point} to be found in the segmentation result file
+@code{img.seg}. It can also be a result of type @code{box}, in which
+case the center of the box is interpreted as the center of the extracted
+area.
+
+However, it is also possible to provide the needed values on the command
+line as follows:
+
+@example
+
+%> features raw -o scale=0.351 -o region="(300,313):27x19" \
+            -o convert=z img.png
+# <?xml version="1.0"?>
+# <feature> ... </feature>
+513
+-0.7137415 -1.047032 -1.22348 ...
+
+@end example
+
+There also exists a utility Perl script @code{features/imgdat2pnm} that
+converts the output of @code{features raw} back to image file format
+viewable eg. with @code{xv} or @code{display}.
+
+@example
+
+%> imgdat2pnm -convert=z -frame=0 < features-raw.output > eye.pgm
+
+@end example
+
+This corresponds to the two images below.  Especially the
+@code{region="(300,313):27x19"} specification has been obtained from
+the true centerpoint (300,313) of the eye and the normalized eye size
+27x19 pixels applicable for head widths of 100
+pixels. @code{scale=0.351} value has then been obtained as the ratio of
+100 and the true head width 285 pixels.
+
+@image{mugshot-eye,14cm}
+
+@c **********************************************************************
+@node Color features, Texture features, Raw features, Top
+@chapter Color features
+
+In content-based image retrieval, color has been the most
+commonly-used feature type. It is relatively easy to utilize and it
+usually yields reasonable results which can then be improved by adding
+other types of features.
+
+@menu
+* rgb::       Average RGB values.
+* yiq::       Average YIQ values.
+* colorhist:: Color histograms.
+* colormom::  Color moments.
+@end menu
+
+
+@c ======================================================================
+@node rgb, yiq, , Color features
+@section Average RGB values
+
+The Average RGB color features are calculated by taking the average red,
+green, and  blue values in five zones of the image. 
+@xref{Zoning,,Feature calculation in zones}.
+The zoning of the image area increases the discriminating power by
+providing a simple color layout scheme. The resulting 5*3=15 dimensional
+vector thus describes not only the average color but also the color
+composition of the image.
+
+@c ======================================================================
+@node yiq, colorhist, rgb, Color features
+@section Average YIQ values
+
+The YIQ color space is an alternative to the basic RGB color space.
+It resembles more accurately the way the human brain processes color
+information.
+After the transform to YIQ space, the feature is calculated similarly in
+the same five zones as the Average RGB feature.
+The dimensionality of Average YIQ feature is thus also 15.
+
+@c ======================================================================
+@node colorhist, colormom, yiq, Color features
+@section Color histograms
+
+The standard representation for color information in many content-based
+image retrieval applications has been the color histogram. The color
+histogram denotes the joint probability of the three color channels in
+the used color space.
+First, the color channels in the image are discretized to a certain 
+number of intervals. The color histogram is then a 3D matrix in which
+each element contains the number of pixels falling into the
+corresponding histogram bin.
+
+In PicSOM, standard and cumulative color histograms can be calculated in
+RGB, cylindrical HSV (hue, saturation, value), or conical HSV color
+spaces. The color channels can be discretized to 4, 6, or 8 bins per
+channel.  The zoning of the image can also be used. 
+@xref{Zoning,,Feature calculation in zones}. 
+The dimensionality of the resulting feature vector varies from 64 (4*4*4
+bins) to 2560 (8*8*8 bins and 5 zones).
+
+@c ======================================================================
+@node colormom, , colorhist, Color features
+@section Color moments
+
+With color moments, instead of the complete color distribution of an
+image only the major features of the distribution are stored.  The color
+distribution is treated like any probability distribution and
+characterized by its moments. Then, as most of the information is
+concentrated in the low-order moments, only the first moment and the
+second and third central moments of each color channel are used in the
+color index. These correspond to the average, standard deviation, and
+the third root of the skewness of the color distributions. Due to the
+varying dynamic ranges, the feature values are normalized to zero mean
+and unit variance.  The same image zones as with the other features are
+used. 
+@xref{Zoning,,Feature calculation in zones}. 
+The result is a 3*3*5=45 dimensional feature vector.
+
+@c **********************************************************************
+@node Texture features, Shape features, Color features, Top
+@chapter Texture features
+
+Texture is an innate property of all surfaces and it can easily be
+used to describe different materials. 
+Obviously, the color features cannot distinguish objects with
+identical colors from each other. But, by using a combination of color
+and texture properties, many common objects may be identified with
+a tolerable accuracy.
+Texture is, thus, a suitable and commonly-used feature in
+content-based image retrieval.
+
+@menu
+* neighborhood::   Texture neighborhood.
+* co-occurrence::  Texture co-occurrence matrix.
+@end menu
+
+@c ======================================================================
+@node neighborhood, co-occurrence, , Texture features
+@section Texture neighborhood
+
+Texture can be considered as a property of the pixel
+neighborhood. Therefore, a simple texture feature can be constructed
+by comparing suitable properties of the current pixel with the
+properties of its neighboring pixels.
+
+The Texture neighborhood feature in PicSOM is calculated in the same
+five zones as the color features. 
+@xref{Zoning,,Feature calculation in zones}. 
+The Y-values of the YIQ color representation of every pixel's
+8-neighborhood is  examined and the estimated probabilities for each
+neighbor being brighter than the center pixel are used as features.  
+When combined, this results in one 5*8=40 dimensional feature vector.
+
+@c ======================================================================
+@node co-occurrence,, neighborhood, Texture features
+@section Texture co-occurrence matrix
+
+The co-occurrence matrix is a popular texture descriptor in many
+applications. It is based on the repeated occurrence of certain
+gray-level configurations in a texture. The joint probabilities of the 
+intensity levels of two pixels in certain displacement are used to
+create the co-occurrence matrix. The elements of the matrix can then be
+used directly as texture features or some meaningful statistics such
+as the Haralick features can be calculated from the matrix.
+
+With the @code{features} program, co-occurrence matrices with different
+displacements and sizes can be calculated. Optionally, the elements of the 
+matrix can also be replaced by the Haralick features.
+
+@c **********************************************************************
+@node Shape features, Structure features, Texture features, Top
+@chapter Shape features
+
+There are several shape features experimented in the PicSOM system. The
+best results are so far obtained by the Fourier features and the
+co-occurrence matrix of edge directions, but also a single
+one-dimensional histogram of edge directions gives good results.
+
+@menu
+* edgehist::  Histogram of edge directions.
+* edgecom::   Co-occurrence matrix of edge directions.
+* fourier::   Fourier transform features.
+* polar::     Polar Fourier transform features.
+@end menu
+
+@c ======================================================================
+@node edgehist, edgecom, , Shape features
+@section Histogram of edge directions
+
+If the number of pixels in the image exceeds a certain value (currently
+500000), the image dimensions are reduced to half before any other
+processing.
+
+The image is first convolved with eight Sobel masks.  In each pixel, the
+maximum value of the Sobel dot products is selected.  Thus, a gradient
+value image and quantized gradient directions are obtained.
+
+After thresholding the gradient value image, the eight-directional
+histogram is formed separately in the five zones. 
+@xref{Zoning,,Feature calculation in zones}. 
+As the result, a 5*8=40 dimensional feature vector is obtained.
+
+The histogram is normalized by the number of pixels in the image in
+order to allow different-sized images.
+
+@c ======================================================================
+@node edgecom, fourier, edgehist, Shape features
+@section Co-occurrence matrix of edge directions
+
+The co-occurrence matrix of edge directions is made as the
+one-dimensional histogram, but adjacent edge pixel pairs are
+classified instead. 
+
+As the result, a 5*8*8=320 dimensional feature vector is obtained.
+
+@c ======================================================================
+@node fourier, polar, edgecom, Shape features
+@section Fourier transform features
+
+The Fourier features are obtained by first normalizing the images such
+that the longer side of the image becomes 512 pixels long. Then, the
+gradient value image is computed with the eight Sobel operators and the
+fast Fourier transform of the gradient value image is calculated.  Only
+the magnitude image of the Fourier spectrum is used and decimated by the
+factor of 32. The resulting magnitude image is then stored as a feature
+vector whose dimension is 512*512/(2*32*32)=128.
+
+@c ======================================================================
+@node polar, , fourier, Shape features
+@section Polar Fourier transform features
+
+Polar and log-polar Fourier features are similar to Fourier features,
+but the gradient image is transformed to polar or log-polar coordinate
+plane before the Fourier transform.  This leads to increased invariance
+to translation, rotation and scale.
+
+@c **********************************************************************
+@node Structure features, Text features, Shape features, Top
+@chapter Structure features
+
+There are no structure features implemented yet.
+
+@page
+
+@c **********************************************************************
+@node Text features, Message features, Structure features, Top
+@chapter Text features
+
+The feature extraction of the PicSOM system was originally used to
+extract only image features, but later it was expanded, and it can 
+now be used to extract features of other types of data as well.
+There are some text features that can be computed of text objects.
+For now, the text feature extraction module only supports text
+files in plain text format with characters in either UTF-8/US-ASCII
+or LATIN1 character encoding.
+
+@menu
+* ngram::     Word/character NGrams.
+@end menu
+
+@c **********************************************************************
+@node ngram, , , Text features
+@section Word/character NGrams
+
+The NGram feature is a text feature that can be calculated using
+either words or characters. The mode (characters/words) can be
+selected using a command line parameter of the feature extraction
+program. The default mode is the character NGram mode.
+
+When using characters, the feature vector
+is calculated using each string of N successive characters in
+the given text. The parameter N can be changed using a command 
+line switch in the program. The default value is 3. For example, 
+the string "hello" contains the following 
+character 3-grams: "  h", " he", "hel", "ell", "llo", "lo ", "o  ". 
+
+When using words, the feature vector is calculated using each 
+string of N successive words in the given text. For example, the
+string "The NGram feature is a text feature" contains the following
+word 3-grams: "The NGram feature", "NGram feature is", "feature is a",
+"is a text" and "a text feature".
+
+The NGram feature vector is calculated from the extracted word/character
+NGram strings using hash functions. The default function used is Secure
+Hash Algorithm (SHA-1), but the used function can be changed with a
+command line parameter. The NGram string (eg. "ell" or "is a text") is
+given to the hash function, which returns a hash digest. 
+
+For example SHA-1 returns a 160-bit message digest, but only
+the n=1,...,feature_vector_length/256 first bytes of the hash digest 
+are used to calculate a projection vector for the given NGram string. 
+The projection vector of the NGram string is formed in the
+following way: The values of vector elements with index i=(n-1)*256+v(n)
+are set to 1, where n is the index number of the byte in the hash
+digest, and v(n) is the value of the byte. Other elements are given the
+value zero.
+
+The vector calculated for the NGram string has the same length as the 
+final feature vector calculated for the whole text. By default, the NGram 
+feature vector has 1024 elements, but this can also be changed using a 
+command line parameter. The projection vectors calculated for each NGram
+string extracted from the text are summed up to form the feature vector 
+for the whole text.
+
+When using SHA-1 hash algorithm we can assume that the projection
+vectors calculated for the different NGram strings are (almost) 
+orthogonal vectors, since SHA-1 has been designed to give very 
+different output digests for even slightly different input strings.
+
+
+@c **********************************************************************
+@node Message features, Video features, Text features, Top
+@chapter Message features
+
+Message features can be calculated for message/rfc822 objects. 
+
+@menu
+* msgdate::     Message date.
+@end menu
+
+@c **********************************************************************
+@node msgdate, , , Message features
+@section Message date
+
+The message date feature vector is calculated using the message sending
+date and time. At first the following five scalars are computed: days
+since 1/1/1970 00:00, the part of the year the message was sent at (between 0 
+and 1), the part of the month, the part of the week, and the part of the day.
+
+The last four of the scalars are each converted to two-dimensional 
+continuous periodic circular coordinates on unit circle. Thus we'll get a 
+nine-dimensional feature vector, that has a linear component and several
+periodic components. The feature function is a continuous function of time.
+
+@c **********************************************************************
+@node Video features, Audio features, Message features, Top
+@chapter Video features
+
+Most of the image features can be used to calculate features for
+video files as well. The videos are just treated as images that contain
+multiple frames. The feature is calculated for each frame, and then the
+final results are formed according to several command line switches. The
+program can for example just return the value of the feature vector for
+each frame, or it can calculate the average value of the feature vector
+for the whole video. The video can be also divided into smaller slices,
+and for example the average value of the feature in slices containing 
+100 successive frames in the video can be returned.
+
+Check the command line arguments for more info.
+
+@c **********************************************************************
+@node Audio features, Areas of calculation, Video features, Top
+@chapter Audio features
+
+Audio features can be calculated for audio objects or for video objects 
+with an embedded audio stream.
+
+@menu
+* avgaudioenergy::     Average audio energy.
+* audiofreq::          Audio frequency distribution.
+@end menu
+
+@c **********************************************************************
+@node avgaudioenergy, audiofreq, , Audio features
+@section Average audio energy
+
+This feature sums up the audio energy of the given audio signal. The
+feature vector contains one element, which contains the averaged 
+total energy of the signal.
+
+
+@c **********************************************************************
+@node audiofreq, , avgaudioenergy, Audio features
+@section Audio frequency distribution
+
+This feature does an FFT to the audio signal, and then calculates the
+total energy in several distinctic frequency intervals. The feature 
+vector contains the energy of the signal in the following
+frequency intervals:
+0 .. F/16, 
+F/16 .. F/8, 
+F/8 .. F/4, 
+F/4 .. F/2, 
+F/2 .. F and 
+F .. N, 
+where F is 22050 Hz, and N is the Nyquist frequency of the audio signal
+(sample rate / 2). Many audio signals have sampling rate 44100 Hz, so the last
+element is usually 0. Some audio streams however might have larger
+sampling rates (e.g. 48000 Hz).
+
+The frequency intervals were chosen like this, because in natural audio
+signals most of the energy is in the lower frequencies. That is why we
+want to take a closer look on what is happening in the lower frequency
+bands.
+
+The energy values are averaged over the frequency interval and then
+normalized dividing the value with the duration of the audio
+signal. Thus the values computed for different signals of different
+length should be comparable.
+
+
+@c **********************************************************************
+@node Areas of calculation, Implementation, Audio features, Top
+@chapter Areas where image features are calculated
+
+Currently, two approaches for area-wise calculation of features are
+considered. In the simpler one named ``zoning´´, the image area is
+divided in a fixed number of geometrical zones.  In the more elaborate
+one, the image needs first to be segmented.  Then, the segmentation
+information is used in determining which pixels belong to the object and 
+are thus subjects to feature extraction.
+
+@menu
+* Zoning::         Feature calculation in geometrical areas.
+* Segmentation::   Feature calculation after segmentation.
+@end menu
+
+@c ======================================================================
+@node Zoning, Segmentation, , Areas of calculation
+@section Feature calculation in zones
+
+Currently, we have used a simple zoning method which divides the image
+area to five approximately equally-sized areas.  This scheme is easily
+expandable to any number of geometrically-definable areas.
+
+@image{image-zones,14cm}
+
+@c ======================================================================
+@node Segmentation, , Zoning, Areas of calculation
+@section Feature calculation after segmentation
+
+It is also quite straightforward to implement feature extraction which
+uses pixel-wise classification of the image obtained in segmentation.
+The interpretation of the pixel values would be dependent on the used
+database. 
+
+@image{segments,14cm}
+
+@page
+
+@c **********************************************************************
+@c ----------------------------------------------------------------------
+@node Implementation, Command line switches, Areas of calculation, Top
+@chapter Implementation of feature extraction
+
+The implementation of the feature extraction methods are written in C++.
+The source code are appended to the CVS version control system and the
+files can then be found in
+@file{/share/imagedb/picsom/CVS-files/features}. The program code has
+been made such that it is easy to add new features in the
+system. Therefore when writing new features, only the new feature class
+source code and header file need to be written.  No modifications are
+needed in the existing modules.  The name of the new feature extraction
+module only needs to be added in the @file{makefile}.
+
+The @code{main} function is in @file{main.cc}. First it calls class
+methods for displaying the usage or other instructions, if necessary.
+Otherwise, it creates a @code{Feat} object which takes the command-line
+arguments as parameters. The main purpose of the @code{Feat} object is
+to provide a clear boundary between the @code{Feature} class and the
+@code{main} program.  This is also called the ``letter and envelope''
+technique. Thus, the constructor of the @code{Feat} class forms a
+@code{Feature} object and transmits the command line arguments to the
+constructor of the @code{Feature} class.
+
+The @code{Feature} class is the base class for the actual features and
+therefore its @code{public} methods are inherited to its derived
+classes. The existence of implemented features is determined in the
+compilation stage because of the determination of a global
+initialization variable in each derived feature classes. The
+initialization variable causes the constructor to call a methods which
+adds that class into a linked list of implemented feature extraction
+methods.  Later, each class' @code{tryToMake()} method determines if
+that very feature is called in the command line.
+
+Thus, the constructor of the @code{Feature} class offers the
+feature-type-specifying keyword from the command line to
+@code{tryToMake()} functions of each implemented feature class until one
+approves it and the corresponding feature extractor object is created.
+
+@quotation
+In the future it might me sensible to derive @code{Color},
+@code{Texture}, and @code{Shape} classes from the @code{Feature} base
+class and individual features would be derived from these inherited
+classes. The @code{Shape} class should be derived form the
+@code{Feature} class and from the @code{Shape} class the
+@code{Gradient}, @code{UNLFourier}, and @code{Fourier} classes. The
+@code{Shape} class would then contain, for example, the edge detection
+routines which are shared with the shape features.
+@end quotation
+
+When implementing a new feature the easiest way is to use some existing
+feature code such as @code{Rgb.cc} and @code{Rgb.h} as a template. The
+word @code{rgb} and @code{Rgb} should only be replaced with a new
+name. The instructions for the feature should also be made in function
+@code{NewFeature::displayInstructionsOfThisClass()}. The command line
+switches are handled in a separate function
+@code{NewFeature::processCommandLineArguments()}, but one should
+note that there are also some global switches (such as @samp{-l}) which
+must be reserved.
+
+In the feature extraction code the @code{il} graphics library is
+used. Therefore the input image can be any of the common types. An
+example of the use of the graphics library is in @file{Gradient.cc}.
+
+NOTE: It have been observed that the @code{il} graphics library still
+contains some bugs. Specifically, GIF images should not be directly
+used in the feature extraction because the library converts them to
+grey-scale images!
+
+@page
+
+@c **********************************************************************
+@c ----------------------------------------------------------------------
+@node Command line switches, , Implementation, Top
+@chapter Command line switches
+
+The usage of the @code{features} program is as follows:
+
+@example
+
+features @r{feature-type-specifier} [switches] imagefile
+
+@end example
+
+The details of the switches implemented are feature specific except the
+global switches and they are fully explained by typing:
+
+@example
+
+features -h
+
+@end example
+
+@c **********************************************************************
+@contents
+@bye
+
+@c Local Variables:
+@c mode: auto-fill
+@c End:

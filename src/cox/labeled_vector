@@ -1,0 +1,23 @@
+// -*- C++ -*-
+
+// $Id: labeled_vector,v 1.2 2007/11/19 08:02:26 jorma Exp $	
+
+#ifndef _cox_labeled_vector_
+#define _cox_labeled_vector_
+
+#include <vector>
+#include <string>
+#include <utility>
+
+
+namespace cox {
+  using std::pair;
+  using std::vector;
+  using std::string;
+
+  // template <class T> typedef pair<vector<T>,string> labeled_vector;
+  typedef pair<vector<float>,string> labeled_float_vector;
+
+} // namespace cox
+
+#endif // _cox_labeled_vector_

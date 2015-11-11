@@ -1,0 +1,434 @@
+// -*- C++ -*-
+
+// $Id: blas,v 1.5 2015/06/04 14:01:51 jorma Exp $	
+
+#ifndef _cox_blas_
+#define _cox_blas_
+
+#include <cox/labeled>
+#include <cox/labeled_vector>
+
+#include <numeric>
+#include <iterator>
+#include <iostream>
+#include <sstream>
+#include <limits>
+#include <algorithm>
+
+namespace cox {
+
+  ///
+  namespace blas {
+    using std::vector;
+    using std::string;
+    using std::istream;
+    using std::ostream;
+    using std::istream_iterator;
+    using std::stringstream;
+    using std::numeric_limits;
+    using std::cout;
+    using std::endl;
+
+    ///
+    static const string& _h() {
+      static const string h = "cox::blas::";
+      return h;
+    }
+    
+    ///
+    inline string _ne(size_t a, size_t b) {
+      stringstream s;
+      s << a << "!=" << b;
+      return s.str();
+    }
+
+    /// these from() methods should perhaps be in somewhere else!
+
+    ///
+    template <class T>
+    static vector<T> from(int l, const string& s) throw(string) {
+      // cout << "[" << s << "]" << endl;
+      stringstream str(s);
+      return from<T>(l, str);
+    }
+
+    ///
+    template <class T>
+    static vector<T> from(int l, istream& s) throw(string) {
+      vector<T> r(l);
+      istream_iterator<T> is(s);
+      typename vector<T>::iterator ir = r.begin();
+      while (ir!=r.end() && is!=istream_iterator<T>())
+	*(ir++) = *(is++);
+
+      if ((ir!=r.end()) && (is==istream_iterator<T>()))
+	throw _h()+"from() stream ended prematurely A";
+
+      return r;
+    }
+
+    ///
+    template <class T>
+    inline labeled_float_vector labeled_fv_from(int l, istream& s)
+      throw(string) {
+      vector<T> r(l);
+      istream_iterator<T> is(s);
+      typename vector<T>::iterator ir = r.begin();
+      while (ir!=r.end() && is!=istream_iterator<T>()) {
+	*(ir++) = *is;
+	if (ir!=r.end())
+	  is++;
+      }
+
+      if ((ir!=r.end()) && (is==istream_iterator<T>()))
+	throw _h()+"from() stream ended prematurely B";
+
+      istream_iterator<string> li(s);
+      string label = *li;
+
+      return labeled_float_vector(r, label);
+    }
+
+    ///
+    template <class T>
+    inline labeled_float_vector labeled_fv_from(int l, const string& s)
+      throw(string) {
+      // cout << "[" << s << "]" << endl;
+      stringstream str(s);
+      return labeled_fv_from<T>(l, str);
+    }
+
+    ///
+    template <class T>
+    inline labeled<T> labeled_from(int l, istream& s) throw(string) {
+      labeled<T> r(l);
+      istream_iterator<typename T::value_type> is(s), eof;
+      typename labeled<T>::iterator ir = r.begin();
+      while (ir!=r.end() && is!=eof) {
+	*(ir++) = *is;
+	if (ir!=r.end())
+	  is++;
+      }
+
+      if (ir!=r.end() && is==eof)
+	throw _h()+"from() stream ended prematurely C";
+
+      istream_iterator<string> li(s);
+      r.label(*li);
+
+      return r;
+    }
+
+    ///
+    template <class T>
+    inline labeled<T> labeled_from(int l, const string& s) throw(string) {
+      stringstream str(s);
+      return labeled_from<T>(l, str);
+    }
+
+    ///
+    template <class T>
+    inline labeled<vector<T> > labeled_vector_from(int l, istream& s)
+      throw(string) {
+      //
+      // this should call labeled_from()...
+      //
+      labeled<vector<T> > r(l);
+      istream_iterator<T> is(s);
+      typename labeled<vector<T> >::iterator ir = r.begin();
+      while (ir!=r.end() && is!=istream_iterator<T>()) {
+	*(ir++) = *is;
+	if (ir!=r.end())
+	  is++;
+      }
+
+      if ((ir!=r.end()) && (is==istream_iterator<T>()))
+	throw _h()+"from() stream ended prematurely D";
+
+      istream_iterator<string> li(s);
+      r.label(*li);
+
+      return r;
+    }
+
+    ///
+    template <class T>
+    inline labeled<vector<T> > labeled_vector_from(int l, const string& s)
+      throw(string) {
+      // cout << "[" << s << "]" << endl;
+      stringstream str(s);
+      return labeled_vector_from<T>(l, str);
+    }
+
+    ///
+    template <class T>
+    static string dump(const vector<T>& v) {
+      stringstream ss;
+      show(v, ss);
+
+      return ss.str();
+    }
+
+    ///
+    template <class T>
+    inline ostream& show(const vector<T>& v, ostream& os = cout) {
+      typename vector<T>::const_iterator vi = v.begin();
+      while (vi!=v.end())
+	os << *(vi++) << " ";
+
+      return os;
+    }
+
+    ///
+    template <class I>
+    static ostream& show(I i, I e, bool nl = true, ostream& os = cout) {
+      while (i!=e) {
+	show(*(i++), os);
+	if (nl)
+	  os << endl;
+      }
+
+      return os;
+    }
+
+    ///
+    template <class T, class U>
+    void vec_add(vector<T>& v, const vector<U>& u) throw(string) {
+      if (v.size()!=u.size()) 
+	throw _h()+"vec_add() size mismatch "+_ne(v.size(), u.size());
+
+      typename vector<T>::iterator vi = v.begin();
+      typename vector<U>::const_iterator vu = u.begin();
+      while (vi!=v.end())
+	*(vi++) += *(vu++);
+    }
+
+    ///
+    template <class T, class U>
+    vector<T> vec_plus(const vector<T>& v, const vector<U>& u) throw(string) {
+      if (v.size()!=u.size()) 
+	throw _h()+"vec_plus() size mismatch "+_ne(v.size(), u.size());
+
+      vector<T> t(v);
+      typename vector<T>::iterator vi = t.begin();
+      typename vector<U>::const_iterator vu = u.begin();
+      while (vi!=t.end())
+	*(vi++) += *(vu++);
+
+      return t;
+    }
+
+    ///
+    template <class T, class U>
+    vector<T> vec_minus(const vector<T>& v, const vector<U>& u) throw(string) {
+      if (v.size()!=u.size())
+	throw _h()+"vec_minus() size mismatch "+_ne(v.size(), u.size());
+
+      vector<T> t(v);
+      typename vector<T>::iterator vi = t.begin();
+      typename vector<U>::const_iterator vu = u.begin();
+      while (vi!=t.end())
+	*(vi++) -= *(vu++);
+
+      return t;
+    }
+
+    ///
+    template <class T, class U>
+    vector<T> vec_times(const vector<T>& v, const vector<U>& u) throw(string) {
+      if (v.size()!=u.size())
+	throw _h()+"vec_times() size mismatch "+_ne(v.size(), u.size());
+
+      vector<T> t(v);
+      typename vector<T>::iterator vi = t.begin();
+      typename vector<U>::const_iterator vu = u.begin();
+      while (vi!=t.end())
+	*(vi++) *= *(vu++);
+
+      return t;
+    }
+
+    ///
+    template <class T, class U>
+    vector<T> vec_div(const vector<T>& v, const vector<U>& u) throw(string) {
+      if (v.size()!=u.size())
+	throw _h()+"vec_div() size mismatch "+_ne(v.size(), u.size());
+
+      vector<T> t(v);
+      typename vector<T>::iterator vi = t.begin();
+      typename vector<U>::const_iterator vu = u.begin();
+      while (vi!=t.end())
+	*(vi++) /= *(vu++);
+
+      return t;
+    }
+
+    ///
+    template <class T>
+    T vec_sum(const vector<T>& v) throw(string) {
+      T t = T();
+      typename vector<T>::const_iterator vi = v.begin();
+      while (vi!=v.end())
+	t += *(vi++);
+
+      return t;
+    }
+
+    ///
+    template <class T>
+    static T dot_product(const vector<T>& a, const vector<T>& b) {
+      return std::inner_product(a.begin(), a.end(), b.begin(), T());
+    }
+
+    ///
+    template <class T>
+    inline double euclidean_squared_distance(const vector<T>& a,
+					     const vector<T>& b)
+      throw(string) {
+      
+      if (a.size()!=b.size())
+	throw _h()+"euclidean_squared_distance() vector size mismatch";
+
+      double s = 0;
+      for (size_t i=0; i<a.size(); i++)
+	s += (a[i]-b[i])*(a[i]-b[i]);
+
+      return s;
+    }
+
+    ///
+    template <class T>
+    inline double euclidean_squared_distance_break(const vector<T>& a,
+						   const vector<T>& b,
+						   double r =
+						   numeric_limits<T>::max())
+      throw(string) {
+      
+      size_t bs = 50, l = a.size();
+      if (l!=b.size())
+	throw _h()+"euclidean_squared_distance_break() vector size mismatch";
+
+      register double s = 0;
+      typename vector<T>::const_iterator i = a.begin(), j = b.begin();
+      while (l>bs) {
+	l -= bs;
+	size_t k = bs;
+	while (k--) {
+	  register double d = *(i++)-*(j++);
+	  s += d*d;
+	}
+	if (s>r)
+	  return numeric_limits<T>::max();
+      }
+
+      while (i!=a.end()) {
+	register double d = *(i++)-*(j++);
+	s += d*d;
+      }
+
+      return s;
+    }
+
+    ///
+    template <class T>
+    inline double euclidean_squared_distance_break_old(const vector<T>& a,
+						       const vector<T>& b,
+						       double l =
+						       numeric_limits<T>::max())
+      throw(string) {
+      
+      if (a.size()!=b.size())
+	throw _h()+"euclidean_squared_distance_break() vector size mismatch";
+
+      double s = 0;
+      typename vector<T>::const_iterator i = a.begin(), j = b.begin();
+      while (i!=a.end()) {
+	register double d = *(i++)-*(j++);
+	s += d*d;
+	if (s>l)
+	  return numeric_limits<T>::max();
+      }
+      
+      return s;
+    }
+
+    ///
+    template <class T>
+    static double euclidean_distance_break(const vector<T>& a,
+					   const vector<T>& b,
+					   double l = numeric_limits<T>::max())
+      throw(string) {
+
+      if (l!=numeric_limits<T>::max())
+	l = l*l;
+      return sqrt(euclidean_squared_distance_break(a, b, l));
+    }
+
+    template <class T>
+    class dlcomp {
+    public:
+      bool operator()(const T& x, const T& y) { return x.first < y.first; }
+    }; // class dlcomp    
+
+    ///
+    template <class T, class C>
+    inline vector<pair<double,typename C::const_iterator> >
+    euclidean_nearest_neighbors(const vector<T>& v, const C& cont,
+				size_t k, bool c) {
+      bool debug = false; // true;
+      double mf = numeric_limits<double>::max();
+
+      typedef typename C::const_iterator iter_t;
+      typedef pair<double,iter_t> entry_t;
+      typedef vector<entry_t> vector_t;
+      vector_t dl;
+      
+      dlcomp<entry_t> mydlcomp;
+
+      for (iter_t i = cont.begin(); i!=cont.end(); i++) {
+	double r = dl.size()==k ? dl.back().first : mf;
+	double d = c ? euclidean_squared_distance_break(v, *i, r)
+	  : euclidean_squared_distance(v, *i);
+
+	if (debug)
+	  cout << "r=" << r << " d=" << d << "   ";
+	if (d<r) {
+	  if (debug)
+	    cout << "BINGO!" << endl;
+	  if (dl.size()>=k)
+	    dl.back() = entry_t(d, i);
+	  else
+	    dl.push_back(entry_t(d, i));
+
+	  std::sort(dl.begin(), dl.end(), mydlcomp);
+
+	  if (dl.size()>k)
+	    dl.resize(k);
+	}
+	if (debug) {
+	  for (typename vector_t::const_iterator j = dl.begin();
+	       j!=dl.end(); j++)
+	    cout << j->first << " (" /*<< (void*)&j->second*/ << ")  ";
+	  cout << endl;
+	}
+      }
+      return dl;
+    }
+
+    ///
+    template <class T> 
+    void normalize(vector<T>& v, double /*r*/) {
+      double sum = 0;
+      for (size_t i=0; i<v.size(); i++)
+	sum += v[i];
+      if (sum)
+	for (size_t i=0; i<v.size(); i++)
+	  v[i] /= sum;
+    }
+
+  } // namespace blas
+
+} // namespace cox
+
+#endif // _cox_blas_
+

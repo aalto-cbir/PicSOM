@@ -1,0 +1,584 @@
+2015-11-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.C 1.3, imagedata.h 1.108: Corrected typo.
+
+2015-10-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.19:
+	Added filename in data and some debugging and cleanups.
+
+	* videofile.C 1.46: Added setting of -r <framerate> in avconv options.
+
+2015-10-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.45, videofile.h 1.28:
+	Added vcodec_null and implemented also vcodec_mpeg4 for avconv.
+	Changed argument order in codecs_to_options() and added video_bitrate.
+	video_bitrate is now hard-coded 6000kb/s for avconv.
+
+2015-10-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.107: normalize_01() is now void if vector_size()==0.
+
+2015-09-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.18:
+	Added  bool truncate_on_failure = true in read_frame_impl().
+
+	* imageapp.C 1.35: Added extract_video_frames().
+
+2015-09-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.44:
+	Added alternative ways of solving VIDEO_FPS in identify_avprobe().
+
+2015-01-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imageapp.C 1.34: Corrected use of videofile::extract_video_segment().
+
+2015-01-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.17:
+	Changed thickness to 1 in render_text_impl().
+
+2015-01-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.16: Implemented render_text_impl().
+
+2015-01-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.15:
+	Added checking of system() result with gunzip.
+
+2014-10-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.14:
+	Added debugging output in the video seek loop of read_frame_impl().
+
+	* imagedata.h 1.106: Added error diagnostics in subimage().
+
+2014-10-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.43:
+	-same_quant removed 2014-10-21 when turning to libav-9.17
+
+2014-08-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.13: Added/changed some int/size_t casts/types.
+
+2014-07-03  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* imagefile-opencv.C 1.12: *** empty log message ***
+
+	* imagefile-opencv.C 1.11:
+	Added support for reading and writing multi-frame tiffs with textual descriptions (=segmentation files).
+
+2014-04-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.105: Added non-tested copyAsSubimageInv().
+
+	* imagedata.h 1.104: Added copyAsSubimage() w polygon argument.
+
+2014-01-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.42: Added VF_FFMPEG support for codec options.
+
+2014-01-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.h 1.27, videofile.C 1.41:
+	Extracted avconvname() as a static method.
+	Implemented extract_audio() with avconv.
+
+2014-01-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.10:
+	open_read_impl() now calls gunzip if file is gzipped.
+
+2013-10-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.103:
+	force_one_channel() now has optional coefficients argument.
+
+2013-06-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.40: identify() now catches identify_avprobe()'s throws.
+
+2013-04-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.h 1.26, videofile.C 1.39:
+	extract_video_segment() w/VF_FFMPEG/avconv now ignores zero aspect ratio.
+	Added non-static _tempdir.
+
+2013-01-25  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* videofile.C 1.38, videofile.h 1.25:
+	Added ability to give extra command line options to extract_video_segment().
+
+2012-11-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile.h 1.51: Added check for HAVE_UNISTD_H.
+
+	* imagefile-opencv.C 1.9:
+	Changed to test HAVE_OPENCV2_CORE_CORE_HPP instead of HAVE_OPENCV_CV_H.
+
+2012-10-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.37:
+	extract_video_segment() now preserves aspect ratio for jpegs.
+
+2012-10-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.36, videofile.h 1.24:
+	Added Analysis::ExtractMedia() and related.
+
+2012-08-31  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.102: Implemented stretching in _rescale_0().
+
+	* imagescaling.h 1.10: Corrected rounding errors in _{src,dst}_{x,y}().
+	Added bool stretch.
+
+2012-08-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile.h 1.50: Added void *impl_data() .
+
+	* Makefile 1.28: Changed default IFIMPL from magick to opencv .
+
+2012-06-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.35:
+	Added ffmpegname in extract_video_segment() and support for images.
+
+2012-06-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.34:
+	Added an "r_frame_rate trick" in identify_avprobe().
+
+2012-06-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.33: Improved identify_avprobe().
+
+2012-05-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.h 1.23, videofile.C 1.32:
+	Renamed identify() to identify_mplayer_identify(), added identify_avprobe().
+	identify() now uses identify_avprobe() in all environments where the
+	hardcoded avprobe path is valid. Beware!
+
+2012-04-17  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile.h 1.49: Added extension argument in stringify_tmpfile().
+
+	* imagefile-opencv.C 1.8:
+	Implemented writing of 16-bit images and stringfy().
+
+2012-01-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.7: Tried to implement video seek backwards.
+
+	* imagefile-opencv.C 1.6: Implemented forward seek for video.
+
+2012-01-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.5:
+	Added implementations of video reading and image writing.
+
+2012-01-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.4: Added VideoCapture class in open_read_impl().
+
+2012-01-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.3: Implemented impl_library_version().
+
+	* imagefile-opencv.C 1.2:
+	Implemented open_read_impl() and read_frame_impl() to some extent.
+
+2012-01-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.1: Copied from imagefile-unimpl.C.
+
+2011-12-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.120: Added some depth debugging in write_impl().
+
+2011-11-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.h 1.22: Added get_demuxer().
+
+	* videofile.C 1.31: Added bool is_mpegts in identify().
+
+2011-10-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.30: write() has noe better failure diagnostics.
+
+2011-10-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.29: Changed to "-frames 1" in identify().
+
+	* imagefile-magick.C 1.119:
+	open_read_impl() should now work also if explicit file type.
+
+	* imageapp.C 1.33: Added format argument in one_file().
+
+	* imagefile-xine.C 1.21:
+	Added a polling loop in xineExperimentalGrabFirstFrame().
+
+2011-10-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videoapp.C 1.9: Added -d switch.
+
+	* imageapp.C 1.32: Added -w and -r and try_html().
+
+	* imagefile-magick.C 1.118:
+	Added a dummy rule for video/mp2t in type_name_convert().
+
+	* imagefile-xine.C 1.20: Corrected bug in YV12ToRGB().
+	Added initialization of _xine_impl_data::current_frame.
+	Added some conditional verbosity.
+	Visual reformatting.
+
+2011-10-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.117:
+	Added mapping between file extension .mp4 and mime type video/mp4.
+
+2011-10-17  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-xine.C 1.19: Minor cleanup.
+
+	* videofile.h 1.21: Added get_aspect().
+
+2011-10-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.28, imagefile-xine.C 1.18:
+	identify() now executes mplayer | grep instead of midentify.
+	Some aesthetic cleanups.
+
+2011-03-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.27: Added Simple.o in UTILOBJS.
+
+2011-02-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.116:
+	Conditioned call to InitializeDelegateInfo() on MagickLibVersion.
+
+2011-02-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.115:
+	open_read_impl() now throws if MIME type is not image/ nor video/.
+
+2011-01-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.114:
+	Moved destroy_delegates() to be called inside initialize().
+
+2011-01-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.113: Switched off DelegateInfo debugging.
+
+	* imagefile-magick.C 1.112:
+	Fixed DelegateInfo bugs with GraphicsMagick 1.3.12.
+
+2011-01-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.111: Added initialize().
+
+	* imagefile-magick.C 1.110:
+	Added a DestroyDelegateInfo() hack for maverick.
+
+2011-01-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.109:
+	Added call to empty_tmpdir() before throw in open_read_impl().
+
+2011-01-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.108:
+	Added a hack that saves triton from crash with tiff files in open_read_impl().
+
+2011-01-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.107:
+	Rewrote triton version of destroy_delegates().
+
+	* imagefile-magick.C 1.106:
+	Wrote a triton version of destroy_delegates().
+
+	* imagefile-magick.C 1.105: Added destroy_delegates().
+
+2011-01-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.104: Added 3x call to DestroyExceptionInfo().
+
+	* imagedata.h 1.101: Corrected a bug in decanonize_uchar().
+
+2010-09-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.100: Finalized Analysis::CreateVideoCollage().
+	Addd imagedata::isempty() and used it in DataBase::CreateImage().
+
+2010-03-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.103:
+	Added check for empty boundig box in render_text_impl().
+
+2010-03-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-unimpl.C 1.9:
+	COmmented out unused variable d in unstringify_impl().
+
+2009-11-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.26:
+	Added out-commented alternative TARGETNAME = videoapp .
+
+2009-09-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile.h 1.48, imagefile-magick.C 1.102, imagedata.h 1.99:
+	Added imagedata::set_raw_from_uchar() and decanonize_uchar().
+	Added imagefile::info().
+	Added support for MaxRGB==256 in magick_to_imagedata().
+	imagefile-magick::impl_library_version() reports MaxRGB as (256) or (65535).
+
+2009-09-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.27: Just removed emacs local variables.
+
+2009-08-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.98, imagefile-magick.C 1.101:
+	Simplified config.h and missing-c-utils.h includes.
+
+2009-08-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.97: Renamed is imagedata::isempty() to iszero().
+
+2009-08-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.100: Added display of MaxRGB in write_impl().
+
+2009-06-26  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Makefile 1.25: Added Util.o to imageapp linking.
+
+	* imagefile-magick.C 1.99:
+	Moved libmagic_mime_type() from imagefile-magick to Util.
+
+2009-06-04  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* videofile.C 1.26: Added missing close() for a file.
+
+2009-05-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.98:
+	Added a "image/x-ms-bmp" vs "image/bmp" hack in type_name_convert().
+
+2009-05-20  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* videofile.C 1.25:
+	identify() now uses midentify from imagedb/picsom/bin. Fixed problem where _filename was emptied before it could be used in open().
+
+2009-05-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile.h 1.47:
+	Added some return value checks / initializations to make gcc 4.3.2 -O3 silent.
+
+2009-05-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.97:
+	Changed "image/bmp" to "image/x-ms-bmp" in type_name_convert().
+
+2009-04-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.24:
+	Corrected fprintf() of feed_mplayer() to please gcc 4.3.2.
+
+	* videofile.h 1.20: Cosmetic changes.
+
+	* videofile.C 1.23:
+	add_frame() how has try catch around imagefile::write().
+
+	* imagefile-magick.C 1.96: Cosmetic changes.
+
+	* imagefile.h 1.46: write()s now declare throw(string).
+
+	* imagedata.h 1.96: Added #include<string.h> to please gcc 4.3.2.
+
+2009-04-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.95: Added parentheses/braces "suggested" by gcc 4.3.2.
+
+2009-04-17  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.94:
+	Added empty() and exlanation for isempty() (which should be zero()).
+
+2009-03-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-unimpl.C 1.8: Added unstringify_impl().
+
+	* imagefile.h 1.45: Removed #ifdef __MINGW32__ and HAVE_CLOSE tests.
+	Added #ifdef HAVE_IO_H #include <io.h>.
+
+2009-03-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-unimpl.C 1.7: render_text_impl() now has two arguments.
+
+2009-02-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.93:
+	Improved copyAsSubimage() to allow negative x and y.
+
+2009-02-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.92: copyAsSubimage() should not wrap or fault anymore.
+
+	* videofile.C 1.22: Changed mplayer to use -vo x11.
+
+2009-02-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.91: Added support for line width in line().
+
+	* videofile.C 1.21: Added some debugging.
+
+2009-02-13  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* videofile.C 1.20:
+	Now uses pclose() instead of fclose() on mplayer pipe. Sets mplayer_broken=true if pipe breaks.
+
+	* videofile.h 1.19:
+	Added mplayer_broken boolean and is_broken() function to check it.
+
+2009-02-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile.h 1.44:
+	Poisoned copy constructor and copy operator due to _impl_data.
+	unstringify_tmpfile() and consecutively unstringify() don't work.
+
+	* imagefile.h 1.43: Added header.
+
+	* imagefile-magick.C 1.95, imagefile.h 1.42:
+	Added float pointsize =20.0 argument in render_text() and *_impl().
+
+2009-01-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.19, videofile.h 1.18: Added open(), close(), is_open().
+
+2008-10-31  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.90, imagecolor.h 1.8: Removed /**\mainpage*/.
+
+	* imagecolor.h 1.7, imagedata.C 1.2, imagedata.h 1.89, imagedraw.h 1.2, imagefile.h 1.41, videofile.h 1.17:
+	Changed hard space to soft in the TODO message.
+
+2008-10-24  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* videofile.C 1.18: Commented out a hack needed in tv08.
+
+2008-08-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile.h 1.40: Added #ifdef HAVE_CLOSE.
+
+	* videofile.h 1.16: Commented out #include <unistd.h>.
+
+2008-08-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.88:
+	Moved HAVE_INTTYPES_H substitutes to missing-c-utils.C.
+
+2008-08-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.17: Removed #define HAVE_INTTYPES_H 1.
+
+	* imagedata.h 1.87: Added #include <config.h>,<missing-c-utils.h>.
+
+	* videofile.C 1.16:
+	Added #define HAVE_INTTYPES_H 1 as a config.h replacement.
+
+	* imagecolor.h 1.6: Removed #include <inttypes.h>.
+
+	* imagefile.h 1.39: Removed #include <unistd.h>.
+
+	* imagedata.h 1.86:
+	Added #ifdef HAVE_INTTYPES_H and MS visual studio replacements.
+
+2008-06-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.85:
+	Changed args of circle() and line() from size_t to int.
+
+2008-06-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.84: Added 2xline() and 2xcircle().
+
+	* imagecolor.h 1.5:
+	Added multiplier() and max_value() which should support imagecolor<unsigned char>.
+
+2008-05-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagecolor.h 1.4: Removed debugging of 0xrrggbb color specs.
+
+	* imagecolor.h 1.3: Added recognition of #rrggbb color specifications.
+
+2008-04-25  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Makefile 1.24, videoapp.C 1.8:
+	videoapp can now be run with parameter -audio which extracts audio into format useful for speech/non-speech detector.
+
+	* videofile.C 1.15, videofile.h 1.15:
+	Sample rate can now be specified to extract_audio().
+
+2008-04-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.14, videofile.h 1.14:
+	Added mplayer and {open,feed,close}_mplayer().
+
+2008-04-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videoapp.C 1.7: Added -m switch.
+
+2008-04-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.94: Changed to check MKDIR_ONE_ARG.
+
+2008-02-15  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* imagedata.h 1.83:
+	Added function create_yuv420() for use with Muvis features.
+
+2007-11-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.h 1.13:
+	In get_num_frames() used floor() instead of round() for SunOS's sake.
+
+	* imagefile-unimpl.C 1.6:
+	Added video_fps_impl() and render_text_impl().
+
+2007-10-09  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* imagedata.h 1.82: corrected quantise_huediffsum_256()
+
+2007-10-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile.h 1.38:
+	Added non-static errtxtfname() and used it in frame().
+
+2007-10-03  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* imagedata.h 1.81: Added colour conversion rgb_to_huediffsum()
+
+2007-08-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.93: Clarified the NO_PTHREADS case.
+
+2007-08-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.92:
+	Changed to check  MagickLibVersion<0x600 instead of 0x625 for IMPLEMENT_MAGICK_MPEG_HACK.
+
+2007-08-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-magick.C 1.91: Reorganized #ifdefs a bit.
+

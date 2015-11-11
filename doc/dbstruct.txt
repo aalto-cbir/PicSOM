@@ -1,0 +1,26 @@
+             top-level files                  bottom-level files
+             and directories                  and directories   
+             ===============                  ==================
+
+<database>--+-images-------+-00--+-00--+-00--+-features----    
+            |              |     |     |     |                 
+            +-features---  +-01- +-01- +-01- +-tn-WxH------    
+            |              |     |     |     |                 
+            +-views------  +-02- +-02- +-02- +-texts-------    
+            |              :     :     :     |                 
+            +-classes----                    +-text-html---    
+            |                                |                 
+            +-settings.xml                   +-links-------    
+            |                                |                 
+            +-labels                         +-segments----    
+            |                                |                 
+            +-next-free-label                +-00000002.d--
+            |                                |
+            +-contents                       +-origins         
+            |                                |                 
+            +-images-and-texts.html          +-00000000.jpg    
+            |                                |                 
+            +-thumbnails.html                +-00000001.gif    
+                                             |                 
+                                             +-00000002.eml    
+                                             :                 

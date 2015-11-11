@@ -1,0 +1,887 @@
+// -*- C++ -*-  $Id: matrix,v 1.6 2015/10/26 13:02:10 jorma Exp $
+// 
+// Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
+// 
+
+// $Id: matrix,v 1.6 2015/10/26 13:02:10 jorma Exp $	
+
+#ifndef _cox_matrix_
+#define _cox_matrix_
+
+#include <cox/demangle>
+
+#include <string>
+#include <vector>
+#include <list>
+#include <map>
+#include <iostream>
+#include <sstream>
+#include <cmath>
+#include <cstring>
+
+#ifdef HAVE_MKL_H
+#include <mkl_lapack.h>
+#else
+extern "C" {
+  int ilaenv_(int*, char*, char*, int*, int*, int*, int*);
+  void ssyevx_(char*, char*, char*, int*, float*, int*, float*,
+   	       float*, int*, int*, float*, int*, float*, float*,
+   	       int*, float*, int*, int*, int*, int*);
+  void dggev_( char*, char*, int*, double*, int*, double*, int*,
+   	       double*, double*, double*, double*,
+   	       int*, double*, int*, double*, int*, int*);
+  void sgetrf_(int*, int*, float*, int*, int*, int*);
+  void sgetri_(int*, float*, int*, int*, float*, int*, int*);
+}
+#endif // HAVE_MKL_H
+
+namespace cox {
+  using std::string;
+  using std::vector;
+  using std::list;
+  using std::map;
+  using std::pair;
+  using std::plus;
+  using std::minus;
+  using std::ostream;
+  using std::stringstream;
+  using std::cout;
+  using std::endl;
+
+  ///
+  template <class T> class matrix {
+  public:
+    ///
+    enum type_t {
+      undef,  ///
+      dense,  ///
+      sparse ///
+    };
+      
+    ///
+    matrix(size_t r = 0, size_t c = 0,
+	   type_t t = dense) : _type(t), _r(r), _c(c) {
+      if (_type==dense)
+	_d.resize(_r*_c);
+    }
+      
+    ///
+    matrix(int r, int c, type_t t = dense) : _type(t), _r(r), _c(c) {
+      if (_type==dense)
+	_d.resize(_r*_c);
+    }
+      
+    ///
+    template <class C>
+    // matrix(typename C::const_iterator i, typename C::const_iterator e,
+    matrix(C i, C e,
+	   bool horiz = false) :
+      _type(dense), _r(0), _c(0) {
+      while (i!=e)
+	if (horiz)
+	  append_row(*(i++));
+	else
+	  append_column(*(i++));
+    }
+
+    ///
+    template <class C>
+    matrix(const vector<C>& v, bool horiz = false) : _type(dense) {
+      _r = !horiz ? v.size() : 1;
+      _c =  horiz ? v.size() : 1;
+      _d = dense_t(v.begin(), v.end());
+    }
+
+    template <class C>
+    matrix(const vector<C>& v, size_t h, size_t w) : _type(dense) {
+      _r = h;
+      _c = w;
+      _d = dense_t(v.begin(), v.end());
+    }
+    
+    /*
+    ///
+    matrix(const vector<vector<T> >& m) throw(string) {
+      for (int i=1; i<m.size(); i++)
+	if (m[i].size()!=m[0].size())
+	  throw("SDFGHJK");
+      e = m;
+    }
+    */
+
+    ///
+    void resize(size_t r, size_t c) { *this = matrix(r, c, _type); }
+
+    ///
+    size_t columns() const { return _c; }
+
+    ///
+    size_t cols() const { return columns(); }
+
+    ///
+    size_t rows() const { return _r; }
+
+    ///
+    template <class C>
+    bool sizes_match(const matrix<C>& m) const {
+      return rows()==m.rows() && cols()==m.cols();
+    }
+
+    ///
+    bool is_square() const { return _r==_c; }
+
+    ///
+    bool is_dense() const { return _type==dense; }
+
+    ///
+    bool is_sparse() const { return _type==sparse; }
+
+    ///
+    bool is_symmetric() const { 
+      if (!is_square())
+	return false;
+
+      for (size_t r = 1; r<rows(); r++)
+	for (size_t c = 0; c<r; c++)
+	  if ((*this)(r, c)!=(*this)(c, r))
+	    return false;
+
+      return true;
+    }
+
+    ///
+    bool row_ok(size_t r) const { return r<_r; }
+
+    ///
+    bool column_ok(size_t c) const { return c<_c; }
+
+    ///
+    const T& operator()(size_t r, size_t c) const { return _d[_i(r, c)]; }
+
+    ///
+    T& operator()(size_t r, size_t c) { return _d[_i(r, c)]; }
+    
+    ///
+    vector<T> get_vector() { return _d; }
+
+    ///
+    template <class I>
+    void insert_column(size_t c, I i, I e) throw (string) {
+      if (c>_c)
+	throw _h()+"insert_column() index not ok";
+
+      size_t l = 0;
+      for (I j=i; j<e; j++, l++) ;
+
+      if (_r && _r!=l)
+	throw _h()+"insert_column() vector length not ok";
+
+      _r = l;
+      _c++;
+      for (size_t r=0; r<_r; r++) {
+	I j = i++;
+	_d.insert(_d.begin()+r*_c+c, j, i);
+      }
+    }
+
+    ///
+    template <class V>
+    void insert_column(size_t c, vector<V>& v) throw (string) {
+      insert_column(c, v.begin(), v.end());
+    }
+
+    ///
+    template <class I>
+    void append_column(I i, I e) throw (string) {
+      insert_column(_c, i, e);
+    }
+
+    ///
+    template <class V>
+    void append_column(const vector<V>& v) throw (string) {
+      append_column(v.begin(), v.end());
+    }
+
+    ///
+    template <class I>
+    void prepend_column(I i, I e) throw (string) {
+      insert_column(0, i, e);
+    }
+
+    ///
+    template <class V>
+    void prepend_column(const vector<V>& v) throw (string) {
+      append_column(v.begin(), v.end());
+    }
+
+    ///
+    vector<T> column(size_t c) throw (string) {
+      if (!column_ok(c))
+	throw _h()+"column() index not ok";
+
+      vector<T> ret(_r);
+      for (size_t i=0; i<_r; i++)
+	ret[i] = (*this)(i, c);
+
+      return ret;
+    }
+
+    ///
+    void set_column(size_t c, const vector<T>& v) throw (string) {
+      if (!column_ok(c))
+	throw _h()+"set_column() index not ok";
+      if (v.size()!=_r)
+	throw _h()+"set_column() size mismatch";
+
+      for (size_t i=0; i<_r; i++)
+	(*this)(i, c) = v[i];
+    }
+
+    ///
+    void remove_column(size_t i) throw (string) {
+      if (!column_ok(i))
+	throw _h()+"remove_column() index not ok";
+      if (_c==1)
+	throw _h()+"remove_column() only column cannot be removed";
+
+      _c--;
+      typename dense_t::iterator p = _d.begin()+i;
+      for (size_t r=0; r<_r; r++, p+=_c)
+	_d.erase(p, p+1);
+    }
+
+    ///
+    template <class I>
+    void insert_row(size_t r, I i, I e) throw (string) {
+      if (r>_r)
+	throw _h()+"insert_row() index not ok";
+
+      size_t l = 0;
+      for (I j=i; j<e; j++, l++) ;
+
+      if (_c && _c!=l)
+	throw _h()+"insert_row() vector length not ok";
+
+      _c = l;
+      _r++;
+      _d.insert(_d.begin()+r*_c, i, e);
+    }
+
+    ///
+    template <class V>
+    void insert_row(size_t c, vector<V>& v) throw (string) {
+      insert_row(c, v.begin(), v.end());
+    }
+
+    ///
+    template <class I>
+    void append_row(I i, I e) throw (string) {
+      insert_row(_r, i, e);
+    }
+
+    ///
+    template <class V>
+    void append_row(const vector<V>& v) throw (string) {
+      append_row(v.begin(), v.end());
+    }
+
+    ///
+    template <class I>
+    void prepend_row(I i, I e) throw (string) {
+      insert_row(0, i, e);
+    }
+
+    ///
+    template <class V>
+    void prepend_row(const vector<V>& v) throw (string) {
+      // append_row(v.begin(), v.end()); obs! until 2015-10-20...
+      prepend_row(v.begin(), v.end());
+    }
+
+     ///
+    vector<T> row(size_t r) throw (string) {
+      if (!row_ok(r))
+	throw _h()+"row() index not ok";
+
+      vector<T> ret(_c);
+      for (size_t i=0; i<_c; i++)
+	ret[i] = (*this)(r, i);
+
+      return ret;
+    }
+
+
+    ///
+    void set_row(size_t r, const vector<T>& v) throw (string) {
+      if (!row_ok(r))
+	throw _h()+"set_row() index not ok";
+      if (v.size()!=_c)
+	throw _h()+"set_row() size mismatch";
+
+      for (size_t i=0; i<_c; i++)
+	(*this)(r, i) = v[i];
+    }
+
+    ///
+    void remove_row(size_t r) throw (string) {
+      // throw _h()+"remove_row() NOT IMPLEMENTED yet";
+      // checks ?
+      if (r>=_r)
+	throw _h()+"insert_row() index not ok";
+
+      _d.erase(_d.begin()+r*_c, _d.begin()+(r+1)*_c);
+      _r--;
+    }
+
+    /// 
+    matrix transpose() const {
+      matrix m(_c, _r, _type);
+      for (size_t i=0; i<_r; i++)
+	for (size_t j=0; j<_c; j++)
+	  m(j, i) = (*this)(i, j);
+      return m;
+    }
+
+    ///
+    void swap_rows(size_t i, size_t j) throw (string) {
+      if (!row_ok(i) || !row_ok(j))
+	throw _h()+"swap_rows() index not ok";
+
+      for (size_t c=0; c<_c; c++) {
+	T v = (*this)(i, c);
+	(*this)(i, c) = (*this)(j, c);
+	(*this)(j, c) = v;
+      }
+    }
+    
+    ///
+    void swap_columns(size_t i, size_t j) throw (string) {
+      if (!column_ok(i) || !column_ok(j))
+	throw _h()+"swap_columns() index not ok";
+
+      for (size_t r=0; r<_r; r++) {
+	T v = (*this)(r, i);
+	(*this)(r, i) = (*this)(r, j);
+	(*this)(r, j) = v;
+      }
+    }
+    
+    ///
+    void swap(size_t i, size_t j) throw (string) {
+      swap_rows(i, j);
+      swap_columns(i, j);
+    }
+    
+    ///
+    vector<T> row_sum() {
+    	vector<T> ret(_r);
+    	for (size_t y=0; y<_r; y++)
+    	   for (size_t x=0; x<_c; x++)
+    	     ret[y] += _d[_i(x,y)];
+    	return ret;
+    }
+    
+    ///
+    vector<T> column_sum() {
+    	vector<T> ret(_c);
+    	for (size_t x=0; x<_c; x++)
+    	   for (size_t y=0; y<_r; y++)
+    	     ret[x] += _d[_i(x,y)];
+    	return ret;
+    }
+    
+    /// 
+    template <class VA, class VB>
+    static T dot_product(const vector<VA>& a, const vector<VB>& b) 
+      throw(string) {
+
+      if (a.size()!=b.size())
+	throw _h()+"dot_product(const vector<VA>&, const vector<VB>&)"
+	  + " size mismatch";
+      
+      return dot_product(a.begin(), a.end(), b.begin());
+    }
+
+    /// 
+    template <class IA, class IB>
+    static T dot_product(IA ai, IA ae, IB bi, size_t as = 1, size_t bs = 1) {
+      T s = T();
+      while (ai<ae) {
+	s += *ai**bi;
+	ai += as;
+	bi += bs;
+      }
+
+      return s;
+    }
+
+    /// 
+    template <class VA, class VB>
+    static matrix<T> outer_product(const vector<VA>& a, const vector<VB>& b) 
+      throw(string) {
+
+      if (!a.size() || !b.size())
+	throw _h()+"outer_product(const vector<VA>&, const vector<VB>&)"
+	  + " empty vector";
+      
+      matrix<T> m(a.size(), b.size());
+      for (size_t r=0; r<a.size(); r++)
+	for (size_t c=0; c<b.size(); c++)
+	  m(r, c) = a[r]*b[c];
+
+      return m;
+    }
+
+    /// 
+    template <class VA>
+    static matrix<T> self_outer_product(const vector<VA>& a) throw(string) {
+      return outer_product(a, a);
+    }
+
+    /// 
+    template <class VA>
+    matrix<T>& add_outer_product(const vector<VA>& a) throw(string) {
+      if (a.size()!=_c)
+	throw _h()+"add_outer_product() size mismatch";
+
+      if (!is_square())
+	throw _h()+"add_outer_product() not square";
+	
+      for (size_t r=0; r<_r; r++) {
+	VA s = a[r];
+	(*this)(r, r) += s*s;
+	for (size_t c=r+1; c<_c; c++) {
+	  VA v = s*a[c];
+	  (*this)(r, c) += v;
+	  (*this)(c, r) += v;
+	}
+      }
+      return *this;
+    }
+
+    /// 
+    template <class M> 
+    matrix operator*(const matrix<M>& m) const throw(string) {
+      if (_c!=m._r)
+	throw _h()+"operator*(const matrix<M>&) size mismatch";
+
+      matrix r(_r, m._c, _type);
+      
+      typename dense_t::const_iterator mi = m._d.begin();
+      for (size_t j=0; j<r._c; j++) {
+	typename dense_t::const_iterator ti = _d.begin();
+	for (size_t i=0; i<r._r; i++, ti+=columns())
+	  r(i, j) = dot_product(ti, ti+columns(), mi, 1, m.columns());
+	
+	mi++;
+      }
+      
+      return r;
+    }
+
+    /// 
+    template <class V> 
+    vector<T> operator*(const vector<V>& v) const throw(string) {
+      return left_multiply(v);
+    }
+ 
+    /// 
+    template <class V> 
+    vector<T> left_multiply(const vector<V>& v) const throw(string) {
+      if (_c!=v.size()) {
+	stringstream ss;
+	ss << _c << "!=" << v.size();
+	throw _h()+"left_multiply(const vector<V>&) size mismatch: "
+	  +ss.str();
+      }
+
+      vector<T> r(_r);
+      typename vector<T>::iterator ri = r.begin();
+      for (typename dense_t::const_iterator i = _d.begin(); i<_d.end(); i+=_c)
+	*(ri++) = dot_product(i, i+_c, v.begin());
+
+      return r;
+    }
+
+    /// 
+    template <class V> 
+    vector<T> left_trans_multiply(const vector<V>& v) const throw(string) {
+      if (_r!=v.size())
+	throw _h()+"left_trans_multiply(const vector<V>&) size mismatch";
+
+      vector<T> r(_c);
+      typename vector<T>::iterator ri = r.begin();
+      for (typename dense_t::const_iterator i = _d.begin(), l = i+_c; i<l; i++)
+	*(ri++) = dot_product(i, _d.end(), v.begin(), _c);
+
+      return r;
+    }
+
+    /// 
+    template <class V> 
+    matrix<T> operator+(const matrix<V>& m) const throw(string) {
+      if (!sizes_match(m))
+	throw _h()+"operator+(const matrix<V>&) size mismatch";
+
+      matrix<T> r(_r, _c);
+      transform(_d.begin(), _d.end(), m._d.begin(), r._d.begin(), plus<T>());
+
+      return r;
+    }
+
+    /// 
+    template <class V> 
+    matrix<T> operator-(const matrix<V>& m) const throw(string) {
+      if (!sizes_match(m))
+	throw _h()+"operator-(const matrix<V>&) size mismatch";
+
+      matrix<T> r(_r, _c);
+      transform(_d.begin(), _d.end(), m._d.begin(), r._d.begin(), minus<T>());
+
+      return r;
+    }
+
+    /// 
+    template <class MT> 
+    matrix<T> operator+(MT m) const throw(string) {
+      matrix<T> r(*this);
+      for (typename dense_t::iterator i = r._d.begin(); i<r._d.end(); i++)
+	*i += m;
+
+      return r;
+    }
+
+    /// 
+    template <class MT> 
+    matrix<T> operator-(MT m) const throw(string) {
+      matrix<T> r(*this);
+      for (typename dense_t::iterator i = r._d.begin(); i<r._d.end(); i++)
+	*i -= m;
+
+      return r;
+    }
+
+    /// 
+    template <class MT> 
+    matrix<T> operator*(MT m) const throw(string) {
+      matrix<T> r(*this);
+      for (typename dense_t::iterator i = r._d.begin(); i<r._d.end(); i++)
+	*i *= m;
+
+      return r;
+    }
+
+    /// 
+    template <class MT> 
+    matrix<T> operator/(MT m) const throw(string) {
+      matrix<T> r(*this);
+      for (typename dense_t::iterator i = r._d.begin(); i<r._d.end(); i++)
+	*i /= m;
+
+      return r;
+    }
+
+    /// 
+    template <class MT> 
+    matrix<T>& operator+=(const MT& m) throw(string) {
+      /// is this still slow...
+      *this = operator+(m);
+      return *this;
+    }
+
+    /// 
+    template <class MT> 
+    matrix<T>& operator-=(const MT& m) throw(string) {
+      /// is this still slow...
+      *this = operator-(m);
+      return *this;
+    }
+
+    /// 
+    template <class MT> 
+    matrix<T>& operator*=(const MT& m) throw(string) {
+      /// is this still slow...
+      *this = operator*(m);
+      return *this;
+    }
+
+    /// 
+    template <class MT> 
+    matrix<T>& operator/=(const MT& m) throw(string) {
+      /// is this still slow...
+      *this = operator/(m);
+      return *this;
+    }
+
+    /// 
+    template <class MT> 
+    T element_product_sum(const matrix<MT>& m) throw(string) {
+      if (_c!=m._c || _r!=m._r)
+	throw _h()+"element_product_sum(const matrix<M>&) size mismatch";
+
+      T s = T(0);
+      for (size_t r=0; r<_r; r++)
+	for (size_t c=0; c<_c; c++)
+	  s += (*this)(r, c)*m(r, c);
+
+      return s;
+    }
+
+    ///
+    matrix inverse() const throw(string) {
+      if (!is_square())
+	throw _h()+"inverse() not square";
+
+      matrix ret(*this);
+
+      ofstream out("matrix.m");
+      ret.show(out);
+
+      int c = columns(), info = -1;
+      vector<int> ipiv(c);
+
+      //sgetrf_(c, c, &ret._d.front(), c, &ipiv.front(), info);
+      sgetrf_(&c, &c, &ret._d.front(), &c, &ipiv.front(), &info);
+      if (info) {
+	stringstream ss;
+	ss << info;
+	throw _h()+"inverse() sgetrf_() failed with info="+ss.str();
+      }
+
+      info = -1;
+      int lw = c*c;
+      vector<float> w(lw);
+
+      //sgetri_(c, &ret._d.front(), c, &ipiv.front(), &w.front(), lw, info);
+      sgetri_(&c, &ret._d.front(), &c, &ipiv.front(), &w.front(), &lw, &info);
+      if (info) {
+	stringstream ss;
+	ss << info;
+	throw _h()+"inverse() sgetri_() failed with info="+ss.str();
+      }
+
+      return ret;
+    }
+
+    ///
+    matrix pseudo_inverse() const throw(string) {
+      if (is_square())
+	return inverse();
+
+      const matrix& h = *this;
+
+      if (_r<_c)
+	return h.transpose()*(h*h.transpose()).inverse();
+      else
+	return (h.transpose()*h).inverse()*h.transpose();
+    }
+
+    /// 
+    pair<list<vector<T> >, vector<T> > eigenvectors(size_t n_vec = 0) const
+      throw(string) {
+      if (!n_vec)
+	n_vec = columns();
+
+      if (!is_symmetric())
+	throw _h()+"eigenvectors() : "+
+	  "cannot yet eigenvectorize unsymmetric matrices.";
+
+      char ssytrd[] = "SSYTRD", empty[] = "";
+
+      int one = 1, zero = 0;
+      int col = columns();
+      //int nb = ilaenv_(one, ssytrd, empty, zero, zero, zero, zero/*,
+      //		       strlen(ssytrd), strlen(empty)*/);
+      int nb = ilaenv_(&one, ssytrd, empty, &zero, &zero, &zero, &zero/*,
+									strlen(ssytrd), strlen(empty)*/);
+      int lwork = nb+3>8 ? (nb+3)*col : 8*col;
+      int first = col-n_vec+1, m = 0, info = 0;
+      vector<int> viwork(5*col), vifail(col);
+      vector<float> vz(n_vec*col), vwork(lwork), vv(columns());
+      vector<float> va(_d);
+      float fzero = 0;
+
+      char V[] = "V", I[] = "I", U[] = "U";
+
+      //ssyevx_(V, I, U, col, &va.front(), col,
+      //	      &fzero, &fzero, first, col, &fzero, m, 
+      //	      &vv.front(), &vz.front(), col, &vwork.front(), lwork,
+      //	      &viwork.front(), &vifail.front(), info,
+      //	       strlen(V), strlen(I), strlen(U)*/);
+      ssyevx_(V, I, U, &col, &va.front(), &col,
+	      &fzero, &fzero, &first, &col, &fzero, &m, 
+	      &vv.front(), &vz.front(), &col, &vwork.front(), &lwork,
+	      &viwork.front(), &vifail.front(), &info/*,
+						      strlen(V), strlen(I), strlen(U)*/);
+
+      if (info<0)
+	throw _h()+"eigenvectors() : ssyevx argument failure";
+      if (info>0)
+	throw _h()+"eigenvectors() : ssyevx convergation failure";
+
+      pair<list<vector<T> >, vector<T> > ret;
+      ret.second = vector<T>(vv.rbegin()+columns()-n_vec, vv.rend());
+      ret.second.resize(columns());
+
+      vector<float>::const_iterator p = vz.begin();
+      for (size_t i=0; i<n_vec; i++, p+=rows())
+	ret.first.push_front(vector<T>(p, p+rows()));
+
+      return ret;
+    }
+
+    ///
+    pair<list<vector<double> >, vector<double> > 
+    generalized_eigenvectors(const matrix<double>& B, size_t n_vec = 0) const
+      throw(string) {
+      cout << "enter generilized_eigenvectors()" << endl;
+      if (!n_vec)
+	n_vec = columns();
+
+      if (!is_symmetric())
+	throw _h()+"eigenvectors() : "+
+	  "cannot yet eigenvectorize unsymmetric matrices.";
+      
+      char ssytrd[] = "SSYTRD", empty[] = "";
+
+      int one = 1, zero = 0;
+      int col = columns();
+      int nb = ilaenv_(one, ssytrd, empty, zero, zero, zero, zero/*,
+								   strlen(ssytrd), strlen(empty)*/);
+      int lwork = nb+3>8 ? (nb+3)*col : 8*col;
+      int info = 0;
+      vector<double> vwork(lwork);
+      vector<double> va(_d);
+      vector<double> vb(B._d);
+      char JOBVL[] = "N", JOBVR[] = "V";
+      vector<double> ar(col), ai(col), bt(col);
+      vector<double> vl(n_vec*col), vr(n_vec*col);
+      int LDVL = col, LDVR = col;
+      
+      dggev_(JOBVL, JOBVR, &col, &va.front(), &col, &vb.front(),
+	     &col, &ar.front(), &ai.front(), &bt.front(), &vl.front(),
+	     &LDVL, &vr.front(), &LDVR, &vwork.front(), &lwork, info);
+
+      if (info!=0)
+	cout << "info=" << info << endl;
+      
+      vector<double> vv(col);
+      for (int j=0;j<col;j++){
+	if (fabs(bt[j])<1e-6) //if bt[j] near zero, don't divide naively
+	  vv[j] = 1e+20; //simulate infinite value
+	else
+	  vv[j] = ar[j] / bt[j];
+      }
+     	  
+      pair<list<vector<double> >, vector<double> > ret;	
+      ret.second = vector<double>(vv.rbegin()+col-n_vec, vv.rend());
+    	  
+      ret.second.resize(columns());
+      
+      vector<double>::const_iterator p = vr.begin();
+      for (size_t i=0; i<n_vec; i++, p+=rows())
+	ret.first.push_front(vector<double>(p, p+rows()));
+      
+      return ret;
+    }
+
+     /*
+    ///
+    vector<T> left_trans_multiply(const vector<T>& v) const throw(string) {
+      if (v.size()!=rows())
+	throw _h()+"left_trans_multiply() size mismatch";
+
+      vector<T> r(columns());
+      typename vector<T>::iterator ri = r.begin();
+      typename container_type::const_iterator ei = e.begin();
+      while (ri!=r.end())
+	*(ri++) = dot_product(*(ei++), v);
+
+      return r;
+    }
+
+    ///
+    vector<T> left_multiply(const vector<T>& v) const throw(string) {
+      if (v.size()!=columns())
+	throw _h()+"left_multiply() size mismatch";
+
+      vector<T> r(rows());
+      typename vector<T>::iterator ri = r.begin();
+      size_t s = 0;
+      while (ri!=r.end()) {
+	typename container_type::const_iterator ei = e.begin();
+	typename vector<T>::const_iterator vi = v.begin();
+	while (vi!=v.end()) {
+	  // std::cout << (*ei)[s] << " " << std::endl;
+	  *ri += *(vi++)*(*(ei++))[s];
+	}
+	s++;
+	ri++;
+      }
+
+      return r;
+    }
+    */
+
+    ///
+    static matrix<T> eye(size_t d) {
+      matrix<T> m(d, d);
+      for (size_t i=0; i<d; i++)
+	m(i, i) = 1;
+      return m;
+    }
+
+    /* FILE I/O FUNCTIONS ARE HERE */
+
+    ///
+    ostream& show(ostream& os = cout) const {
+      os << "matrix<" << demangle(typeid(T)) << "> " << _r << "x" << _c;
+      if (_type==sparse) os << " sparse";
+      if (_type==undef)  os << " type UNDEF";
+      os << endl;
+
+      for (size_t i=0; i<_r; i++) {
+	for (size_t j=0; j<_c; j++)
+	  os << (*this)(i, j) << " ";
+	os << endl;
+      }
+
+      return os;
+    }
+
+  protected:
+    ///
+    static const string& _h() {
+      static const string h = "cox::matrix::";
+      return h;
+    }
+
+    ///
+    size_t _i(size_t i, size_t j) const { return i*_c+j; }
+
+    ///
+    type_t _type;
+
+    ///
+    size_t _r, _c;
+
+    ///
+    typedef vector<T> dense_t;
+
+    ///
+    dense_t _d;
+
+    ///
+    typedef map<size_t,T> sparse_t;
+
+    ///
+    sparse_t _s;
+
+  }; // class matrix
+
+} // namespace cox
+
+#endif // _cox_matrix_
+

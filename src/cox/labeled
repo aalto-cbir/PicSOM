@@ -1,0 +1,90 @@
+// -*- C++ -*-
+
+// $Id: labeled,v 1.1 2007/11/19 07:59:57 jorma Exp $	
+
+#ifndef _cox_labeled_
+#define _cox_labeled_
+
+#include <iostream>
+#include <string>
+
+using std::ostream;
+using std::cout;
+using std::string;
+
+namespace cox {
+  /// 
+  /// cox::labeled stores a string used for object labeling purposes
+  /// 
+#ifdef __alpha
+#pragma message save
+#pragma message disable basclsnondto
+#endif // __alpha
+  template <class T> class labeled : public T {
+#ifdef __alpha
+#pragma message restore
+#endif // __alpha
+
+  public:
+    /// default constructor ...
+    labeled() : T() {}
+
+    /// constructor for base object only ...
+    labeled(const T& t) : T(t) {}
+
+    /// constructor for label only ...
+    labeled(const string& l) : T(), _label(l) {}
+
+    /// copy constructor for ...
+    template <class T2>
+    labeled(const labeled<T2>& l) : T(l.begin(), l.end()), _label(l.label()) {}
+
+    /// constructor eg for vector<>
+    labeled(const T& v, const string& l) : T(v), _label(l) {}
+
+    /// constructor eg for vector<>
+    labeled(int l) : T(l) {}
+
+    /// constructor eg for vector<>
+    template <class Iter>
+    labeled(Iter b, Iter e, const string& l) : T(b, e), _label(l) {}
+
+    /// assignment operator from the base class, label preserved
+    labeled& operator=(const T& t) { T::operator=(t); return *this; }
+
+    /// const-const access to label
+    const string& label() const { return _label; }
+
+    /// modifiable-modifiable access to label
+    string& label() { return _label; }
+
+    /// setting method for label.
+    void label(const string& l) { _label = l; }
+
+    /// returns length of the label
+    /// (might return something else than int)
+    int label_length() const { return _label.size(); }
+
+    /// label of zero length equals to unset label
+    bool label_set() const { return label_length()!=0; }
+
+    /// 
+    ostream& show(ostream& os = cout) const {
+      // os << "hello"; return os;
+      os << "\"" << _label << "\" ";
+      // return blas::show(*this, os);
+      typename T::const_iterator vi = T::begin();
+      while (vi!=T::end())
+	os << *(vi++) << " ";
+      return os;
+    }
+
+  private:
+    /// 
+    string _label;
+
+  }; // class labeled
+} // namespace cox
+
+#endif // _cox_labeled_
+

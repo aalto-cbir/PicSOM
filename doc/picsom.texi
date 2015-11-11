@@ -1,0 +1,538 @@
+\input texinfo                @c -*- Texinfo -*-
+@c %**start of header
+@setfilename picsom.info
+@settitle PicSOM
+@setchapternewpage off
+@c %**end of header
+
+@set RCSID $Id: picsom.texi,v 1.10 2008/10/31 11:55:12 jorma Exp $
+@set VERSION $Revision: 1.10 $
+@set PICSOMVERSION 1.0
+@set UPDATED $Date: 2008/10/31 11:55:12 $
+
+@c Combine the variable and function indices:
+@syncodeindex vr fn
+@c Combine the program and concept indices:
+@syncodeindex pg cp
+
+@ifinfo
+@dircategory PicSOM
+@direntry
+* picsom: (picsom.info).                  PicSOM system in general.
+@end direntry
+
+This file documents the PicSOM content-based image retrieval system.
+This is version @value{VERSION}, last updated @value{UPDATED},
+corresponding to PicSOM version @value{PICSOMVERSION}.
+
+Copyright (C) 1998-2007 HUT/CIS
+
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+@end ifinfo
+
+@titlepage
+@title PicSOM User's Guide
+@c @subtitle @code{picsom} Version @value{VERSION}
+@subtitle Version @value{VERSION}
+@subtitle @value{UPDATED}
+@c @subtitle PicSOM - Content-Based Image Retrieval With Self-Organizing Maps
+@author PicSOM Development Group
+@author Helsinki University of Technology
+@author P.O.BOX 5400, FIN-02015 HUT, FINLAND
+@author @t{picsom@@mail.cis.hut.fi}
+
+@c @title PicSOM
+@c @subtitle PicSOM User's Guide  
+@c content-based image retrieval system
+@c @author Jorma Laaksonen
+@c @author Markus Koskela
+@c @page
+@c @vskip 0pt plus 1filll
+@c Copyright @copyright{} 1998-2007 HUT/CIS
+
+@c Permission is granted to make and distribute verbatim copies of this
+@c manual provided the copyright notice and this permission notice are
+@c preserved on all copies.
+
+
+@c <p> 
+@c More in-depth descriptions of specific issues can be found in:<br>
+@c <ul>
+@c <li><a href="picsom-dev.html">picsom-dev</a>: PicSOM Development.
+@c <li><a href="databases.html">databases</a>: Databases available in PicSOM.
+@c <li><a href="features.html">features</a>: Features used in PicSOM.
+@c </ul>
+@c <hr>
+
+@end titlepage
+@page
+
+@c ----------------------------------------------------------------------
+@node Top, Overview,, (dir)
+@top Picsom
+
+This is version @value{VERSION} of the PicSOM User's guide, 
+last updated @value{UPDATED}, corresponding to PicSOM version
+@value{PICSOMVERSION}. 
+
+@ifnottex
+This manual describes PicSOM usage in general and contains the 
+following chapters:
+
+@menu
+* Overview::               Overview of PicSOM system.
+* Installation::           How to install the system.
+* Queries::                How queries are performed.
+* Interface::              Description of user interface components.
+* Navigation::             How to move on the maps.
+* Class information::      Displaying image classes on the maps
+* Settings::               Additional user settings listed.
+* Further info::           Further information about PicSOM.
+@end menu
+
+More in-depth descriptions of specific issues can be found in:
+
+@menu
+* picsom-dev: (picsom-dev).		PicSOM development.
+* picsomctrl: (picsomctrl).             Use of the picsomctrl program.
+* basequery: (basequery).               Format of basequery files.
+* databases: (databases).               Databases available in PicSOM.
+* features: (features).                 Features used in PicSOM.
+@end menu
+@end ifnottex
+
+@ifhtml
+This manual is also available in 
+@uref{picsom.ps,PostScript}
+and Adobe
+@uref{picsom.pdf,PDF}
+formats.
+@end ifhtml
+
+@c ----------------------------------------------------------------------
+@node Overview, Installation, Top, Top
+@chapter Overview of PicSOM system
+
+PicSOM is a system for content-based image retrieval.  It is based on a
+neural network algorithm called the Self-Organizing Map (SOM). The SOM
+is used to organize images into map units in a two-dimensional grid so
+that similar images are located near each other.
+
+PicSOM uses a tree-structured version of the SOM algorithm (Tree
+Structured Self-Organizing Map, TS-SOM) to create a hierarchical
+representation of the image database. During the queries, the TS-SOMs
+are used to retrieve images similar to a given set of reference images.
+
+As a basis for retrieving images, the PicSOM system uses a combination
+of several types of statistical features, which are computed from the
+image content. Separate feature vectors have been formed for describing
+colors, textures, and shapes found in the images.  A distinct TS-SOM
+is constructed for each feature vector set and these maps are used in
+parallel to select the returned images.
+@c @ifinfo
+@c @xref{Top, Features, Features, features,}.
+@c @end ifinfo
+
+The image queries are performed through the World Wide Web interface and
+the queries are iteratively refined as the system exposes more images to
+the user.
+
+PicSOM has been implemented as part of a project to study methods and
+systems for content-based image retrieval at Laboratory of Computer and
+Information Science at Helsinki University of Technology, Finland.
+
+@xref{Further info}, for sources of further information on PicSOM.
+
+@c ----------------------------------------------------------------------
+@node Installation, Queries, Overview, Top
+@chapter Installing PicSOM from source or binary distribution
+
+@menu
+* Installing in Linux/UNIX:: Binary or source installation in Linux/UNIX.
+* Installing in Windows::    Binary or source installation in Windows.
+@end menu
+
+@c ----------------------------------------------------------------------
+@node Installing in Linux/UNIX, Installing in Windows, , Installation
+@section Binary or source installation in Linux/UNIX
+
+Binary distributions for Linux/UNIX are not available yet.
+
+
+Download the source code package @code{picsom-XX.YY.tar.gz} from
+@code{nowhere yet} and place it in a proper directory. @code{XX.YY} here
+refer to the current version of the source distribution.
+
+Extract the files by executing the @code{tar xzf picsom-XX.YY.tar.gz}
+command.
+
+Then, go into the created directory, @code{cd picsom-XX.YY}, and execute
+the @code{./configure} script there.
+
+Depending on your computer, you may need to set some environment
+variables to facilitate finding the header and/or library files.  For
+example, @code{env CXXFLAGS=-I/usr/local/include
+LDFLAGS=-L/usr/local/lib ./configure} may be needed.
+
+Next, compile the code by issuing @code{make} and install it with the
+@code{make install} command.
+
+@c ----------------------------------------------------------------------
+@node Installing in Windows, , Installing in Linux/UNIX, Installation
+@section Binary or source installation in Windows
+
+Binary distributions for Windows are not available yet.
+
+Philip, write here about installing MinGW and MSYS...
+
+The MinGW packages are available at
+@code{http://sourceforge.net/project/showfiles.php?group_id=2435}.
+
+
+The following additional libraries need to be installed:
+
+@itemize @bullet
+
+@item 
+
+@item 
+
+@item 
+
+@item libxml2 (version 2.6.30 from ftp://xmlsoft.org/pub)
+
+@item libiconv (version 1.11 as a mingwPORT from sourceforge.net/MinGW)
+
+@item mingw-libgnurx (version 2.5.1 from sourceforge.net/MinGW)
+
+@item tiff (version 3.8.2 from sourceforge.net/MinGW)
+
+@item 
+
+@item 
+
+@item 
+
+When you have all necessary header and library files installed in
+MinGW/MSYS you can configure, compile and install the source package as
+in a regular Linux/UNIX system. @xref{Installing in Linux/UNIX}, for
+details of this step.
+
+@end itemize
+
+@c ----------------------------------------------------------------------
+@node Queries, Interface, Installation, Top
+@chapter Making image queries with PicSOM
+
+Image retrieval with PicSOM is an iterative process utilizing the
+relevance feedback approach. The image query begins with an initial set
+of different images uniformly selected from the database. On subsequent
+rounds, the query focuses more accurately to the user's need. This is
+achieved as the system learns the user's preferences from the selections
+made on previous rounds.
+
+@menu
+* Starting a query::       Starting a new image query.
+* Refining queries::       Refining the queries. 
+* Combining features::     Combining the results of multiple features.
+@end menu
+
+@c ----------------------------------------------------------------------
+@node Starting a query, Refining queries, , Queries
+@section Starting a new image query
+
+Image retrieval with PicSOM begins with the following steps. First, use a
+web browser to connect to the PicSOM WWW server 
+@c providing the search engine 
+at @uref{http://www.cis.hut.fi/picsom/}.
+
+On the first page, the system presents a list of databases available. 
+@c A listing and full descriptions of all available databases can be found
+@c in @uref{http://www.cis.hut.fi/picsom/databases.html, the PicSOM
+@c @code{databases} document}. 
+Currently, only the @strong{ftp.sunet.se} database (Swedish FTP images)
+containing 4350 images is publicly available.
+
+After selecting a database, the next screen displays the available
+visual features for that database. In the ftp.sunet.se database, the
+available features are based on average @strong{rgb} color,
+@strong{texture}, and Fourier-based @strong{shape} features.  These
+features are all selected by default. 
+@c For a description of the used
+@c feature extraction methods, see
+@c @uref{http://www.cis.hut.fi/picsom/features.html, the PicSOM
+@c 
+@c @code{features} document}.
+
+After the preliminary selections have been made, the first query
+screen is displayed. The system presents an initial set of tentative
+images scaled to the small ``thumbnail'' size.
+This set of first reference images is uniformly picked from the top
+levels of the TS-SOMs in use.
+
+Now, you can select one or more images which best fit to your purposes.
+The selected images do not have to fully match your expectations as they
+are used to guide the retrieval into the right direction.  After the
+selections, click the ``Continue Query'' button to send the information
+about the selected images to the search engine.
+
+The system marks the selected images with a positive value and the
+non-selected images with a negative value in its internal data
+structure.  Based on this information, the system then determines a a
+new set of images to display. The previously selected images are also
+shown.
+
+@c ----------------------------------------------------------------------
+@node Refining queries, Combining features, Starting a query, Queries
+@section Refining queries
+
+On the following rounds of the query, you are again asked to select the
+relevant images from the displayed sets of new reference images and
+submit the information to the system. Hopefully, the fraction of
+relevant images increases as more images are presented and,
+finally, one of them is exactly what you were looking for.
+
+Map units, which were previously marked positive, can also be unselected
+as the retrieval process iteration continues and focuses more
+accurately.
+
+In the early stages of the image query, the system tends to mainly
+present images from the upper TS-SOM levels. Therefore, as every map
+unit is represented by a single image, the images returned by upper map
+levels will not probably contain exactly the desired image. The search
+must, therefore, proceed towards the lowest map level, which has the
+largest resolution and hence is the most accurate map.
+
+As soon as the convolutions begin to produce large positive values
+also on lower map levels, the images on these levels are shown to the
+user.  The images are then gradually picked more and more from the
+lower map levels as the query is continued. 
+
+In an ideal situation, there should be one-to-one correspondence between
+the images and TS-SOM units in the bottom level of each map.  This is
+not, however, generally the case and some map units on the bottommost
+level hold multiple images. Therefore, to ensure access to all images in
+the database, the map units on the lowest level being among the preset
+number of best candidates, produce all the images associated with them.
+
+@c ----------------------------------------------------------------------
+@node Combining features, , Refining queries, Queries
+@section  Combining the results of multiple features
+
+It is a difficult task for a human to give different statistical
+features such weights which would coincide with human perception of
+image similarity. Therefore, a better solution would be to somehow let
+the computer determine the significances of different features in the
+present query.
+
+In PicSOM, the results of multiple feature maps are combined
+automatically, using the implicit information from the user's responses
+on previous rounds of the query.  The system thus tries to learn the
+preferences of the user from the interaction with her and to set its own
+responses accordingly.
+
+The rationale behind the PicSOM approach is as follows: If the selected
+images map close to each other on a certain TS-SOM map, it seems that
+the corresponding feature performs well on the present query and,
+therefore, the relative weight of its opinion is increased.
+
+This can be implemented in practice by marking the locations of all the
+previously shown images on the maps either with a positive or a negative
+value, depending on whether the user has selected or rejected them,
+respectively.
+
+The mutual relations of positive-marked units residing near to each
+other can then be enhanced by convolving the maps with a simple
+low-pass filtering mask.  As a result, those areas which have many
+positive-marked images spread the positive response to their
+neighboring map units.  The images associated with these units are
+then good candidates for the next images to be shown to the user, if
+they have not been shown already.
+
+The most positive and yet unasked map units will be selected as
+questions on the next round of the query and the images associated with
+them are shown to the user. Each map unit is represented by a single
+image which is closest to the average of the images associated with that 
+map unit.
+
+@c ----------------------------------------------------------------------
+@node Interface, Navigation, Queries, Top
+@chapter User interface of PicSOM
+
+With the current PicSOM user interface, the image queries are performed
+through a standard World Wide Web browser. This makes image querying
+with PicSOM machine independent and enables the utilization of the
+system in the WWW.
+
+@sp 1
+@center @image{capture1,9cm,}
+@center @emph{Figure 1. PicSOM user interface when starting a new query.}
+@sp 1
+
+Figure 1 shows a screenshot of the PicSOM user interface in the
+beginning of a new query.  The convolved TS-SOMs for the selected
+features are shown in the middle of the page. The TS-SOMs contain three
+SOM layers, sized 4x4, 16x16, and 64x64, from top to bottom. 
+
+As this is the first query round, there are no previously selected or
+rejected images, and hence no positive or negative values on the feature
+maps. The maps are thus colored white, which represents zero valued
+convolution. The first reference images are picked uniformly from the
+top level SOMs. Map units containing these currently shown images are
+colored with green. Yellow represents map units which have no images
+associated with them.
+
+The current reference images are then shown below the maps. Relevant
+images can now be selected by marking the appropriate checkboxes.
+@c
+At any time, individual images may be examined by clicking on
+them. The system then presents available information about the image,
+like its origin, resolution, file size, and in which image classes
+does the image belong to. However, depending on the current database,
+some information may not be available.
+
+Finally, at the bottom of the page there are some user-modifiable
+settings (@pxref{Settings}) and a ``Continue Query'' button which
+submits the new selections back to the search engine. If the settings
+are changed, the image query does not proceed but the page is
+reconstructed according to the new setting values.
+
+@sp 1
+@center @image{capture2,9cm,}
+@center @emph{Figure 2. PicSOM user interface when continuing a query.}
+@sp 1 
+
+A screenshot of the user interface on the next query round is displayed
+in Figure 2. The shown feature maps are convolved based on the selected
+images on the previous query round. The map units having positive
+response are now seen as blue and the ones with negative response as
+red. Darker shades mean stronger responses. White again represents zero
+valued convolution. The map units having the most positive values and a
+yet unseen reference images are now seen as green, and the associated
+images are shown on this round as reference images.
+
+The first two images, representing buildings, shown on the screen are
+the ones selected positive on the first round of the retrieval
+process. These images may be unselected on any subsequent round, thus
+changing their status from positive to neutral. The next images,
+separated with a horizontal line, are the 16 best-scoring new images
+obtained from the convolved units in the TS-SOMs.
+
+
+@c ----------------------------------------------------------------------
+@node Navigation, Class information, Interface, Top
+@chapter Navigation on PicSOM maps
+
+@c With PicSOM, it is possible to move between...
+
+@sp 1
+@center @image{capture3,9cm,}
+@center @emph{Figure 3. The PicSOM user interface displaying a map region.}
+@sp 1
+
+You may, at any time, switch from the iterative queries to browsing the
+TS-SOM surfaces simply by clicking on an interesting location of the
+TS-SOM images. Then, the selected portion of the map surface with the
+associated reference images are shown. Figure 3 shows a region of the
+lowest layer of the @strong{texture} feature map.
+
+The current viewpoint on the map is emphasized as a darker square. The
+map surface at the viewpoint is now shown before the other images. In
+addition, a ``compass'' is displayed. It can be used to navigate on the
+surfaces of the feature maps. Movement within the current map is
+accomplished with the inner arrows, and the outer arrows are used to
+change the viewpoint to a different map.
+
+Relevant images found on the map surfaces can also be selected for
+continuing queries. They are then given positive values similarly as
+the selected reference images.
+@c 
+The individual units on map surfaces may also be examined by clicking
+on the associated reference image. Then, at first, the system presents
+known information about the reference image, the number of images
+associated with the map unit, and also a ``Show all images''
+button. Pressing the button brings a list of all images associated
+with that map unit along with available information about the images.
+
+@c ----------------------------------------------------------------------
+@node Class information, Settings, Navigation, Top
+@chapter Displaying image classes on the maps
+ 
+PicSOM also supports the utilization of textual class information for
+the images, if that kind of information is available for the given
+database. Such classes include in some sense similar images, for example
+images of aircraft, buildings, nature, people, and so on.
+
+The convolved TS-SOM map views can be replaced to maps colored with
+image class information. The three color bands in the RGB color space
+can be used to visualize the spreads of three individual classes on the
+maps.
+ 
+@c ----------------------------------------------------------------------
+@node Settings, Further info, Class information, Top
+@chapter User Settings in PicSOM
+
+The user interface contains a ``Change settings'' button which brings up
+the settings page. On the page, the set of used features can be modified
+along with some other user-modifiable settings. These settings include:
+
+@table @samp
+@item Show selected images
+Toggles the visibility of previously selected (ie. positive) images.
+
+@item Show rejected images
+Toggles the visibility of previously rejected (ie. negative) images.
+
+@item Show images rejected after selection
+Toggles the visibility of first selected and later rejected (ie. neutral) images.
+
+@item Show new images on maps
+Toggles the visibility of the locations of the current question images
+on the TS-SOMs (shown as green dots).
+
+@item Show maps
+Toggles the visibility of the TS-SOMs on/off. 
+
+@item Show arrows
+Toggles the visibility of the ``compass'' when browsing the TS-SOM surfaces.
+
+@item Show statistics
+Toggles the visibility of query statistics.
+
+@item Columns
+The number of image columns on the screen.
+
+@item Rows
+The number of image rows on the screen. Applies to query images only.
+
+@item Thumbnail size
+The size of the thumbnail images shown on the screen (in pixels).
+
+@item Extra information
+Possible extra information shown below the thumbnail images, is
+"nothing" by default. 
+@end table 
+
+@c ----------------------------------------------------------------------
+@node Further info, , Settings, Top
+@chapter Further information about PicSOM
+
+More information on PicSOM can be found in various publications and
+theses, available on-line at
+@uref{http://www.cis.hut.fi/picsom/publications.html}.
+
+@c Additionally, more in-depth descriptions can be found 
+@c in 
+@c @uref{http://www.cis.hut.fi/picsom/picsom-dev.html, 
+@c the PicSOM Developer's Manual} and the documents on
+@c @uref{http://www.cis.hut.fi/picsom/features.html, @code{features}} and
+@c available
+@c @uref{http://www.cis.hut.fi/picsom/databases.html, @code{databases}}
+@c describing some specific issues in PicSOM.
+
+@c ----------------------------------------------------------------------
+@c @summarycontents
+@contents
+@bye

@@ -1,0 +1,77 @@
+2015-10-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* matrix 1.6: Implemented remove_row().
+
+2015-10-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* tictac 1.4:
+	Changed to use ofstream::good() as required by C++11 (no implit operator bool()).
+
+2015-06-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* blas 1.5: Added normalize() with only r==1.0 implemented.
+
+2014-02-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* matrix 1.5: Changed function declarations to match MKL.
+
+2014-02-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* matrix 1.4: Added support for mkl.
+
+2013-06-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* lsc 1.3: Minor improvemnt in distance(), added convex_name().
+
+	* blas 1.4: Tried to improve euclidean_squared_distance_break().
+
+2012-08-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* matrix 1.3: Implemented static eye().
+
+2012-08-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* lsc 1.2: Added convex matching.
+
+2012-06-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* sompak 1.2: Just added a cast.
+
+2012-06-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* timenow 1.2: Changed to check #ifdef __linux__ instead of linux .
+
+	* timenow 1.1, timestamp 1.1: Moved from ~jorma/c++lib/cox .
+
+2012-06-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* matrix 1.2: Added strlen() arguments in ilaenv_() and ssyevx_().
+
+2010-09-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* stat 1.2: Added variance methods.
+
+	* blas 1.3: Added vec_times() and vec_div().
+
+2010-09-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* blas 1.2, knn 1.3, matlab 1.2, tictac 1.3:
+	Simple #include and other corrections to allow make in c++lib/cox .
+
+2008-08-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* knn 1.2:
+	Changed set<double>::const_iterator to multiset in class_distance().
+
+2008-08-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* tictac 1.2: Commented out #include <unistd.h>.
+	Chnaged to check HAVE_SYS_TIMES_H instead of __MINGW32__.
+
+2007-11-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* labeled_vector 1.2: Added $Id:
+
+	* blas 1.1, classifier 1.1, demangle 1.1, knn 1.1, labeled 1.1, labeled_vector 1.1, lsc 1.1, matlab 1.1, matrix 1.1, sompak 1.1, stat 1.1, subspace 1.1, tictac 1.1:
+	Initial versions copied from ~jorma/c++lib/cox/ .
+

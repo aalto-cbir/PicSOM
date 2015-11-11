@@ -1,0 +1,1550 @@
+2015-11-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.24, Caffe.h 1.15:
+	Changed to test against HAVE_CAFFE_CAFFE_HPP and HAVE_CAFFE_DATA_LAYERS_HPP.
+
+	* VLFeat.C 1.11, VLFeat.h 1.7, Trajectory.h 1.6, Trajectory.C 1.7:
+	Corrected the order of #includes and #ifdefs.
+
+	* VLFeat.C 1.10: Added #ifdef HAVE_VL_GENERIC_H .
+
+	* Trajectory.h 1.5, Trajectory.C 1.6:
+	Added one more arguments to AppendHist().
+	Added #ifdef HAVE_DENSETRACK_H .
+
+	* Caffe.C 1.23: IMproved debugging.
+
+	* Feature.C 1.243: Added thread id in logging of Initialize().
+
+2015-10-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Trajectory.C 1.5: Reimplemented down-scaling.
+
+	* Feature.C 1.242, Feature.h 1.209:
+	Added VideoSegmentExtension() and video_segment_extension that used to be always ".mpg".
+
+	* Trajectory.C 1.4, Trajectory.h 1.4:
+	Commented out old stuff, imlpemented options, histogram generation and downscaling.
+
+2015-10-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Trajectory.C 1.3, Trajectory.h 1.3: Added Desc2Vec().
+
+2015-10-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Trajectory.C 1.2, Trajectory.h 1.2:
+	Functionality of extracting raw features added.
+
+	* Feature.C 1.241, Feature.h 1.208:
+	Added pair<size_t,size_t> framerange and -o framerange=123-456.
+	ProcessOneFile() now handles filename.ext<file-specific-options> syntax.
+
+2015-10-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Trajectory.h 1.1, Trajectory.C 1.1:
+	Initial version, copied from VLFeat.
+
+2015-10-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.240, ColorSIFT.C 1.30:
+	Changed to use ofstream::good() as required by C++11 (no implit operator bool()).
+
+2015-05-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.22, Caffe.h 1.14: Added caffemaplock.
+
+2015-01-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVMlhmsLbp.C 1.3: Added missing initializations.
+
+	* RegionBased.C 1.24: Added initializations in CalculateOneLabel().
+
+2014-12-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.21: Added a throw if the named layer cannot be found.
+
+2014-11-24  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Caffe.C 1.20:
+	Added support for variable-sized windows in ProcessRegionNew().
+
+2014-11-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.19:
+	Changed checking of indexmap and added checking of spec while creating the leaves.
+
+2014-10-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.18: Corrected bugs in mean image rescaling.
+
+2014-10-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.17:
+	Changed color addition stuff from DataParameter to TransformationParameter and from DataLayer to DataTransformer.
+
+2014-09-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.h 1.13, Caffe.C 1.16:
+	Caffe's color conversions in data_layer.cpp are now used in PicSOM's features/Caffe too.
+
+2014-09-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.15, Caffe.h 1.12:
+	Added colorspace and implemented rgb, yiq and opp.
+
+2014-09-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.14:
+	ProcessRegionNew() now handles blocks with different n_leaves correctly.
+
+2014-06-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.92: Activated CVC.
+
+2014-06-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* CVC.C 1.3, CVC.h 1.3: Added blocks and support for using DCD.
+
+2014-06-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.91: Removed CVC from defaults as it is yet not @ ICS.
+
+	* Feature.C 1.239: Added more anlystics in KMeans().
+
+	* CVC.C 1.2, CVC.h 1.2: Added options of grid and radius.
+
+	* Makefile 1.90: Added CVC.
+
+	* Feature.h 1.207, Feature.C 1.238:
+	Added KMeans() and dataset::writeDataset().
+
+	* CVC.C 1.1, CVC.h 1.1: Initial versions.
+
+2014-06-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.h 1.11: Commented out #define USE_MKL .
+
+2014-06-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.h 1.10: Added #define USE_MKL .
+
+2014-05-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.13: Added some conventions.
+
+2014-05-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.12, Caffe.h 1.9: This should now work...
+
+2014-05-26  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Caffe.C 1.11:
+	Added creation of recipes in GenerateLeafs(), called from ProcessBlocksL().
+	Added "size_t w, size_t h" to ProcessBlocksL().
+	Added ProcessBlocksImgsrc().
+
+	* Caffe.h 1.8: Added "size_t w, size_t h" to ProcessBlocksL().
+	Added ProcessBlocksImgsrc(), GenerateLeafs().
+
+2014-05-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.10, Caffe.h 1.7:
+	Implemented some steps towards blocks specification.
+
+2014-05-23  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Caffe.C 1.9: Added some compatibility "blocks" examples.
+
+2014-05-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.8, Caffe.h 1.6:
+	Fusion option added and specification moved from caffe_t to main object.
+
+2014-04-22  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Caffe.C 1.7:
+	Edited ProcessBlocksString(): error messages, processing of ";layer", clean-up.
+	Added layer argument to void ProcessBlocksL().
+
+	* Caffe.h 1.5: Added layer argument to void ProcessBlocksL().
+
+	* Caffe.C 1.6: Small corrections to "blocks" option syntax.
+
+2014-04-17  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Caffe.C 1.5, Caffe.h 1.4:
+	Preliminary version of processing "blocks=X".
+	Now requires <boost/algorithm/string.hpp>.
+
+2014-04-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVLbp.C 1.21: Added comment on the "blocks" option.
+
+	* Caffe.C 1.4: Added documentation of the planned option syntax.
+
+2014-04-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.206: Added GlogInitDone().
+
+2014-03-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.237:
+	Removed extra function static glog_init_done from Main().
+
+2014-03-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.h 1.3, Caffe.C 1.3:
+	Improved, but still only works for layer=="fc6".
+
+2014-03-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.89:
+	Added Caffe and CUDA and Glog related things in features.
+
+	* RegionBased.C 1.23:
+	Corrected pointer casting bug in CalculateOneLabel().
+
+	* Feature.h 1.205, Caffe.C 1.2, Feature.C 1.236, Caffe.h 1.2:
+	Added Caffe and CUDA and Glog related things in features.
+
+	* Caffe.C 1.1, Caffe.h 1.1: Copied from Raw.
+
+2014-02-14  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVMlhmsLbp.C 1.2:
+	Added some #ifdef HAVE_FFTW3_H's, now compiles without fftw.
+
+2014-02-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Cepstrum.C 1.10, ColorSIFT.C 1.29, External.C 1.39, External.h 1.51, ExternalSound.C 1.12, IPLD.C 1.15, MPEG7_XM.C 1.88, SIFT.C 1.14:
+	Added wd for working directory in execspec_t.
+
+	* Feature.C 1.235, Feature.h 1.204:
+	Changed audiofile_ptr to deprecated_audiofile_ptr.
+
+2014-01-30  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* Makefile 1.88: *** empty log message ***
+
+2014-01-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MPEG7_XM.C 1.87, MPEG7_XM.h 1.71: Tried to make it work in triton.
+
+	* Feature.h 1.203, Feature.C 1.234:
+	Changed MPEG7-MotionActivity hack in ExtractVideoSegmentInner() to
+	use mencoder because avconv produced bad output.
+	Added static_tempdir and SetTempDir() for it.
+
+	* Feature.C 1.233, Feature.h 1.202:
+	Moved implementation of ExtractVideoSegmentInner() from .h to .C.
+	Included special rule for MotionActivity and changed to use VF_FFMPEG.
+
+2014-01-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ColM.C 1.9, ColM.h 1.18:
+	Added histfixedbins to support S and V component fixed histograms with
+	0,5,0 and 0,0,5 respectively.
+
+	* AvgAudioEnergy.h 1.9: Added debugging in AddData().
+
+	* AudioBased.h 1.13:
+	Added creation of temporary audio files from videos.
+
+	* Feature.C 1.232: Audio features _should_ now work better...
+
+	* soundfile.h 1.6:
+	Removed failed recognition and processing of mp4 and avi files.
+
+	* Feature.C 1.231, Feature.h 1.201:
+	Moved implementation of EffectiveFrameRange() from .h to .C.
+	Trying to make audio features to work from videofiles...
+
+	* AudioBased.h 1.12:
+	Changed IsAudioFeature() to return true.  Why was it false anyway?
+
+	* soundfile.h 1.5:
+	Added rule to use madaudio for mp4, but not sure if it really works.
+
+	* madaudiofile.C 1.7: Corrected HAVE_HAD_H -> HAVE_MAD_H .
+
+2014-01-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.230:
+	"Corrected" video framepreprocess=resize() failure in CalculateAndPrintAllPreProcessings().
+
+	* Feature.C 1.229, Feature.h 1.200:
+	Added PreProcess_resize() and called PossiblySetZoning() after it.
+
+2013-11-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* audiodata.h 1.14: Added typedef uint8_t u_int8_t;
+
+2013-10-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VLFeat.h 1.6, VLFeat.C 1.9: Added pca.
+
+	* VLFeat.C 1.8:
+	Split bin_data::address[_if_exists]() to raw_*() and vector_*().
+
+2013-10-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VLFeat.C 1.7: Changed bin_data::get_floats() to get_float().
+
+2013-10-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VLFeat.C 1.6, VLFeat.h 1.5: Added kmeans, kdtree and vlad.
+
+	* VLFeat.C 1.5: Initialize() now checks whether gmm already exists.
+
+2013-10-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VLFeat.C 1.4:
+	Changed to normalizeSift = false, added call to vl_dsift_delete().
+
+	* VLFeat.h 1.4:
+	Changed OptionSuffix(), changed ":" to "-" and added "-fv".
+
+	* VLFeat.C 1.3, VLFeat.h 1.3:
+	Added option "gmm", remed some other still non-settable parameters.
+	Cleaned a bit.
+	Added OptionSuffix().
+
+2013-10-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.199, TextBased.h 1.35, Feature.C 1.228:
+	Added Feature::KeyPointVerbose() and FullVerbose().
+	Some indentation and line-wrapping improvements...
+
+	* ColorSIFT.C 1.28: Some indentation and line-wrapping improvements...
+
+	* VLFeat.C 1.2, VLFeat.h 1.2: Improved some.
+
+2013-09-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.87: Added bin_data.o in EXTERNALOBJS and VLFeat.
+
+	* VLFeat.C 1.1, VLFeat.h 1.1: First steps.
+
+2013-09-24  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* OCVHoG.C 1.2: *** empty log message ***
+
+	* OCVHoG.h 1.1, OCVHoG.C 1.1: Initial version.
+
+2013-09-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* External.C 1.38, External.h 1.50:
+	Changed virtual bool PreProcess() to const to make it really override.
+
+	* ColorSIFT.C 1.27: Added recognition of maxsize option.
+
+2013-08-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Dummy.C 1.1, Dummy.h 1.1, Makefile 1.86:
+	Added ZeroCrossingRate, Dummy and out-commented SLMHeadPose.
+
+	* Rgb.h 1.28: Just some visual formatting.
+
+	* RegionBased.C 1.22: Added initialization in CalculateOneLabel().
+
+2013-06-26  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Colour.C 1.7: Ugly hack, hue is random if no saturation in Colour.
+
+	* Colour.C 1.6, Colour.h 1.10:
+	Added hsvpolar_shift and histogram capabilities to Colour.
+
+2013-06-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* NGram.C 1.16, NGram.h 1.20:
+	Changed hashsum() to static and added non-static wrappers around it.
+
+2013-06-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.227:
+	Improved ProcessOneFile() and CreateMethod() to tolera broken files better.
+
+2013-05-07  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Feature.C 1.226, Feature.h 1.198:
+	Modified ResultVector() and Data::ResultOrHist() to support hist_norm_type.
+
+	* Feature.C 1.225, Feature.h 1.197:
+	Added options for L1 and L2 histogram normalization on zone, layer,
+	and global levels. Implementations TBD.
+	Added enum hist_norm_type and HistogramNormalization().
+	Variable hist_zone_norm is now of type hist_norm_type.
+	Added variables hist_layer_norm and hist_global_norm.
+
+2013-05-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.196: Removed poisoned copy constructor.
+
+2013-04-30  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVMlhmsLbp.C 1.1, OCVMlhmsLbp.h 1.1:
+	Added new feature "OCVMlhmsLbp" that calculates multi-level histograms of color multi-scale local binary patterns with spatial pyramids.
+
+	* Makefile 1.85: Added OCVMlhmsLbp to OCVFEATUREMETHODS.
+
+2013-03-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* SLMHeadPose.h 1.2, SLMHeadPose.C 1.2:
+	Added includes and actual objects.
+
+2013-03-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVLbp.C 1.20:
+	Added cast and commented out unused variable to make compile silent.
+
+	* Feature.C 1.224: Changed string::back() to [].
+
+	* OCVCentrist.h 1.16, ColorSIFT.h 1.17:
+	Remove out-commented #ifdef TRITON block.
+
+	* OCVFeature.C 1.7, ExternalSound.C 1.11, External.C 1.37, External.h 1.49, RegionBased.C 1.21, Feature.C 1.223, Feature.h 1.195:
+	Changed PreProcess*() to be applicable to {frame,region}preprocess.
+	region_{descr,spec} can now hold also an extra specification like "of2lfw".
+	Added another Convert2cvMat().
+	Added RegionImage().
+
+	* PixelBased.C 1.3, Raw.C 1.9: Just some visual changes.
+
+	* OCVLbp.C 1.19: Removed crop option (partially).
+	Added some logging.
+	Improved naming of output files with options.write_image.
+
+2013-03-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* SLMHeadPose.C 1.1, SLMHeadPose.h 1.1:
+	Initial versions, copied from Raw.
+
+2013-03-14  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.26, IPLD.C 1.14:
+	Commented away probably useless Zeroing calls.
+
+	* External.h 1.48, ColorSIFT.h 1.16, PixelBased.h 1.45:
+	Zero() methods should call their parent classes' Zero() methods.
+
+2013-03-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ColM.h 1.17, Rgb.h 1.27:
+	Corrected or implemented fixed histograms in Zero().
+
+2013-03-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ZeroCrossingRate.h 1.2: Ready?
+
+	* ZeroCrossingRate.C 1.1, ZeroCrossingRate.h 1.1:
+	Initial version, copied from AvgAudioEnergy.
+
+2013-03-04  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* ColorSIFT.C 1.25: Fixed cd_bin by removing "picsom/".
+
+	* ColorSIFT.h 1.15, ColorSIFT.C 1.24:
+	The binary colorDescriptor is now assumed to be found based on PicSOMroot().
+
+	* External.h 1.47: Made binary_not_found protected.
+
+2013-02-26  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* External.h 1.46, ColorSIFT.h 1.14:
+	Added External::RemoteExecutionNoBinary().
+
+2013-02-26  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* External.C 1.36: Added "Darwin" => "darwin" to SolveArchitecture().
+
+	* OCVCentrist.h 1.15, OCVCentrist.C 1.17:
+	Added support for PicSOMroot().
+
+2013-02-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.222:
+	Added /triton/... and "." as the ultimate fallback in PicSOMroot().
+
+2013-02-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.194, Feature.C 1.221:
+	Added Features::PicSOMroot() and -root=DIR and -keep.
+
+	* OCVLbp.h 1.11, OCVCentrist.C 1.16:
+	Moved declaration of string cmd in SqlInsertDetectionData().
+
+	* OCVLbp.C 1.18, OCVCentrist.h 1.14, OCVFeature.h 1.5, OCVFeature.C 1.6:
+	Added copyright headers and checks for existing header.
+
+	* EdgeFourier.C 1.10, audiodata.h 1.13:
+	Added AC_CHECK_HEADERS(fftw3.h) and AC_CHECK_LIB(fftw3).
+	Removed special treatment of EdgeFourier.
+	Added HAVE_* checkings in audiodata.h.
+
+	* Feature.h 1.193, AudioBased.h 1.11, audiodata.h 1.12, AudioFreq.h 1.10, AvgAudioEnergy.h 1.8, soundfile.h 1.4, Feature.C 1.220, AudioBased.C 1.6, audiodata.C 1.4, AudioFreq.C 1.4, AvgAudioEnergy.C 1.4, MuvisFeat.C 1.16, soundfile_impl.C 1.3, soundfile_impl.h 1.3, sfaudiofile.h 1.3, ExternalSound.h 1.6, sfaudiofile.C 1.8, ExternalSound.C 1.10, madaudiofile.h 1.11, madaudiofile.C 1.6:
+	Added configure checks for mad.h, sndfile.h, audiofile.h.
+	Added configure warning for missing audio headers and magich.h.
+	Added AC_CHECK_LIB(flandmark_shared).
+	Stepped release to 0.33.
+	Tried to get rid of #ifdef USE_AUDIO.
+	Changed Makefile.include MADAUDIO flag to AUDIO.
+
+2013-02-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* sfaudiofile.C 1.7: Added a cast.
+
+2013-02-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* RegionBased.C 1.20, RegionBased.h 1.17: Added storeregion.
+
+	* Feature.C 1.219: Added verbosity and stretching in PerformScaling().
+
+2013-02-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.218: Corrected sscanf() for box in ResolveRotating().
+
+	* Feature.h 1.192: Added #ifdef around opencvmat.
+
+2013-01-29  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.23, ColorSIFT.h 1.13:
+	Fixed problem where ColorSIFT features were not zeroed between frames.
+
+2013-01-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.217, Feature.h 1.191:
+	Added -od for setting the outdir %b %r explicitly.
+
+2013-01-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.216, Feature.h 1.190:
+	Implemented -IB switch. Some improvement for box type segemntation results with faces, not ready yet.
+
+	* ColorSIFT.C 1.22: Some visual formatting.
+
+2013-01-25  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Feature.h 1.189:
+	Commented away hack for MotionActivity for affective db.
+
+2013-01-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.215: Added bool audiofeature_faking in SolveFrameSpec().
+
+2013-01-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* AudioBased.C 1.5: Stylistic improvements.
+
+	* sfaudiofile.C 1.6, audiodata.h 1.11, AudioFreq.h 1.9, AudioBased.C 1.4, AudioBased.h 1.10:
+	Improvements to get AudioFreq working better.
+
+	* AudioFreq.h 1.8, sfaudiofile.C 1.5, audiodata.h 1.10:
+	Tried to add support for multi-channel audio.
+
+2012-11-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.214, Feature.h 1.188:
+	Added subdir in Index and Feature classes.
+	Features::Main() now understands -nSUBDIR switch.
+	<feature subdir="xxx"/> is now understood.
+
+2012-11-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.213, Feature.h 1.187, MPEG7_XM.C 1.86, MPEG7_XM.h 1.70, OCVFeature.C 1.5, OCVFeature.h 1.4, OCVKeyPoint.C 1.3:
+	Changed to test HAVE_OPENCV2_CORE_CORE_HPP instead of HAVE_OPENCV_CV_H.
+
+	* Feature.C 1.212:
+	Corrected problem of overloaded p in SetPreProcessing().
+
+2012-11-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* soundfile.h 1.3: Added check for sip==NULL in getDuration().
+
+	* AvgAudioEnergy.h 1.7, audiodata.h 1.9:
+	Changed int *getData() to short *getData_short().
+
+	* Feature.C 1.211:
+	SolveFrameSpec() now has a comment on AvgAudioEnergy.
+
+	* AudioBased.h 1.9:
+	Added virtual IsAudioFeature() but it still returns false!
+
+2012-10-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.210:
+	Corrected parsing of -Nfooname:123 and -Nseg:fooname.
+
+2012-10-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.186, Feature.C 1.209: Added sec_label_interval.
+
+	* Feature.h 1.185:
+	videofile::extract_video_segment() was changed to extract_video_segment_to_tmp().
+
+2012-10-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ColorSIFT.C 1.21:
+	Added ~/picsom/<arch>/bin/colorDescriptor to search path.
+
+2012-09-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.208: Added int retval in Main().
+
+	* Feature.C 1.207: Corrected typo in Main().
+
+	* Feature.C 1.206: Main() now continues after errors.
+
+2012-09-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ColorSIFT.C 1.20, ColorSIFT.h 1.12, External.C 1.35, External.h 1.45, Feature.h 1.184:
+	Implemented temporal image scaling to MaximumSize() in External/ColorSift.
+
+2012-09-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.183:
+	Added first support for linking with WordNet and Aspell.
+
+2012-09-06  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVLbp.C 1.17:
+	Removed debug output from CreateBlocks() and CreateBlockSplits().
+
+	* OCVLbp.h 1.10:
+	Added option "overlap=1" for calculating LBP on overlapping blocks when applicable (i.e. when block border is not on edge of the image).
+	Added lbp_opts.overlapping_blocks.
+
+	* OCVLbp.C 1.16:
+	Added option "overlap=1" for calculating LBP on overlapping blocks when applicable (i.e. when block border is not on edge of the image).
+	Changed to use OpenCV Points and Sizes instead of ints in CreateBlocks() and CreateBlockSplits().
+
+2012-08-31  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.205:
+	ExpandPreProcessingAlias() now handles "crop(100),shift(all_0ab)" properly.
+
+	* Feature.C 1.204, Feature.h 1.182: Added PreProcess_crop().
+
+	* OCVLbp.C 1.15:
+	Changed existence check to unconditional clear() in CreateBlocks().
+
+	* OCVLbp.C 1.14: Added existence check in CreateBlocks().
+	Some prettifying.
+
+	* Feature.h 1.181, Feature.C 1.203:
+	Renamed CurrentFrameOCV() to CurrentFrameOCVoriginal().
+	Added new CurrentFrameOCV() that returns new member opencvmat.
+	Added Convert2cvMat() and used it in CalculatePerFrame().
+
+	* Feature.h 1.180, Feature.C 1.202: Added ExpandPreProcessingAlias().
+	Implemented 0,ax,bx shifts in PreProcess_shift().
+
+2012-08-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* External.C 1.34, External.h 1.44, ExternalSound.C 1.9, Feature.h 1.179, Feature.C 1.201:
+	Added 1st string argument method in Feature::PreProcess().
+	Added Feature::CalculateAndPrintAllPreProcessings() and SetPreProcessing().
+	Changed preprocess_method to lits<pair<...>>, added preprocess_in_use.
+	StandardLabelPattern() is now "%m:%i%*p".
+
+2012-08-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.178, Feature.C 1.200:
+	Some minor improvements in preprocessing.
+
+	* OCVCentrist.C 1.15, OCVFeature.h 1.3, OCVFeature.C 1.4, OCVLbp.C 1.13, OCVKeyPoint.C 1.2, OCVBoV.C 1.2, Feature.h 1.177, Feature.C 1.199:
+	Added Feature::CurrentFrameOCV() and OCVversion().
+	Renamed OCVFeature::ocv_image to ocv_image_ and used CurrentFrameOCV().
+
+	* Makefile 1.84: Changed default IFIMPL from magick to opencv .
+
+2012-08-27  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVFeature.C 1.3:
+	Added (currently inactive) image translation to CalculateOneLabel().
+
+	* OCVFeature.h 1.2: Added #include <opencv2/imgproc/imgproc.hpp>.
+
+2012-08-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* EdgeFourier.h 1.10, External.h 1.43, Feature.C 1.198, Makefile 1.83:
+	Added support for "make mingw64" in Ubuntu 12.04.
+
+2012-06-27  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVLbp.C 1.12, OCVLbp.h 1.9:
+	Added support for cropping (which was indeed missing until now).
+	Added blocks 8x15.
+
+2012-06-26  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVLbp.C 1.11: Added new blocks to printMethodOptions().
+
+	* OCVLbp.C 1.10: BLOCKS_9x9,BLOCKS_10x10.
+
+	* OCVLbp.h 1.8: Added BLOCKS_9x9,BLOCKS_10x10.
+
+2012-06-20  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVLbp.C 1.9, OCVLbp.h 1.7:
+	Added new blocks, and functions to generate them.
+
+2012-06-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MPEG7_XM.h 1.69: Changed to use opencv2 #includes.
+
+2012-04-26  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* Feature.C 1.197, Feature.h 1.176: *** empty log message ***
+
+2012-04-11  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Makefile 1.82, OCVBoV.C 1.1, OCVBoV.h 1.1:
+	Added an initial (but working) version of OpenCV BoV features.
+
+2012-04-10  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVCentrist.h 1.13, OCVCentrist.C 1.14:
+	Converted funnel and illnorm to static.
+
+2012-04-05  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVCentrist.h 1.12: Added "delete illnorm" to destructor.
+
+2012-03-07  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVLbp.C 1.8, OCVLbp.h 1.6:
+	Implemented CS-LBP. Seems to work but has not been verified. Basic LBP hopefully not affected in any way.
+	Added InterpolatedImage().
+
+	* OCVLbp.h 1.5, OCVLbp.C 1.7:
+	Some minor changes, preparation for supporting CS-LBP. Should have the same behavior still.
+
+2012-03-06  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVLbp.C 1.6, OCVLbp.h 1.4:
+	Added calculation of LBP in image blocks (option "blocks")
+	Added 2 methods for histogram normalization (option "normhist"): normal and capped.
+	Removed some unused code (e.g. option "levels").
+
+	* OCVLbp.C 1.5:
+	Added support for uniform patterns with option "map=u2".
+	Added struct lbp_map_t and CreateMap().
+	Removed some remaining debugging couts.
+
+	* OCVLbp.h 1.3:
+	Added support for uniform patterns with option "map=u2".
+	Added struct lbp_map_t and CreateMap().
+
+2012-03-05  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVLbp.C 1.4: Some cleanup of commented out code.
+
+	* OCVLbp.C 1.3, OCVLbp.h 1.2:
+	Added support for circular neighborhoods with option nbh=X,Y.
+	Currenly only supports 8 or less neighbors as the results Mat is of type CV_8UC1.
+
+	* OCVLbp.C 1.2:
+	The basic 8-neighborhood LBP histogram now seems to give equal results as the Matlab implementation.
+
+	* Makefile 1.81, OCVLbp.C 1.1, OCVLbp.h 1.1:
+	Added initial version of OCVLbp (an OpenCV version of LBP histogram,
+	adapted from the Matlab implementation by folks at Oulu, from:
+	http://www.cse.oulu.fi/CMV/Downloads/LBPMatlab ).
+
+2012-02-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* External.C 1.33:
+	Changed deletes to delete []s to make valgrind happier.
+
+2012-02-20  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* MPEG7_XM.C 1.85:
+	Faces specified with eye locations are not given a "_face0" suffix in XMLFaceRecognitionHandler::SegmentPreProcess().
+	Added check for matching input and mean image sizes in XMLFaceRecognitionHandler::SegmentPrePreProcess().
+
+2012-02-17  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MPEG7_XM.C 1.84:
+	XMLFaceRecognitionHandler::SegmentPreProcess() now again handles eye location
+	based information.
+
+2012-02-09  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.19, ColorSIFT.h 1.11:
+	Triton path fix for colorDescriptor binary.
+
+2012-02-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.196:
+	FormDescription() is now called before CalculateAndPrint() in
+	ProcessOneFile() because the opposite order broke OCVCentrist.
+
+	* Feature.h 1.175:
+	Changed some visual formatting to match my personal taste.
+
+2012-01-31  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* EdgeCooccurence.h 1.7, EdgeFourier.C 1.9: *** empty log message ***
+
+	* EdgeFourier.h 1.9: Implemented -o suppressborders
+
+	* Feature.h 1.174, Feature.C 1.195:
+	Added support for -o suppressborders
+
+	* Feature.h 1.173: *** empty log message ***
+
+	* Feature.h 1.172: Added helper function vectorsSame
+
+	* ZernikeMom.C 1.5: corrected return value in PrintMethodOptions
+
+2012-01-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.80: Changed HAS_OPENCV from false to true.
+
+2012-01-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ColorSIFT.C 1.18: Added to use binary in ~/picsom/bin if exists.
+
+2012-01-17  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MPEG7_XM.C 1.83: Changed to use ~/picsom/bin instead of ~/picsom/xm .
+
+	* MPEG7_XM.C 1.82:
+	Added use of local binary and libraries from ~/picsom/xm .
+
+2012-01-03  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* OCVFeature.C 1.2: Added try/catch around cv::imread().
+
+2011-12-22  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* OCVCentrist.C 1.13, OCVCentrist.h 1.11:
+	OCVCentrist should now work on triton as well.
+
+2011-12-20  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* SIFT.C 1.13:
+	added the check for invalid data indices in CalculateOneFrame()
+
+	* IPLD.C 1.13: *** empty log message ***
+
+	* ColorSIFT.C 1.17: in ColorSIFT::CalculateOneFrame()
+	added check that the data index for the segment label is valid (non-negative)
+	(this may occur if backround segment has no data element associated)
+	changed the data type of such indices from size_t to int
+
+2011-12-19  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* Feature.C 1.194: *** empty log message ***
+
+	* Feature.C 1.193:
+	Changed RawLabel() by appending the segment index to the label.
+
+2011-12-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.192: Added processing of -ii switch.
+	COrrected? input_pat!="" || std_naming!="" logic in ProcessOneFile().
+
+2011-12-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ColorSIFT.C 1.16:
+	Added (float) casts to make g++ -pedantic -std=c++0x happy.
+
+2011-10-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* External.C 1.32: Added call to Unlink(tmpbase) in PreProcess().
+
+	* Feature.h 1.171:
+	Added call to RemoveIntermediateFile() inside SetIntermediateFilename().
+
+	* MPEG7_XM.C 1.81:
+	Added RmDirRecursive() in Util.[Ch] and used it in MPEG7_XM.
+
+	* MPEG7_XM.C 1.80, MPEG7_XM.h 1.68:
+	Added DefaultWithinFrameTreatment().
+	Improved CalculateOneFrame() for FaceRecognition.
+
+	* Feature.C 1.191, Feature.h 1.170:
+	Added SolveFrameSpec(), DoPrintingSeparate().
+
+2011-10-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MPEG7_XM.C 1.79, MPEG7_XM.h 1.67: Added NeedsConversion().
+	Some cleaning in SegmentPreProcess().
+	SegmentPreProcess() now uses box face if points r&l-eye are not available.
+	SegmentPreProcess() can now handle multiple faces.
+
+	* External.C 1.31, External.h 1.42:
+	Implemented virtual PreProcess() and moved NeedConversion() stuff there.
+
+	* Feature.C 1.190: Added framestep in debugging of CalculatePerSlice().
+
+2011-10-25  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVCentrist.h 1.10, OCVCentrist.C 1.12:
+	Added the option to write the final processed image to disk,
+	controlled by "imgout=1".
+
+2011-10-19  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVCentrist.h 1.9, OCVCentrist.C 1.11:
+	Added options.cropfirst which controls whether cropping is done before
+	normalization. Controlled by "illnorm=1" (true) and "illnorm=2" (false).
+
+	* OCVCentrist.C 1.10:
+	Converted normalized image back to IPL_DEPTH_8U in IlluminationNormalization::Process().
+
+	* OCVCentrist.C 1.9, OCVCentrist.h 1.8:
+	Cropping is now done before illumination normalization if both are in use.
+	Added crop_t to contain the crop data (instead of an int array).
+
+2011-10-18  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVCentrist.h 1.7, OCVCentrist.C 1.8:
+	Added class IlluminationNormalization, which is used with the option "illnorm=1".
+
+2011-10-17  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVCentrist.C 1.7, OCVCentrist.h 1.6:
+	Added class Funnel which perfoms funneling (alignment) of the input
+	image using a model created by "congealReal".
+	Funneling is controlled by option "funnel=modelfile".
+
+	* MPEG7_XM.C 1.78: Face recognition meanface should now be in
+	/share/imagedb/picsom/share/MPEG7_XM/meanface.bmp .
+
+2011-10-14  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* meanface.bmp 1.1: Mean face image needed by MPEG7-FaceRecognition.
+
+	* OCVCentrist.h 1.5, OCVCentrist.C 1.6:
+	Added support for more detailed cropping of input images.
+
+2011-10-07  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVCentrist.C 1.5: Corrected error message in InitializeCentrist().
+
+	* OCVCentrist.h 1.4:
+	Removed call to InitializeCentrist() from list_entry constructor.
+
+2011-09-29  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVCentrist.C 1.4: Small change to help about options.
+
+	* OCVCentrist.h 1.3, OCVCentrist.C 1.3:
+	Added support for crop to IntImage::FromMat().
+	Added options.generate_pca.
+
+	* OCVCentrist.C 1.2, OCVCentrist.h 1.2:
+	Cleanup, moved code from .h to .C.
+
+	* Makefile 1.79:
+	Added a variable HAS_OPENCV to enable compilation without OpenCV.
+
+	* OCVCentrist.C 1.1, OCVCentrist.h 1.1:
+	CENsus TRansform hISTogram (CENTRIST) feature. Needs OpenCV.
+	Adopted from code from http://c2inet.sce.ntu.edu.sg/Jianxin/PACT/PACT.htm .
+
+2011-09-28  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Makefile 1.78: Added OCVCentrist to OCVFEATUREMETHODS.
+
+2011-09-23  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Makefile 1.77, OCVFeature.C 1.1, OCVFeature.h 1.1, OCVKeyPoint.C 1.1, OCVKeyPoint.h 1.1:
+	Added OCVFeature class and OCVKeyPoint example subclass.
+
+2011-08-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* EdgeFourier.C 1.8: Corrected order of #include and #ifdef.
+
+	* madaudiofile.C 1.5, sfaudiofile.C 1.4, soundfile_impl.C 1.2, EdgeFourier.C 1.7:
+	Added #ifdef's for libraries missing in hippu.
+
+	* MuvisFeat.h 1.10: Removed conditionals around includes.
+
+2011-08-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.189:
+	Corrected return NULL to return "" in ExtractVideoSegment().
+
+	* TextBased.C 1.9, WordHist.C 1.16, TextBased.h 1.34:
+	Added TextBased::weight_type::weight_undef==0.
+
+2011-03-09  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.15: ColorSIFT now uses arch-specific binary.
+
+2011-03-08  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.14, ColorSIFT.h 1.10:
+	Added ability to pick custom colorDescriptor binary for testing.
+
+2011-03-04  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* MPEG7_XM.C 1.77:
+	Added support for non-squared input images. The height of the source image may now be larger than width, and is ignored.
+
+2011-03-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.188: SetTempDir() now handles getenv("TMPDIR")=="".
+
+2011-03-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.76: Added Simple.o in EXTERNALOBJS.
+
+2010-11-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.187, Feature.h 1.169:
+	Print(const featureVector& vec, const string& lbl) now calls AppendResult(vec, lbl).
+
+2010-08-17  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* DominantColor.C 1.13, DominantColor.h 1.6:
+	Comment about an implementation bug added.
+
+2010-06-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* External.C 1.30, External.h 1.41, IPLD.C 1.12:
+	Added External::FindExecutable() and used it in IPLD::GetExecChain().
+
+2010-06-15  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* DominantColor.h 1.5: Changed ShortText
+
+2010-05-26  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.13: Should now find colorDescriptor in triton as well.
+
+2010-05-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.186:
+	Changed to use localtime_r() and asctime_r() in FormDescription().
+
+2010-04-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MuvisFeat.h 1.9: Changed triton #include path.
+
+2010-03-15  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* MuvisFeat.h 1.8: Added triton include paths.
+
+2010-03-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.75: Moved gzstream.[Ch] under cvs in simple.
+
+2009-12-04  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.12:
+	Added usage of errorlog with colorDescriptor, useful for debugging.
+
+2009-12-03  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.11:
+	Small hack to ExecPreProcess() to change .jpeg to .jpg because colorDescriptor does not under stand it.
+
+2009-11-27  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* MPEG7_XM.C 1.76, MPEG7_XM.h 1.66: Added ellipse to norm_opts.
+
+	* MPEG7_XM.C 1.75:
+	Modified file naming of saved gamma images in MPEG7_XM::XMLFaceRecognitionHandler::SegmentPrePreProcess().
+
+2009-11-25  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.h 1.9:
+	Added cs_version to choose version of colorDescriptor binary to use.
+
+	* ColorSIFT.C 1.10:
+	Added cs_version to choose version of colorDescriptor binary to use. Added some comments about previous bug fix where results were multiplied by two.
+
+	* ColorSIFT.h 1.8: Added softsigma and pointselector options.
+
+	* ColorSIFT.C 1.9:
+	Added softsigma and pointselector options. A hack to be able to concatenate pyramid-output. ***OBS*** Also fixed a bug that incorrectly multiplied outputs of CS histograms by 2. I.e. will now give different output than before ***OBS***.
+
+2009-11-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MPEG7_XM.C 1.74: Added 2 casts to get rid of compiler warnings.
+
+2009-11-18  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* MPEG7_XM.C 1.73, MPEG7_XM.h 1.65:
+	Added support for "-o normalize=face1" and suboption savegamma.
+	Some face normalization code rewritten, especially in NormalizeRegion().
+
+2009-11-06  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* MPEG7_XM.C 1.72, MPEG7_XM.h 1.64:
+	Changed MPEG7_XM *parent parameter of XMLDescriptorHandler and descendents to non-const. Moved XML-handling from MPEG7XM_Data to MPEG7XM class because Data class would not have access to change MPEG7XM class.
+
+2009-11-06  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* MPEG7_XM.C 1.71, MPEG7_XM.h 1.63, Makefile 1.74:
+	Added four-region normalization of face images. Used with "-o normalize=face4".
+	Needs OpenCV.
+	Added XMLFaceRecognitionHandler::SegmentPrePreProcess(), ApplyGamma(), NormalizeRegion().
+
+	* Feature.h 1.168: Added const to ObjectFullDataFileName().
+
+2009-11-06  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.8:
+	Due to bug in linux64 version of colorDescriptor we only use 32-bit version for now.
+
+2009-10-28  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.7:
+	ColorSIFT now calls 64-bit binary for linux64 architecture.
+
+2009-10-23  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.h 1.7:
+	Added NeedsConversion() which return true if file is not jpeg or png.
+
+	* External.C 1.29, External.h 1.40:
+	Added NeedsConversion() and CalculateCommon() now converts file to png if this function returns true for some subclass.
+
+	* Feature.C 1.185, Feature.h 1.167:
+	Added infrastructure for intermediate_filename which contains the filename of the saved input image if conversion is needed.
+
+2009-10-23  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* ColorSIFT.C 1.6:
+	Now supports \"-r\", i.e. raw descriptor output, with codebooks.
+	Codebook size is no longer hard-coded, but cs_codebook_size is used instead.
+	Added options "codebookidx" and "codebookdim" to be used with the above.
+	Added some usage info into printMethodOptions().
+
+	* ColorSIFT.h 1.6: Added cs_codebookMode and cs_codebook_size.
+
+2009-10-21  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* ColorSIFT.C 1.5, ColorSIFT.h 1.5:
+	Added cs_descriptor_length, is 128 for sift, 384 otherwise.
+
+2009-09-10  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.4, ColorSIFT.h 1.4:
+	ColorSIFT should now work like SIFT and IPLD with -r switch.
+
+2009-09-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* IPLD.h 1.11, SIFT.C 1.12, External.h 1.39, SIFT.h 1.13:
+	Added External::LocalLinuxOrRemoteLinux64(), used it in IPLD and SIFT.
+	Added (x,y) coordinates in SIFTData::AddValue().
+
+2009-09-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MuvisFeat.h 1.7:
+	Changed MuvisAFexHandler::TargetType() to return "sound" instead of "audio".
+
+2009-08-24  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* External.h 1.38:
+	Added RemoteExecutionLinux() which runs on any linux or linux64.
+
+	* ColorSIFT.h 1.3:
+	ColorSIFT no longer requires Linux64 for external execution.
+
+2009-08-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.166, audiodata.h 1.8, textdata.h 1.16, textfile.C 1.14:
+	Simplified config.h and missing-c-utils.h includes.
+
+2009-08-14  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* External.h 1.37:
+	Change itl-cl1 to stimulus as host for RemoteExecutionLinux64() calls.
+
+2009-06-26  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.3, ColorSIFT.h 1.2:
+	Set default codebook length to 1000. Should not be hardcoded though...
+
+	* MuvisFeat.C 1.15:
+	Removed annoying muvis-error on non linux64-machines.
+
+2009-06-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MPEG7_XM.C 1.70: Corrected a bug in comma_to_space().
+	In GetExecChain() added execenv["LD_LIBRARY_PATH"] = "/share/imagedb/mats/XM/lib".
+
+	* MPEG7_XM.h 1.62: RemoteExecution() now returns empty.
+
+	* External.C 1.28: RunExecProcess() now shows the full command line.
+
+	* MuvisFeat.C 1.14:
+	Errors from SolveMethods() now go to cerr instead of cout.
+
+2009-06-04  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Feature.C 1.184:
+	Small changes in handling of errors in CombinePerFrameToOneSlice() for extracting video.
+
+2009-06-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* External.C 1.27:
+	Corrected bug with return values of pipe() in ExecRun().
+
+2009-06-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.183:
+	Simplified use of XmlDom::Element() in FormDescription() etc.
+
+2009-05-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.182, External.C 1.26:
+	Added some return value checks / initializations to make gcc 4.3.2 -O3 silent.
+
+2009-05-06  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* MuvisFeat.C 1.13:
+	Muvis features no longer added to list if .so files fail to load.
+
+2009-05-04  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* Feature.h 1.165: *** empty log message ***
+
+2009-04-29  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* Feature.C 1.181: Cosmetic change to suppress compiler warning.
+
+	* Feature.C 1.180: option 'k' for interest points
+
+2009-04-22  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* AudioBased.h 1.8, ColM.h 1.16, ContourFD.C 1.10, External.C 1.25, Feature.C 1.179, PorterStemmer.C 1.4, features.C 1.30, sfaudiofile.C 1.3:
+	Fixed suggestions of new gcc.
+
+2009-04-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Cepstrum.C 1.9, ExternalSound.C 1.8, Feature.h 1.164, audiodata.h 1.7, textfile.C 1.13:
+	Minor #include<> changes to mage gcc 4.3.2 happy.
+
+2009-04-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.163, TextBased.h 1.33:
+	Added parentheses/braces "suggested" by gcc 4.3.2.
+
+2009-03-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.178: Removed #ifdef HAVE_CLOSE test.
+
+2009-03-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.177: Added #ifdef HAVE_WINSOCK2_H #include <winsock2.h>.
+
+2009-03-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.176: Reordered #include<>s.
+
+2009-03-17  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Makefile 1.73: Added missing soundfile.h to FEATUREFILES_H.
+
+	* madaudiofile.C 1.4, soundfile_impl.h 1.2:
+	Got rid of last_audio_slice and getLatestAudioSlice(), which was never used, and just caused problems.
+
+	* sfaudiofile.C 1.2, sfaudiofile.h 1.2:
+	Implement sfaudiofile::getNextAudioSlice(). Added some checks and debug output.
+
+	* audiodata.h 1.6:
+	Added pushData(short *, size_t) if data is in short int format.
+
+	* MuvisFeat.C 1.12: Fixed buffer length of audio data.
+
+2009-03-13  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* AudioBased.h 1.7, AudioFreq.h 1.7, AvgAudioEnergy.h 1.6, Feature.C 1.175, Feature.h 1.162, Makefile 1.72, MuvisFeat.C 1.11, MuvisFeat.h 1.6, audioapp.C 1.2:
+	Changes instances of madaudiofile to the more general soundfile.
+
+	* madaudiofile.C 1.3, madaudiofile.h 1.10:
+	Changed madaudiofile to be subclass of soundfile_impl.
+
+	* soundfile.C 1.2:
+	Moved soundfile to soundfile_impl. Class soundfile is now wrapper object that can be used on any sound file.
+
+	* sfaudiofile.C 1.1, sfaudiofile.h 1.1:
+	Added sfaudiofile for reading wav files using libsndfile.
+
+	* soundfile_impl.C 1.1, soundfile_impl.h 1.1, soundfile.h 1.2:
+	Moved soundfile to soundfile_impl. Class soundfile is now wrapper object that can be used on any sound file.
+
+	* Makefile 1.71, madaudiofile.C 1.2, madaudiofile.h 1.9, soundfile.C 1.1, soundfile.h 1.1:
+	Created superclass soundfile to madaudiofile. (audiofile.h could not be used, since that is used by another library.)
+
+2009-03-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DominantColor.C 1.12:
+	GLAApproximate() now uses fixed seed and rand_r().
+
+2009-02-19  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Feature.C 1.174:
+	Added description of "-cn, -cN0" to the usage info in ShowUsage().
+
+	* ColorSIFT.C 1.2:
+	Changed directory of the colorDescriptor binary in GetExecChain().
+
+2009-02-11  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ColorSIFT.C 1.1, ColorSIFT.h 1.1, Makefile 1.70:
+	Added initial version of ColorSIFT which uses Koen van de Sandes colorDescriptor software.
+
+2008-11-06  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Makefile 1.69, audioapp.C 1.1:
+	Added audioapp for testing of audio I/O.
+
+	* Makefile 1.68: Added MISCC++LIBFILES to EXTERNALOBJS to get gzstream.
+
+2008-10-31  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.161: Removed /**\mainpage*/.
+
+	* AudioBased.h 1.6, Cepstrum.h 1.10, ColM.h 1.15, ColorLayout.h 1.2, Colour.h 1.9, ContourFD.h 1.10, DominantColor.h 1.4, EdgeCooccurence.h 1.6, EdgeFourier.h 1.8, EdgeHist.h 1.7, EdgeHistogram.h 1.2, External.h 1.36, ExternalSound.h 1.5, Feature.C 1.173, Feature.h 1.160, IPLD.C 1.11, IPLD.h 1.10, MPEG7_XM.h 1.61, MuvisFeat.h 1.5, PixelBased.h 1.44, PseudoMPEG7.h 1.7, RegionBased.h 1.16, Rgb.h 1.26, SIFT.h 1.12, SampleColour.h 1.6, ScalableColor.h 1.2, SimpleGeometric.h 1.4, TemplateBased.h 1.13, TextBased.h 1.32, Texture.h 1.24, ZernikeMom.h 1.4, textdata.h 1.15, textfile.h 1.14:
+	Changed hard space to soft in the TODO message.
+
+2008-10-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* IPLD.h 1.9, IPLD.C 1.10: Added -o unnorm=true and use_unnorm.
+
+2008-09-29  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Colour.C 1.5, ContourFD.C 1.9, DominantColor.C 1.11, EdgeCooccurence.C 1.2, EdgeFourier.C 1.6, EdgeHist.C 1.2, ExternalSound.C 1.7, MPEG7_XM.C 1.69, Makefile.old 1.3, MsgDate.C 1.3, MuvisFeat.C 1.10, NGram.C 1.15, Raw.C 1.8, RegionBased.C 1.19, ScalableColor.C 1.3, SimpleGeometric.C 1.2, TemplateBased.C 1.11, Texture.C 1.16, WebLink.C 1.8, ZernikeMom.C 1.4, Cepstrum.C 1.8, ColM.C 1.8:
+	Changed vcid to const.
+
+2008-09-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* textfile.C 1.12: Changed pattern to const in remove_html().
+
+	* AudioFreq.C 1.3, AvgAudioEnergy.C 1.3, ColorLayout.C 1.3, EdgeHistogram.C 1.4, SampleColour.C 1.3:
+	Changed vcid to const.
+
+2008-08-29  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* PixelBased.h 1.43, PseudoMPEG7.h 1.6: *** empty log message ***
+
+	* PseudoMPEG7.h 1.5, PixelBased.h 1.42:
+	Cut region against image boundaries.
+
+2008-08-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.172: Some simplifications for MSC.
+
+	* textfile.C 1.11: Added conditional definitions of ICONV_CONST.
+
+	* Texture.C 1.15: Some cleaning.
+
+	* DominantColor.C 1.10: Added #include <limits>.
+
+2008-08-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.67:
+	Added  $(MISCC++LIBFILES) / $(MISCC++LIBFILELINKS) in del-links / links.
+
+2008-08-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MuvisFeat.C 1.9: Added (silly) long casts in front of all dlsym()s.
+
+2008-08-15  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Cepstrum.h 1.9:
+	Cepstrum seems to need a defined DefaultPixelType() to work nowadays...
+
+2008-06-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.159, Feature.C 1.171, MuvisFeat.C 1.8:
+	Added check for HAVE_MADAUDIOFILE_H.
+
+2008-06-12  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* Feature.C 1.170: *** empty log message ***
+
+2008-06-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ContourFD.C 1.8, ZernikeMom.C 1.3:
+	Commented out an unnecessary message.
+
+	* SimpleGeometric.h 1.3, ContourFD.h 1.9:
+	Changed TargetType() to "segment".
+
+2008-05-28  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Makefile 1.66: Removed erroneus duplicate madaudiofile.o...
+
+2008-05-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.65:
+	Moved madaudiofile from FEATUREFILES_H to FEATUREFILES_C.
+
+	* Feature.h 1.158:
+	Added video(audio)file_ptr = NULL in RemoveVideo(Audio)File().
+
+2008-05-23  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* madaudiofile.C 1.1, madaudiofile.h 1.8:
+	Moved biggest methods from madaudiofile.h to madaudiofile.C. Added some hacks to ensure that madaudiofile::getNextAudioFrame() doesn't write outside its buffer. Also added a check if that still happens resulting in an exception.
+
+	* Makefile 1.64: Added madaudiofile.o
+
+	* AudioBased.h 1.5:
+	No need to create madaudiofile object in AudioBased(bool) constructor.
+
+2008-05-21  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* MuvisFeat.h 1.4:
+	Fixed IsPerFrameCombinable() to work for audio data as well as video.
+
+	* MuvisFeat.C 1.7:
+	Added usage of DLError() when using OpenDL(). Now using madaudiofile::getNextAudioSlice() instead of madaudiofile::getAudioSlice() which has not yet been implemented.
+
+	* External.C 1.24, External.h 1.35:
+	Added DLError() function. Useful for debuggin of OpenDL().
+
+	* Feature.C 1.169, Feature.h 1.157:
+	Some small aditions to allow for calculation of audio features directly for a file.
+
+2008-05-19  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* MuvisFeat.C 1.6, MuvisFeat.h 1.3:
+	Cleaned up code. Moved normal image features to MuvisFexHandler class. Created MuvisAFexHandler class for audio features. However, audio is not working yet.
+
+	* Feature.C 1.168, Feature.h 1.156:
+	Added madaudiofile* audiofile_ptr, IsAudioFeature() in the same vein as videofile previously. I know, its ugly...
+
+	* madaudiofile.h 1.7: Added getNChannels() function.
+
+2008-05-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.167, Feature.h 1.155:
+	Feature::PrintFeatureListXML() can now return the information in core.
+
+	* Makefile 1.63:
+	Added MuvisFeat in EXTERNALFEATUREMETHODS, audiodata.C in FEATUREFILES_C, madaudiofile.h in FEATUREFILES_H.
+
+	* ContourFD.h 1.8, SimpleGeometric.h 1.2:
+	Added NeededSegmentation() const { return any; }.
+
+	* PorterStemmer.C 1.3:
+	Changed some char* to const to make g++ 4.2.3 happy.
+
+2008-04-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.166: Changed to check MKDIR_ONE_ARG.
+
+2008-02-28  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* MuvisFeat.C 1.5:
+	Changed ReadSO() to use new External::OpenDL() function.
+
+	* External.C 1.23, External.h 1.34:
+	Added OpenDL() function which opens a shared library file from default path.
+
+2008-02-15  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* MuvisFeat.C 1.4:
+	MuvisFeat::CalculateOneLabel() now uses imagedata::create_yuv420() when ftype==0 for a Muvis feature.
+
+2008-02-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ColM.h 1.14, Colour.h 1.8, EdgeCooccurence.h 1.5, EdgeHist.h 1.6, Feature.C 1.165, Feature.h 1.154, IPLD.C 1.9, IPLD.h 1.8, PixelBased.h 1.41, Rgb.h 1.25, SampleColour.h 1.5, TemplateBased.C 1.10, Texture.h 1.23:
+	Raw output features now show label(x,y).
+
+	* SIFT.C 1.11:
+	Reversed order of x and y in "ss >> y >> x" of ExecPostProcessInner().
+
+	* MuvisFeat.C 1.3:
+	Added conditioned call to ShowParam() in BindParam().
+
+2008-02-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MuvisFeat.C 1.2, MuvisFeat.h 1.2:
+	This should already work to some extent.
+
+	* Feature.C 1.164: Some stylistic changes.
+
+	* External.h 1.33:
+	Added error debugging info in SetVector(const vector<float>&).
+
+2008-01-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MuvisFeat.C 1.1, MuvisFeat.h 1.1: Copied from MPEG7_XM.
+
+2007-11-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* textfile.C 1.10: Used 2x ICONV_CONST in readfile().
+
+2007-11-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* textdata.h 1.14: Added #include <config.h>.
+
+	* textfile.C 1.9:
+	In readfile() used 2xpointer cast in iconv() for SunOS's sake.
+
+2007-11-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.163:
+	Added extra check for allow_file_errors in catch() of Main().
+
+2007-11-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PixelBased.h 1.40: ObtainRawVector() now calls DoNormalize().
+
+	* Feature.h 1.153, Feature.C 1.162:
+	Added z_norm, SetZnormalize(), DoNormalize(), ReadXML().
+
+2007-10-26  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Feature.C 1.161:
+	Added support for fake vector length in Main() and ProcessOneFile().
+	FeatureVectorSize() returns fake vector length if defined.
+
+	* Feature.h 1.152:
+	Added feature_vector_length_fake,{Set,Get}VectorLengthFake().
+	Added two (pseudo) pixel types: pixel_dim2, pixel_dim4.
+
+	* Colour.h 1.7:
+	ColourConversion is called only for 3-dim pixels in AddPixel().
+
+2007-10-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.160, Feature.h 1.151:
+	Changes in processing of raw feature values.
+	Changes in output / raw input filenames and patterns.
+	Output redirection to more than file per invocation should work.
+	Init() moved from .h to .h.
+
+	* Rgb.h 1.24, PixelBased.h 1.39:
+	Changes in processing of raw feature values.
+
+2007-10-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.150, PixelBased.h 1.38, SIFT.h 1.11, IPLD.h 1.7, Feature.C 1.159:
+	Renamed "raw" things to "rawout", added "rawin" counterparts.
+
+2007-08-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.158: Clarified the NO_PTHREADS case.
+	Removed #ifdef  __MINGW32__ definition of gethostname().
+	Added <rawdata width="" height=""> in FormDescription().
+
+2007-08-28  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Feature.C 1.157:
+	Small hack to allow for small videos even when the margins would reduce it to one frame only.
+
+2007-08-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* IPLD.C 1.8:
+	Added bool segm_vect = true and related code in CalculateOneFrame().
+
+2007-08-26  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* IPLD.C 1.7:
+	Added calls to initHistogram() to CalculateOneFrame() to account for the
+	possibility that there would be no key points in some image segment.
+
+	* Feature.C 1.156, Feature.h 1.149: Added initHistogram()
+

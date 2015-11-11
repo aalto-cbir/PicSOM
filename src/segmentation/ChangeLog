@@ -1,0 +1,424 @@
+2015-02-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.C 1.179:
+	getDimmedImage() now handles also out-of-region pixels.
+
+	* segmentfile.h 1.119: Added regionSpec().
+
+2014-10-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.92: Added -lglog in LDLIBS.
+
+	* Segmentation.C 1.144: -x -noframes is now understood by ViewXML().
+
+	* segmentfile.C 1.178, segmentfile.h 1.118, TemporalMorphology.C 1.3:
+	SegmentationResult now contains trange_{start,end,text} expaned from value.
+	Added SegmentationResult::{Extract,Store}MemberValues().
+	"//" is interpreted as " " for trangetext in SegmentationResult::ExtractMemberValues().
+	TemporalMorphology::ProcessGlobal() is now more clever and efficient.
+
+	* AddDescription.C 1.16:
+	Added "-f filename" option to read other options from a file.
+
+2014-10-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* TemporalMorphology.C 1.2, TemporalMorphology.h 1.2:
+	Made dilate and erode options.
+
+2014-08-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.91: Added TemporalMorphology.
+
+	* TemporalMorphology.C 1.1, TemporalMorphology.h 1.1: Initial version.
+
+2014-08-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVface.C 1.23: Tricked to get ridof unused foo() warning.
+
+2014-02-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVface.C 1.22:
+	Added  bool has_show_image = false to avoid problems in picsom demo server.
+
+2014-01-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.C 1.177:
+	Changed libmagic_mime_type() to return compression type too.
+
+2013-06-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* FLandmark.C 1.4: Changed libflandmark v.107.
+
+2013-02-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.C 1.176: Removed USE_LIBMAGIC test.
+
+2013-02-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DisplayResults.C 1.50: Added some verbosity in ShowResultList().
+
+	* segmentfile.C 1.175: Changed to debug = false in readSegmentFile().
+
+2013-01-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Segmentation.C 1.143, Segmentation.h 1.117, segmentfile.C 1.174, segmentfile.h 1.117:
+	Stringified some char*s + some visual formatting.
+
+2013-01-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* viewxml.C 1.27, Segmentation.C 1.142, Segmentation.h 1.116:
+	Added Segmentation::ViewXML() aka "segmentation -x" to replace viewxml.
+
+2012-12-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVface.h 1.15, OCVface.C 1.21: Added -b and only_biggest.
+
+2012-11-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* FLandmark.C 1.3:
+	Changed #ifdef HAVE_FLANDMARK_DETECTOR_H to span the whole file.
+
+	* Segmentation.C 1.141, Segmentation.h 1.115:
+	Added recognition of -IB switch.
+	previous_methods is now non-static, which may break something...
+
+	* DisplayResults.C 1.49: Added option -OB.
+
+2012-11-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.h 1.116, Segmentation.C 1.140, segmentfile.C 1.173:
+	Implemented -OB switch and %B pattern.
+
+2012-11-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVface.h 1.14: Started to use PicSOMroot() in CascadePath().
+	CascadeName() now gives haarcascades/ prefix.
+
+	* AddDescription.C 1.15: Added one more debug message in Process().
+
+	* segmentfile.C 1.172:
+	Added hardcoded framestep=24 in segmentfile::_description_type::_outputXML().
+
+	* Segmentation.C 1.139, Segmentation.h 1.114:
+	Added Segmentation::PicSOMroot().
+
+2012-11-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVface.C 1.20, OCVface.h 1.13, FLandmark.C 1.2: Minor corrections.
+
+	* Makefile 1.90: Added FLandmark and used FLANDMARKLIBS.
+
+	* OCVface.C 1.19, OCVface.h 1.12:
+	Added foo() that contains piece of code extracted from PicSOM.C.
+
+	* FLandmark.C 1.1, FLandmark.h 1.1: Initial version.
+
+2012-11-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVface.C 1.18, OCVface.h 1.11:
+	Changed to test HAVE_OPENCV2_CORE_CORE_HPP instead of HAVE_OPENCV_CV_H.
+
+2012-08-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.89: Changed default IFIMPL from magick to opencv .
+
+	* segmentfile.h 1.115: Added imagefile *inputImageFile() .
+
+2012-06-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* AddDescription.C 1.14, AddDescription.h 1.11, Segmentation.C 1.138, Segmentation.h 1.113, segmentfile.C 1.171, segmentfile.h 1.114:
+	Improved AddDescription and set_per_sec_framespec in _outputXML().
+
+2012-06-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVface.h 1.10: Changed to use opencv2 #includes.
+
+2012-04-27  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* segmentfile.h 1.113, segmentfile.C 1.170: *** empty log message ***
+
+2012-01-20  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVface.C 1.17, OCVface.h 1.9:
+	Four face detector parameters can now be set with "-p A,B,C,D", where
+	A=scalefactor, B=min_neighbors, C=min_width, D=min_height.
+
+	* OCVface.C 1.16, OCVface.h 1.8:
+	Added a new option "-s" for setting scale.
+	Converted lot of OpenCV functionality to the C++ type interface, but
+	some old C stuff still remains.
+
+2012-01-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.88:
+	Added the possibility to change imagefile implementation.
+
+2012-01-17  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.C 1.169: Added reading of framespecs from files.
+
+	* segmentfile.h 1.112: Added FrameSpec() and frameSpecs.
+
+2011-12-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.h 1.111: Added public member Description().
+
+	* AddDescription.C 1.13, AddDescription.h 1.10:
+	Added pendingAnnotation::Str().
+	Small formatting changes.
+
+2011-10-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* OCVface.C 1.15: Improved debugging in Process().
+
+	* segmentfile.C 1.168:
+	Added bool set_per_sec_framespec = false in _outputXML().
+
+2011-10-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Segmentation.C 1.137, segmentfile.C 1.167, segmentfile.h 1.110:
+	Improved support of framestep and its association with one per second frames.
+
+2011-10-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DisplayResults.C 1.48: Document "-v fps" option.
+	Some visual formatting.
+
+2011-10-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DisplayResults.C 1.47:
+	Changed call to DrawText() to conditional in ShowResultList().
+
+	* OCVface.C 1.14: CreateIplImage() now obeys IplImage::widthStep.
+
+2011-03-03  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* OCVface.C 1.13: Changed  output verbosity in Process().
+
+	* DisplayResults.C 1.46: Added drawing of wideBoundaries to DrawBox().
+
+2010-09-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.h 1.109:
+	Commented out deallocating message of fetchImageFrame().
+
+2010-03-12  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* OCVface.C 1.12:
+	Added ifdefs so that we can compile when OpenCV is not available.
+
+2010-03-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.87: Moved gzstream.[Ch] under cvs in simple.
+
+2009-11-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.86: Removed ScaleSal from GENERICMETHODS.
+	Added Util.o in +SEGMENTFILEAPP_OBJS, VIEWXML_OBJS and MKMAPIMAGE_OBJS.
+
+2009-10-23  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* segmentfile.C 1.166, segmentfile.h 1.108:
+	segmentfile::writeImageFrame() now takes mimetype as optional parameter. Also added format() method which returns the mimetype of the contained imagefile.
+
+2009-08-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PixelTemplate.h 1.9, Segmentation.h 1.112, segmentfile.h 1.107:
+	Simplified config.h and missing-c-utils.h includes.
+
+2009-08-19  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* segmentfile.h 1.106, segmentfile.C 1.165: isempty -> iszero confirmed
+
+2009-08-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.C 1.164, segmentfile.h 1.105:
+	Renamed is imagedata::isempty() to iszero().
+
+2009-08-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* MergeColM.C 1.8: Process now uses strdup() and delete.
+
+	* FilterbyBoundingbox.C 1.2, PixelTemplate.C 1.9:
+	Changed vcid from char* to string.
+
+	* Segmentation.C 1.136, Segmentation.h 1.111:
+	Added Main(const vector<string>&).
+
+2009-06-26  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* segmentfile.C 1.163:
+	segmentfile::readSegmentFile() now checks mimetype before trying to open with ImageMagick.
+
+2009-04-30  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* segmentfile.C 1.162, CreateThumbnail.C 1.12, MergeColM.C 1.7, DisplayResults.C 1.45, GenerateHeatmap.C 1.3, AddDescription.C 1.12, Segmentation.C 1.135:
+	Changes due to compiler warnings.
+
+	* TilePyramid.C 1.3, Tile.C 1.5: Changes to suppress compiler warnings.
+
+	* Snake.C 1.6, SpringModel.C 1.4, TagDark.C 1.4:
+	*** empty log message ***
+
+	* TestSegment.C 1.7: Changes to suppress compiler warnings.
+
+	* TestInterface.C 1.4: *** empty log message ***
+
+	* TestInterface.C 1.3: Changes to suppress compiler warnings.
+
+	* TagDark.C 1.3: *Changes to suppress compiler warnings.
+
+	* SpringModel.C 1.3, Snake.C 1.5, SeparateMultipart.C 1.3, Segmentation.C 1.133, segmentation.C 1.40, ScaleSal.C 1.5, ScaleDown.C 1.4, SampleRandom.C 1.2, RestoreScale.C 1.6, RemoveHoles.C 1.5, RegionMerger.C 1.4, RegionMerge.C 1.18, Random.C 1.2, PrePostProcessor.C 1.3, PickLargest.C 1.6, OCVface.C 1.11, MergeSame.C 1.2, MergeNeighbourhood.C 1.2, MedFilt.C 1.4, LocateFace.C 1.15, LocateFaceBox.C 1.3, ListOverlaps.C 1.5, ListAdjacent.C 1.2, KMeans.C 1.13, ImportBitmap.C 1.7, GradientMagn.C 1.2, GKMeans.C 1.5, GenerateHeatmap.C 1.2, FilterCentral.C 1.3, FilterbyColor.C 1.7, FaceParts.C 1.19, EndBlocker.C 1.2, DisplayResults.C 1.43, CropEdges.C 1.6, CreateThumbnail.C 1.11, ConstBackground.C 1.12:
+	Changes to suppress compiler warnings.
+
+2009-04-29  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* ConnectedKMeans.C 1.12, ChainVisualiser.C 1.3, ByTypicality.C 1.2, Binarise.C 1.8, AlignmentMarks.C 1.15, AddDescription.C 1.11, MyMethod.C 1.19:
+	Changes to suppress compiler warning.
+
+2009-04-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.85: Added more audio files.
+	Commented out TagBkgnd and TranslateLabels from GENERICMETHODS.
+
+2009-04-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Segmentation.h 1.110:
+	Added parentheses/braces "suggested" by gcc 4.3.2.
+
+2009-03-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Segmentation.C 1.132:
+	Added #ifdef HAVE_WINSOCK2_H #include <winsock2.h>.
+
+2009-02-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DisplayResults.C 1.42: Fixed bug.
+
+	* DisplayResults.C 1.41, DisplayResults.h 1.15:
+	Added text and textplace in ResultInfo.
+	Added DrawText().
+
+2008-11-06  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Makefile 1.84: Added MISCC++LIBFILES and XMLutil to EXTRA_O.
+
+2008-11-04  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* GenerateHeatmap.C 1.1, GenerateHeatmap.h 1.1, ListOverlaps.C 1.4, ListOverlaps.h 1.3, segmentfile.C 1.161, segmentfile.h 1.104:
+	*** empty log message ***
+
+2008-10-31  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DisplayResults.h 1.14:
+	Copied from vvi, who added RemoveRegionSpec(), virtualregions, region_spec.
+
+2008-10-30  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* DisplayResults.C 1.40: *** empty log message ***
+
+2008-09-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* AddDescription.C 1.10, AddDescription.h 1.9, DisplayResults.C 1.39, DisplayResults.h 1.13, Segmentation.C 1.131, segmentfile.C 1.160, segmentfile.h 1.103:
+	Added copright notices, changed vcid to const.
+
+2008-09-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DisplayResults.C 1.38:
+	Added #define min(), max() and (int) casts in their usage.
+
+2008-08-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.C 1.159:
+	Changed map<>::const_iterator to multimap in outputXML().
+
+	* DisplayResults.C 1.37:
+	Added #include <math.h> and conditional definitions of min() and max().
+
+2008-08-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PixelTemplate.h 1.8:
+	Adedd #include <config.h>, <missing-c-utils.h> in the front of #include<>s.
+
+	* segmentfile.C 1.158:
+	Removed #include <imagedata.h>,<imagefile.h> as they are in segmentfile.h.
+
+	* Segmentation.h 1.109, segmentfile.h 1.102:
+	Changed #include <config.h>, <missing-c-utils.h> in the front of #include<>s.
+
+	* Makefile 1.83:
+	Added  $(MISCC++LIBFILES) / $(MISCC++LIBFILELINKS) in del-links / links.
+
+2008-06-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.h 1.101: Copied from vvi's version.
+
+2008-06-12  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* segmentfile.C 1.157, TilePyramid.C 1.2: *** empty log message ***
+
+	* TilePyramid.C 1.1: Initial version.
+
+	* TilePyramid.h 1.2: Description updated.
+
+	* TilePyramid.h 1.1: Initial version.
+
+2008-06-12  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Makefile 1.82: Should now include audio files.
+
+2008-06-12  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* Makefile 1.81: *** empty log message ***
+
+2008-05-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DisplayResults.C 1.36: Corrected DisplayTree() a bit.
+
+2008-04-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Segmentation.C 1.130: Changed to #if MKDIR_ONE_ARG instead of #ifdef.
+
+2008-04-11  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Segmentation.C 1.129: Changed to check MKDIR_ONE_ARG.
+
+2008-04-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Segmentation.C 1.128, Segmentation.h 1.108: Added comment header.
+	ListMethods() now has brief mode too.
+
+2008-04-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DisplayResults.C 1.35:
+	Added missing endl afrer help text of -a switch.
+
+	* AddDescription.C 1.9:
+	Added verbosity in error message of ProcessOptions().
+
+2008-04-04  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* RegionMerger.C 1.3, viewxml.C 1.26, segmentfile.h 1.100:
+	*** empty log message ***
+
+2008-04-01  VilleViitaniemi  <ville.viitaniemi@tkk.fi>
+
+	* segmentfile.C 1.155: In openFiles(), added the functionality that
+	if sequenceinfo specified by the segmentation file is empty,
+	it is copied from the image sequence.
+
+2007-10-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.h 1.99, segmentfile.C 1.154:
+	Renamed zoningHorizVert() to zoningCenterHorizVert().
+	Added new zoningHorizVert(), recognized also as "4".
+
+2007-08-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Segmentation.C 1.127:
+	Removed #ifdef  __MINGW32__ definition of gethostname().
+
+2007-08-24  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* configure.ac 1.1: Added configure.ac placeholder.
+

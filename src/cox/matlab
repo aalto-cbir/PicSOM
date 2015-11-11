@@ -1,0 +1,134 @@
+// -*- C++ -*-
+
+// $Id: matlab,v 1.2 2010/09/08 19:50:21 jorma Exp $	
+
+#ifndef _cox_matlab_
+#define _cox_matlab_
+
+#include <cox/labeled>
+#include <cox/matrix>
+
+#include <vector>
+#include <string>
+#include <iostream>
+#include <fstream>
+
+namespace cox {
+  ///
+  namespace matlab {
+    using std::vector;
+    using std::string;
+    using std::ofstream;
+    using std::ostream;
+    using std::cout;
+    using std::endl;
+    using std::ios;
+
+    /// this is the innermost method for all..
+    template <class T>
+    inline void write(const vector<T>& v, ostream& os, bool c /*= true*/)
+      throw (string) {
+      for (size_t i=0; i<v.size(); i++)
+	os << " " << v[i] << (i%8==7 && i!=v.size()-1 ?" ...\n":"");
+      if (c)
+	os << " ;...\n";
+    }
+
+    ///
+    template <class T>
+    inline void write(const labeled<vector<T> >& v, ostream& os = cout)
+      throw (string) {
+      os << v.label() << " = [";
+      write((const vector<T>)v, os, false);
+      os << "];" << endl;
+    }
+
+    ///
+    template <class T>
+    inline void write(const labeled<vector<T> >& v, const string& fn,
+		      bool a = false) throw (string) {
+      write(v, ofstream(fn.c_str(), ios::out|(a?ios::app:ios::trunc)));
+    }
+
+    ///
+    template <class T>
+    inline void write(const vector<T>& v, const string& l, ostream& os = cout)
+      throw (string) {
+      labeled<vector<T> > vl(v, l);
+      write(vl, os);
+    }
+
+    ///
+    template <class T>
+    inline void write(const vector<T>& v, const string& l, const string& fn,
+		      bool a = false) throw (string) {
+      ofstream os(fn.c_str(), ios::out|(a?ios::app:ios::trunc));
+      write(v, l, os);
+    }
+  
+    ///
+    template <class T>
+    inline void write(T b, T e, ostream& os = cout) throw (string) {
+      for (T i=b; i!=e; i++)
+	write(*i, os, true);
+    }
+    
+    ///
+    template <class T>
+    inline void write(T i, T e, const string& fn, bool a = false)
+      throw (string) {
+      // write(i, e, ofstream(fn.c_str()));
+      ofstream os(fn.c_str(), ios::out|(a?ios::app:ios::trunc));
+      write(i, e, os);
+    }
+    
+    ///
+    template <class T>
+    inline void write(const T& c, ostream& os = cout) throw (string) {
+      write(c.begin(), c.end(), os);
+    }
+    
+    ///
+    template <class T>
+    inline void write(const matrix<T>& m, const string& l, ostream& os)
+      throw (string) {
+      os << l << " = [";
+      for (size_t r=0; r<m.rows(); r++)
+	for (size_t c=0; c<m.cols(); c++) {
+	  os << " " << m(r, c);
+	  if (c==m.cols()-1 && r!=m.rows()-1)
+	    os << " ;\n";
+	  else if (c%8==7 && m.cols()!=8)
+	    os << " ...\n";
+	}
+      os << " ];" << endl;
+    }
+
+    ///
+    template <class T>
+    inline void write(const labeled<matrix<T> >& m, ostream& os)
+      throw (string) {
+      write(m, m.label(), os);
+    }
+    
+    ///
+    template <class T>
+    inline void write(const matrix<T>& m, const string& l, const string& fn,
+		      bool a = false) throw (string) {
+      ofstream os(fn.c_str(), ios::out|(a?ios::app:ios::trunc));
+      write(m, l, os);
+    }
+
+    ///
+    template <class T>
+    inline void write(const labeled<matrix<T> >& m, const string& fn,
+		      bool a = false) throw (string) {
+      write(m, m.label(), fn, a);
+    }
+
+  } // namespace matlab
+
+} // namespace cox
+
+#endif // _cox_matlab_
+

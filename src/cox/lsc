@@ -1,0 +1,437 @@
+// -*- C++ -*-
+
+// $Id: lsc,v 1.3 2013/06/11 08:33:34 jorma Exp $	
+
+#ifndef _cox_lsc_
+#define _cox_lsc_
+
+#include <cox/classifier>
+#include <cox/matrix>
+#include <cox/sompak>
+#include <cox/tictac>
+
+#include <set>
+
+namespace cox {
+  using std::string;
+  using std::vector;
+
+  ///
+  class lsc : public classifier {
+  public:
+    ///
+    enum convex_t { none, by_distance, by_value, by_all };
+
+    ///
+    lsc(int k = 0) : _default_k(k), _l(0), _convex(none),
+		     _sum_break(true), _tics("lsc") {
+      // tictac_start();
+    }
+
+    ///
+    lsc(int k, const string& fname) :
+      _default_k(k), _l(0), _convex(none), _sum_break(true), _tics("lsc") {
+      // tictac_start();
+      read_sompak(fname);
+    }
+
+    ///
+    template <class C>
+    lsc(int k, const C& c) :
+      _default_k(k), _l(0), _convex(none), _sum_break(true), _tics("lsc")  {
+      // tictac_start();
+      add(c);
+    }
+
+    ///
+    template <class I>
+    lsc(int k, const I& b, const I& e) :
+      _default_k(k), _l(0), _convex(none), _sum_break(true), _tics("lsc")  {
+      // tictac_start();
+      for (auto i=b; i!=e; i++)
+	add(*i);
+    }
+
+    ///
+    virtual ~lsc() {
+      _tics.summary(true, false, cout);
+    }
+
+    ///
+    virtual size_t vector_length() const { return _l; }
+
+    ///
+    virtual void vector_length(size_t l) throw(string) {
+      if (l>_l || l<1)
+	throw "cox::lsc::vector_length(int) failed";
+
+      _l = l;
+      for (_lss_t::iterator i = _lss.begin(); i!=_lss.end(); i++)
+	i->second.resize(_l);
+    }
+
+    ///
+    virtual size_t class_count() const { return _lss.size(); }
+
+    ///
+    virtual list<string> class_labels() const {
+      list<string> labels;
+      for (_lss_t::const_iterator i=_lss.begin(); i!=_lss.end(); i++)
+	labels.push_back(i->first);
+      return labels;
+    }
+
+    ///
+    virtual string description() const {
+      stringstream ss;
+      ss << "lsc k=" << _default_k
+	 << " convex=" << convex_name(_convex)
+	 << " l=" << _l
+	 << " sum_break=" << _sum_break
+	 << " :";
+
+      list<string> _labels = class_labels();
+
+      for (list<string>::const_iterator i=_labels.begin();
+	   i!=_labels.end(); i++)
+	ss << " " << *i << "(" << n(*i) << ")";
+      return ss.str();
+    }
+
+    ///
+    virtual double class_distance(const string& l, const vector<float>& v,
+				  double /*m*/) throw(string) {
+      _lss_t::iterator j = _lss.find(l);
+      if (j==_lss.end())
+	return  numeric_limits<double>::max();
+
+      return j->second.distance(v, true);
+    }
+
+    ///
+    virtual double class_similarity(const string&, const vector<float>&,
+				    double) throw(string) { return 0; }
+    
+    ///
+    void convex(convex_t t) { _convex = t; }
+
+    ///
+    convex_t convex() const { return _convex; }
+
+    ///
+    static const string& convex_name(convex_t t) {
+      static map<convex_t,string> m {
+	{ none, "none" }, 
+	  { by_distance, "by_distance" },
+	    { by_value, "by_value" },
+	      { by_all, "by_all" } };
+      
+      static string error = "???";
+      auto i = m.find(t);
+      return i==m.end() ? error : i->second;
+    }
+
+    ///
+    size_t n(const string& l = "") const {
+      size_t n = 0;
+      for (_lss_t::const_iterator i=_lss.begin(); i!=_lss.end(); i++)
+	if (l=="" || i->first==l)
+	  n += i->second.size();
+      return n;
+    }
+
+    ///
+    template <class T>
+    const string& classify(const vector<T>& v) throw(string) {
+      tic("lsc::classify");
+      double m = std::numeric_limits<double>::max();
+      static string empty = "???";
+      const string *ret = &empty;
+
+      for (_lss_t::const_iterator i=_lss.begin(); i!=_lss.end(); i++) {
+	double d = i->second.distance(v, _sum_break);
+	if (d<m) {
+	  m = d;
+	  ret = &i->first;
+	}
+      }
+
+      tac("lsc::classify");
+
+      return *ret;
+    }
+
+    ///
+    void tic(const char *f) { _tics.tic(f); }
+    
+    ///
+    void tac(const char *f) { _tics.tac(f); }
+    
+    ///
+    void tictac_start()   { _tics.start(); }
+
+    ///
+    void tictac_summary() { _tics.summary(false, true, cout); }
+
+    ///
+    bool sum_break() const { return _sum_break; }
+
+    ///
+    void sum_break(bool b) { _sum_break = b; }
+
+    ///
+    int default_k() const { return _default_k; }
+
+    ///
+    typedef float component_t;
+
+    ///
+    typedef vector<component_t> vector_t;
+
+    ///
+    typedef labeled<vector_t> lvector_t;
+
+    ///
+    template <class C>
+    void add(const C& c) throw(string) {
+      try {
+	for (typename C::const_iterator i=c.begin(); i!=c.end(); i++)
+	  add(*i);
+      }
+      catch (const string&) {
+	throw "xxx";
+      }
+
+      // summary();
+    }
+
+    ///
+    template <class V>
+    void add(const labeled<V>& v) throw(string) {
+      if (!_l)
+	_l = v.size();
+      else if (v.size()!=_l)
+	throw "vector size mismatch in cox::lsc:add(const labeled<V>&)";
+
+      try {
+	const string& l = v.label();
+
+	_lss_t::iterator j = _lss.find(l);
+	if (j==_lss.end())
+	  j = _lss.insert(_lss_t::value_type(l, _ss_t(this, _default_k,
+						      l))).first;
+
+	j->second.push_back(v);
+      }
+      catch (const string&) {
+	throw "zzz";
+      }
+    }
+
+    ///
+    ostream& short_summary(ostream& os = cout) const {
+      os << "lsc : vectorlength=" << _l << " #classes=" << _lss.size()
+	 << " sumbreaking=" << _sum_break << " defaultk=" << _default_k
+	 << endl;
+      return os;
+    }
+
+    ///
+    ostream& summary(ostream& os = cout) const {
+      for (_lss_t::const_iterator i = _lss.begin(); i!=_lss.end(); i++)
+	os << " <" << i->first << "> <" << i->second.label()
+	   << "> " << i->second.size() << " " << i->second.k << endl;
+
+      return os;
+    }
+
+  protected:
+    class _ss_t : public labeled<list<vector_t> > {
+      typedef list<vector_t> list_t;
+      typedef labeled<list_t> label_t;
+
+    public:
+      ///
+      _ss_t(lsc *lsc_, int k_ = 0, const string& l_ = "") :
+	label_t(l_), lscp(lsc_), k(k_) {}
+
+      ///
+      void resize(int l) {
+	for (list_t::iterator i = begin(); i!=end(); i++)
+	  i->resize(l);
+      }
+
+      ///
+      void tic(const char *f) const { lscp->tic(f); }
+
+      ///
+      void tac(const char *f) const { lscp->tac(f); }
+
+      ///
+      double distance(const vector_t& v, bool brk = true) const {
+	using blas::vec_minus;
+	using blas::vec_plus;
+	using blas::vec_sum;
+
+	bool debug = false;
+
+	tic("blas::euclidean_nn");
+
+	typedef vector<pair<double,list_t::const_iterator> > nn_t;
+	nn_t nn = blas::euclidean_nearest_neighbors(v, *this, k, brk);
+
+	tac("blas::euclidean_nn");
+
+	double dmax = std::numeric_limits<double>::max(), d = dmax;
+
+	if (!nn.size())
+	  return dmax;
+
+	for (;;) {
+	  size_t eff_k = nn.size()-1;
+
+	  // tic("lsc::_ss_t::distance");
+
+	  vector<float> b, a, r;
+	  matrix<float> m;
+	    
+	  const vector_t& w = *nn[0].second;
+	  for (;eff_k ;eff_k--) {
+	    bool ok = true;
+	    m = matrix<float>(v.size(), eff_k);
+	    for (size_t i=0; i<eff_k; i++)
+	      m.set_column(i, vec_minus(*nn[i+1].second, w));
+
+	    try {
+	      b = m.pseudo_inverse()*vec_minus(v, w);
+	      a = b;
+	      a.insert(a.begin(), 1-vec_sum(b));
+	      r = vec_plus(w, m*b);
+	    }
+	    catch (const string& err) {
+	      ok = false;
+	      //cout << "lsc::distance() failing with: [" << err << "]" << endl;
+	      //debug = true;	    
+	      //r = w;
+	      cout << "lsc::distance() dropping out one vector..." << endl;
+	    }
+	    if (ok)
+	      break;
+	  }
+
+	  if (!eff_k)
+	    return nn[0].first;
+
+	  set<size_t> neg_comps;
+	  size_t neg_comp_distance = a.size(), neg_comp_value = a.size();
+	  float min_neg = 0.0;
+	  for (int i=a.size()-1; i>=0; i--) {
+	    if (a[i]<0)
+	      neg_comps.insert(i);
+	    if (a[i]<0 && neg_comp_distance==a.size())
+	      neg_comp_distance = i;
+	    if (a[i]<min_neg) {
+	      neg_comp_value = i;
+	      min_neg = a[i];
+	    }
+	  }
+
+	  double d = blas::euclidean_squared_distance(v, r);
+
+	  // tac("lsc::_ss_t::distance");
+
+	  if (debug) {
+	    cout << "input: "; blas::show(v) << endl;
+	    cout << "subspace: " << label() << endl;
+	    for (size_t i=0; i<nn.size(); i++) {
+	      cout << " nn " << i << " : " << nn[i].first << " = ";
+	      blas::show(*nn[i].second) << endl;
+	    }
+	    for (size_t i=0; i<m.columns(); i++) {
+	      cout << " vd " << i << " : ";
+	      if (b.size()>i)
+		cout << b[i];
+	      else
+		cout << "???";
+	      cout << " = ";
+	      blas::show(m.column(i)) << endl;
+	    }
+	  
+	    cout << " xhat : " << d << " = ";
+	    blas::show(r) << endl;
+
+	    cout << " a = ";
+	    blas::show(a);
+	    if (neg_comps.size())
+	      cout << " has NEGATIVE comp by distance " << neg_comp_distance
+		   << ", by value " << neg_comp_value
+		   << ", total " << neg_comps.size();
+	    cout << endl;
+	  }
+
+	  if (lscp->convex()==none || !neg_comps.size())
+	    return d;
+
+	  if (lscp->convex()==by_distance)
+	    nn.erase(nn.begin()+neg_comp_distance);
+
+	  if (lscp->convex()==by_value)
+	    nn.erase(nn.begin()+neg_comp_value);
+
+	  if (lscp->convex()==by_all)
+	    for (auto i=neg_comps.rbegin(); i!=neg_comps.rend(); i++)
+	      nn.erase(nn.begin()+*i);
+	}
+
+	return d;
+      }
+
+      ///
+      lsc *lscp;
+
+      ///
+      int k;
+    }; // class lsc::_ss_t
+
+    ///
+    void read_sompak(const string& fname) throw(string) {
+      _l = 0;
+      _lss.clear();
+
+      try {
+	sompak::data d(fname);
+	_l = d.vector_length();
+
+	list<lvector_t> in = d;
+	add(in);
+      }
+      catch (const string&) {}
+    }
+
+    ///
+    size_t _default_k;
+
+    ///
+    size_t _l;
+
+    ///
+    convex_t _convex;
+
+    ///
+    typedef map<string,_ss_t> _lss_t;
+
+    ///
+    _lss_t _lss;
+
+    ///
+    bool _sum_break;    
+
+    ///
+    tictac _tics;
+
+  }; // class lsc
+
+} // namespace cox
+
+#endif // _cox_lsc_
+

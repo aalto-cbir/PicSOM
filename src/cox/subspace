@@ -1,0 +1,125 @@
+// -*- C++ -*-
+
+// $Id: subspace,v 1.1 2007/11/19 07:59:57 jorma Exp $
+
+#ifndef _cox_subspace_
+#define _cox_subspace_
+
+#include <cox/matrix>
+#include <cox/blas>
+#include <cox/sompak>
+
+#include <vector>
+#include <string>
+#include <iostream>
+#include <fstream>
+
+namespace cox {
+  using std::vector;
+  using std::string;
+  using std::ifstream;
+  using std::cout;
+  using std::endl;
+//   using cox::blas;
+//   using cox::sompak;
+  ///
+  template <class T> class subspace {
+  public:
+    ///
+    subspace(size_t l = 0, size_t d = 0) : _mean(l), _base(l, d) {}
+
+    ///
+    subspace(const vector<T>& m, size_t d = 0) : _mean(m),_base(m.size(), d) {}
+
+    ///
+    subspace(const vector<T>& m, const matrix<T>& b, const vector<T>& e)
+      throw(string) : _mean(m), _base(b), _eigv(e) {
+      if (m.size()!=b.rows())
+	  throw("SDFGHJK");
+    }
+
+    ///
+    subspace(const subspace& s) : _mean(s._mean), _base(s._base) {}
+
+    ///
+    size_t vector_length() const { return _mean.size(); }
+
+    ///
+    vector<T>& mean() { return _mean; }
+
+    ///
+    const vector<T>& mean() const { return _mean; }
+
+    ///
+    size_t base_size() { return _base.columns(); }
+
+    ///
+    matrix<T>& base() { return _base; }
+
+    ///
+    const matrix<T>& base() const { return _base; }
+
+    ///
+    vector<T> projection_coeff(const vector<T>& v) const {
+      return _base.left_trans_multiply(blas::vec_minus(v,_mean));
+    }
+
+    ///
+    vector<T> back_projection(const vector<T>& v) const {
+      // checks ?
+      vector<T> ret(_mean);
+      for (size_t r=0; r<ret.size(); r++)
+	for (size_t c=0; c<v.size(); c++)
+	  ret[r] += v[c]*_base(r, c);
+
+      return ret;
+    }
+
+
+    /* FILE I/O FUNCTIONS ARE HERE */
+
+    ///
+    void read_sompak(const string& fname) throw(string) {
+      typedef list<labeled<vector<float> > > data_t;
+      data_t data = sompak::data(fname);
+      _base = matrix<T>(data.begin(), data.end());
+
+      _mean.resize(0);
+
+      if (_base.columns()<3)
+	throw string("cox::subspace::read_sompak() too few columns");
+
+      _mean = _base.column(_base.columns()-1);
+      _base.remove_column(_base.columns()-1);
+
+      _eigv = _base.column(_base.columns()-1);
+      _base.remove_column(_base.columns()-1);
+
+      // cout << vector_length() << " " << _base.columns() << endl;
+    }
+
+    ///
+    void write_sompak(const string& fname) throw(string) {
+      sompak::data data(fname, true);
+      for (size_t c=0; c<_base.cols(); c++)
+	data.insert(_base.column(c));
+
+      data.insert(_eigv);
+      data.insert(_mean);
+    }
+
+  protected:
+    ///
+    vector<T> _mean;
+
+    ///
+    matrix<T> _base;
+
+    ///
+    vector<T> _eigv;
+
+  }; // class subspace
+} // namespace cox
+
+#endif // _cox_subspace_
+

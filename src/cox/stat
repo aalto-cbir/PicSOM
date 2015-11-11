@@ -1,0 +1,179 @@
+// -*- C++ -*-
+
+// $Id: stat,v 1.2 2010/09/09 14:49:24 jorma Exp $	
+
+#ifndef _cox_stat_
+#define _cox_stat_
+
+#include <cox/matrix>
+#include <cox/blas>
+
+namespace cox {
+
+  ///
+  namespace stat {
+    ///
+    const string& _h() {
+      static const string h = "cox::stat::";
+      return h;
+    }
+    
+    ///
+//     string _ne(size_t a, size_t b) {
+//       stringstream s;
+//       s << a << "!=" << b;
+//       return s.str();
+//     }
+
+    ///
+    template <class I>
+    inline pair<typename I::value_type,
+		matrix<typename I::value_type::value_type> > 
+    mean_cov_common(I i, I e, bool mean, bool mtrx, bool cov) throw(string) {
+      if (i==e)
+	throw _h()+"mean_cov_common() : empty set";
+
+      typedef typename I::value_type     vec_t;
+      typedef typename vec_t::value_type real_t;
+      typedef matrix<real_t>             mat_t;
+
+      pair<vec_t,mat_t> ret;
+
+      bool do_mean = mean || cov;
+
+      vec_t tmpvec;
+      vec_t& vec = do_mean ? ret.first : tmpvec;
+      if (do_mean)
+	vec.resize(i->size());
+
+      mat_t tmpmat;
+      mat_t& mat = mtrx||cov ? ret.second : tmpmat;
+      if (mtrx)
+	mat.resize(i->size(), i->size());
+      else if (cov)
+	mat.resize(i->size(), 1);
+
+      int n = 0;
+      for (; i!=e; i++, n++) {
+	if (do_mean)
+	  blas::vec_add(vec, *i);
+
+	if (mtrx)
+	  mat.add_outer_product(*i);
+	else if (cov)
+	  for (size_t j=0; j<vec.size(); j++)
+	    mat(j, 0) += (*i)[j]*(*i)[j];
+      }
+
+      for (size_t j=0; j<vec.size(); j++)
+	vec[j] /= n;
+
+      if (mtrx||cov)
+	mat /= n;
+
+      if (cov) {
+	if (mtrx)
+	  mat -= mat_t::self_outer_product(vec);
+	else
+	  for (size_t j=0; j<vec.size(); j++)
+	    mat(j, 0) -= vec[j]*vec[j];
+      }
+
+      return ret;
+    }
+
+    ///
+    template <class I>
+    static typename I::value_type mean(I i, I e) throw(string) {
+      return mean_cov_common(i, e, true, false, false).first;
+    }
+
+    ///
+    template <class C>
+    static typename C::value_type mean(const C& c) throw(string) {
+      return mean(c.begin(), c.end());
+    }
+
+    ///
+    template <class I>
+    static matrix<typename I::value_type::value_type> covariance(I i, I e)
+      throw(string) {
+      return mean_cov_common(i, e, false, true, true).second;
+    }
+
+    ///
+    template <class C>
+    static matrix<typename C::value_type::value_type> covariance(const C& c)
+      throw(string) {
+      return covariance(c.begin(), c.end());
+    }
+
+    ///
+    template <class I>
+    inline pair<typename I::value_type,
+		matrix<typename I::value_type::value_type> > 
+    mean_covariance(I i, I e) throw(string) {
+      return mean_cov_common(i, e, true, true, true);
+    }
+
+    ///
+    template <class C>
+    inline pair<typename C::value_type,
+		matrix<typename C::value_type::value_type> > 
+    mean_covariance(const C& c) throw(string) {
+      return mean_covariance(c.begin(), c.end());
+    }
+
+    template <class I>
+    inline pair<typename I::value_type,
+		vector<typename I::value_type::value_type> > 
+    mean_var_common(I i, I e, bool mean, bool var) throw(string) {
+      pair<typename I::value_type,
+	matrix<typename I::value_type::value_type> > r =
+	mean_cov_common(i, e, mean, false, var);
+
+      typedef vector<typename I::value_type::value_type> vec_t;
+      vec_t vec;
+
+      if (var)
+	vec = r.second.column(0);
+
+      return make_pair(r.first, vec);
+    }
+
+    ///
+    template <class I>
+    static vector<typename I::value_type::value_type> variance(I i, I e)
+      throw(string) {
+      return mean_var_common(i, e, false, true).second;
+    }
+
+    ///
+    template <class C>
+    static vector<typename C::value_type::value_type> variance(const C& c)
+      throw(string) {
+      return variance(c.begin(), c.end());
+    }
+
+    ///
+    template <class I>
+    inline pair<typename I::value_type,
+		vector<typename I::value_type::value_type> > 
+    mean_variance(I i, I e) throw(string) {
+      return mean_var_common(i, e, true, true);
+    }
+
+    ///
+    template <class C>
+    inline pair<typename C::value_type,
+		vector<typename C::value_type::value_type> > 
+    mean_variance(const C& c) throw(string) {
+      return mean_variance(c.begin(), c.end());
+    }
+
+  } // namespace stat
+
+} // namespace cox
+
+#endif // _cox_stat_
+

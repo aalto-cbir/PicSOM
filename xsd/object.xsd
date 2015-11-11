@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+
+<!--
+  XML Schema for picsom::object* namespace and CBIR system.
+
+  $Id: object.xsd,v 1.2 2008/08/29 18:11:57 mats Exp $
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.cis.hut.fi/picsom/ns"
+           elementFormDefault="qualified"
+           version="$Id: object.xsd,v 1.2 2008/08/29 18:11:57 mats Exp $">
+
+  <xs:element name="objectindex">
+    <xs:complexType>
+      <xs:sequence maxOccurs="unbounded">
+	<xs:element name="objectinfo"/>
+      </xs:sequence>
+      <xs:attribute name="type" type="xs:string"/>
+      <xs:attribute name="name" type="xs:string"/>
+      <xs:attribute name="layers" type="xs:nonNegativeInteger"/>
+      <xs:attribute name="depths" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="objectinfo">
+    <xs:complexType>
+      <xs:all>
+	<xs:element name="tssomlocation"/>
+      </xs:all>
+      <xs:attribute name="index" type="xs:integer"/>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

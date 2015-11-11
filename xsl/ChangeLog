@@ -1,0 +1,405 @@
+2015-04-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.78: Added display of cpuusage.
+
+	* picsom.xsl 1.77: Added clicking of timeline images.
+
+2015-04-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.76: Improved timeline and added videosubobjects.
+
+2015-04-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.75: Added html5video and initial things for timeline.
+
+2014-09-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.74: Added template for slavelist.
+
+2014-04-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* iia.xsl 1.3: Changed some parameters for Samsung Tab.
+
+2014-04-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.73, iia.xsl 1.2: Changed image to imgsrc in infolink.
+
+	* iia.xsl 1.1: Initial version.
+
+2014-04-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.72: Added width and height for an image.
+
+2014-04-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.71: Added support for infolinklist and visitedlinklist.
+
+2014-04-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* demo.xsl 1.5: Updated to use /image/tssom/ instead of /image/.
+
+	* picsom.xsl 1.70:
+	Added support for queryinfo and improved support for link.
+	Added /image/ in to use query/Q:XXX/image/tssom/ .
+
+2013-03-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.69:
+	width&height from objectinfo are now used primarily, frameinfo/width&height only as a fallback.
+
+2013-03-19  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.68: Added a second set of buttons to picsom:featurelist.
+
+	* picsom.xsl 1.67:
+	Renamed template contentselectiontemplate to contentdisplaytemplate.
+	Added template contentitemdisplay for showing active content classes only.
+
+2013-03-18  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.66: Added an "Annotations done" submit button.
+
+2013-03-15  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.65:
+	Added an "Annotate" button and hid annotation radio buttons by default.
+	Added a show/hide button for "Active content classes", hidden by default.
+	Classes in  <xsl:template name="contentitemlistinner"> are now sorted according to size.
+
+2013-03-14  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.64:
+	Added a test for positive "@value" to   <xsl:template name="keywordlist">.
+
+2013-03-13  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.63:
+	Changed displaying gt and detections in <xsl:template name="keywordlist">.
+	Made checkboxes disabled in <xsl:template match="picsom:contentitem"> if not allowtextquery.
+
+	* picsom.xsl 1.62:
+	Added checkboxes to <xsl:template name="contentitemlistrow">.
+	Added  <xsl:template name="contentselectiontemplate">.
+	Added 3x removal of "classdef::" from class names.
+	Color-coded yes/no/unset radio buttons for detections.
+
+2013-03-11  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.61:
+	Added rounding of detection values to  <xsl:template name="keywordlist">.
+
+2013-03-08  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.60:
+	Edited radiobuttons to <xsl:template name="keywordlist">:
+	 - "name" is now "classdef::LABEL,@NAME,@TYPE"
+	 - added small font size and some <br/>s.
+
+	* picsom.xsl 1.59:
+	Added radiobuttons to <xsl:template name="keywordlist">.
+
+2013-03-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.58: Added <xsl:template name="keywordlist">.
+
+2013-02-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.57: Changed xmlns:picsom and email address to aalto.fi.
+
+2012-10-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* demo.xsl 1.4: Changed to show plusobjectlist again.
+
+2012-10-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* demo.xsl 1.3: Corrected the Restart buttuns.
+
+2012-10-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* demo.xsl 1.2: Tried to make demo working.
+
+2012-10-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* demo.xsl 1.1:
+	Copied from picsom.xsl,v 1.56 and commented first things out.
+
+	* picsom.xsl 1.56: Added Text search, index and field: ...
+
+2012-09-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.55: Added implicit_textquery.
+
+2012-08-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.54: Added display of query target and textsnippet.
+
+2012-08-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.53:
+	Added templates contentitemlistrow and contentitemlistinner.
+
+	* picsom.xsl 1.52: Added template textsearchresulttemplate.
+	Renamed "precalculated features" to "precalculated scores".
+
+2011-09-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.51:
+	Changed <form>s to <span>s around onclick='toggle_table(this)'s.
+
+2010-12-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii-menu.xsl 1.4:
+	Changed "x" to "" in select list of visibleimage.
+
+	* picsom-tobii-menu.xsl 1.3:
+	sendajax_objecttag() is now properly used. Added 17 voc2007 tags.
+
+	* picsom-tobii.xsl 1.9:
+	visibleimage should now align speechtexts vertically.
+
+	* picsom-tobii-menu.xsl 1.2: Improved.
+
+2010-12-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii-menu.xsl 1.1:
+	Copied from picsom-tobii.xsl,v 1.8 and added menus.
+
+2010-11-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii.xsl 1.8: Specified style="height:30px" for belowtext.
+
+2010-11-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii.xsl 1.7: Added belowtext in visibleimage.
+
+2010-09-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii.xsl 1.6:
+	Applied changes of picsom.xsl from 1.47 to 1.50 here too.
+
+2010-09-17  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.50:
+	Connection::XMLstub() and XMLdocroot() now have an "xslt-param" argument.
+	Query now has tnsize (== tnwidth x tnheight) and tncolumns variables.
+	picsom.xsl now uses xslt-param values of tnwidth, tnheight and tncolumns.
+
+2010-09-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.49:
+	Corrected longname->name in <template name="tssomsurfaces">.
+	Added  <variable name="seth"> and "setw" in <template name="visibleimage">.
+
+2010-09-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.48:
+	Added ?tn after /database/label in <xsl:template name="visibleimage">.
+
+2010-08-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.47: Added <xsl:template name="tssomsurfaces">.
+
+2010-04-19  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* picsom.xsl 1.46: Added grey-out of disabled input elements.
+
+2010-03-29  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* picsom.xsl 1.45:
+	Now should respect value of allowtextquery. Also shows concept selection only
+	when they are given.
+
+2010-03-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.44:
+	Added support for radiobuttons in algorithm paramater selection.
+
+2010-03-13  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* picsom.xsl 1.43:
+	Renamed concept to classaugment for http form data. Added selection of precalculated features.
+
+2010-03-05  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* picsom.xsl 1.42:
+	Now handles selection of concepts based on picsom:classaugment element.
+
+2010-03-03  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* picsom.xsl 1.41:
+	Now supports textquery and shows selectable concepts. Concepts have no effect yet, though.
+
+2009-12-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii.xsl 1.5, picsom.xsl 1.40:
+	template visibleimage now draws white or red 3px dashed borders around images.
+
+2009-11-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii.xsl 1.4, picsom.xsl 1.39:
+	template picsom:link now shows @text isntead of "Description of ...".
+
+2009-11-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii.xsl 1.3: Removed checkboxes.
+
+2009-10-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.38: Added <xsl:template name="guessedkeywords">.
+	Changed some "images" to "objects".
+	Some wraps of long lines.
+
+2009-10-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-default.xsl 1.1: Initial version.
+
+2009-09-28  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* picsom.xsl 1.37: Added commented away field for debug output.
+
+2009-09-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii.xsl 1.2, picsom-sisc.xsl 1.2, picsom.xsl 1.36:
+	In Query::AddToXMLobjects() renamed <images> to <objects>.
+	In Query::AddToXMLobjects() renamed <*imagelist> to <*objectlist>.
+	Changed many DataBase,Query,TSSOM,Valued::AddToXML*() to use XmlDom.
+
+2009-09-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.35: Added method column in featurelist.
+
+2009-08-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-tobii.xsl 1.1: Copied from picsom.xsl 1.33 and simplified.
+
+	* picsom.xsl 1.34:
+	Added empty rules for picsom:ajaxdata and picsom:childlist.
+
+2009-06-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.33:
+	Added last_data, last_data_time and <variable time="xxx"/>.
+
+	* picsom.xsl 1.32:
+	Added link to contextstate in template match="//picsom:databaselist/picsom:database".
+	Added template match="picsom:contextstate".
+	Added template match="picsom:contextstate/picsom:variable".
+
+2009-05-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.31:
+	Added "id" attribute in <img> element in visibleimage template.
+	Added processing of <refresh> element in meta template.
+	Improved <threadlist> and added <analysislist>.
+
+2009-02-20  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.30: Added "Restart query" button.
+
+	* picsom.xsl 1.29: Added restart buttons.
+
+2009-01-23  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.28:
+	Added hiding of featurelist and algorithmlist when images are shown.
+	Added LESS/MORE switching in databaselist.
+	Added second template for picsom:database, selection is done based on the parent node.
+
+	* picsom.xsl 1.27: Reordered image lists.
+	Image lists are not shown until one of them contains images.
+	Added show/hide functionality for image lists.
+
+2009-01-15  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.26:
+	Moved object labels from "name" to "value". Requires the corresponding change in Connection.C.
+	Added <xsl:variable name="useradioselection">.
+	Added <xsl:template name="radioimage">, <xsl:template name="imageinput">.
+
+2008-12-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.25: Added 3x <meta DC> in <xsl:template name="meta">.
+
+2008-11-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.24: Added <xsl:template name="meta">.
+
+2008-11-06  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.23:
+	Name of algorithm now set correctly in <xsl:template match="//picsom:parameter">.
+
+2008-11-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.22:
+	Added <xsl:template match="//picsom:parameterlist" and "//picsom:parameter">.
+
+2008-10-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.21:
+	Extracted <xsl:template name="featurelistinner"> from <xsl:template match="//picsom:featurelist">.
+	Changed algorithmlist to appear before featurelist.
+
+2008-09-30  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.20: Added <xsl:template match="//picsom:featurealias">.
+
+2008-09-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.19: Added <xsl:template match="picsom:parent_identity"/>
+
+2008-09-29  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.18:
+	Added table headers for featurelist and algorithmlistinner.
+	Feature size shown as "-" if the size is not known.
+
+2008-09-25  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.17: Added "Select all" and "Unselect all" buttons.
+
+	* picsom.xsl 1.16: Added label and score to img title.
+
+	* picsom.xsl 1.15:
+	Image checkbox status now set according to the value of the empty aspect.
+
+2008-09-24  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.xsl 1.14:
+	Imagelists are now organized into "imagesPerRow" columns.
+
+2008-09-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.13: Corrected <xsl:template name="visibleimage">.
+	Added <form> in <xsl:template match="//picsom:images">.
+	Added <xsl:template match="//picsom:plusimagelist"> etc.
+	Added <xsl:template name="checkboximage">.
+	Added <xsl:template name="clickableimage">.
+
+	* picsom.xsl 1.12: Quite many improvements.
+
+2008-08-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.11: Removed out-commentings made for picsom-sisc.xsl.
+
+2008-08-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.3: Moved to ../js .
+
+2008-05-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-sisc.xsl 1.1: Initial version, copied from picsom.xsl 1.10.
+
+2008-05-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.10: Changed table height to 530 pixels.
+
+2008-04-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.9: MISE6 and click-location RF experiment changes.
+
+2008-04-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.xsl 1.8: Added some new rules.
+	Commented out almost all other rules except picsom:imageinfo.
+

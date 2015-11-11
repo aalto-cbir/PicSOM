@@ -1,0 +1,17 @@
+# $Id: condor-stub,v 1.2 2012/10/16 08:48:53 jorma Exp $	
+#
+# an example of condor script for picsom
+#
+# one might use this like:
+# %> env foo=123 bar=456 condor_submit condor-stub
+
+requirements            = ICSLinux == 2012
+executable              = $ENV(HOME)/picsom/c++/picsom.linux64.fast
+transfer_input_files    = 
+when_to_transfer_output = ON_EXIT
+notification            = Never
+arguments    		= $ENV(HOME)/picsom/scripts/dummy - $ENV(foo) $ENV(bar)
+log          		= condor-$(Cluster).log
+error        		= condor-$(Cluster).err
+output       		= condor-$(Cluster).out
+queue

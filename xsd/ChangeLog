@@ -1,0 +1,29 @@
+2009-03-13  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ajax-audio.xsd 1.1, ajax-gaze.xsd 1.1, ajax.xsd 1.3:
+	Added initial versions of ajax-audio.xsd and ajax-gaze.xsd.
+
+2009-03-12  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* ajax-keyboard.xsd 1.2, ajax-pointer.xsd 1.2:
+	Changed timestamps to xs:string.
+
+	* ajax.xsd 1.2: Added query attribute to erf.
+
+	* ajax-keyboard.xsd 1.1, ajax-pointer.xsd 1.1, ajax.xsd 1.1:
+	Added initial files for ajax xsd.
+
+2008-12-19  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* tssom.xsd 1.2:
+	Attribute weight to xs:double. Added sqrdist as xs:double.
+
+2008-08-29  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* object.xsd 1.2:
+	Added stuff to objectindex. Not sure if this is the right place...
+
+2008-08-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* object.xsd 1.1, picsom.xsd 1.1, tssom.xsd 1.1: Initial versions.
+

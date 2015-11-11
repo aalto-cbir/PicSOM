@@ -1,0 +1,95 @@
+2014-04-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.22:
+	Added refresh_stopped, but it didn't solve the problem...
+
+	* picsom.js 1.21: Added timed_refresh() and stop_refreshing().
+
+2013-03-18  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.js 1.20:
+	Split toggle_annotations() to toggle_annotations_on() and toggle_annotations_off().
+
+2013-03-15  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.js 1.19: Added function toggle_annotations(el).
+
+2010-12-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.18: Improved.
+
+2010-12-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.17: Added sendajax().
+
+2010-11-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.16: Added erfcallback_changetext().
+
+2010-04-19  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* picsom.js 1.15:
+	Added toggleInput() for grey-out of disabled input elements.
+
+2010-03-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.14:
+	Added dummy write_log() and used it in erfcallback_setaspect().
+
+2009-12-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.13:
+	Extracted Query::ErfCheckAndSet_setaspect() that recognizes "toggle".
+	ConditionallyCalculateErfFeatures() now toggles ptrc-1 relevance.
+
+2009-12-02  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* picsom.js 1.12:
+	Added erfcallback_setaspect() which changes colour to red for images with aspect set.
+
+2009-12-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.11:
+	Added protections against undefs in erfcallback_gotopage() and set_count().
+
+2009-09-28  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* picsom.js 1.10:
+	Added callback functions: erfcallback, erfcallback_gotopage.
+
+2009-09-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.9: Added header.
+
+	* picsom.js 1.8:
+	In Query::AddToXMLobjects() renamed <images> to <objects>.
+	In Query::AddToXMLobjects() renamed <*imagelist> to <*objectlist>.
+	Changed many DataBase,Query,TSSOM,Valued::AddToXML*() to use XmlDom.
+
+2009-01-27  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.js 1.7:
+	Removed display setting for algorithmlist in showimages().
+
+2009-01-23  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.js 1.6:
+	Added hiding of featurelist and algorithmlist in showimages().
+	Added LESS/MORE switching to toggle_short_long().
+
+	* picsom.js 1.5: Fixed toggle_short_long().
+	Added show/hide functionality for image lists.
+
+2008-09-30  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.js 1.4: Added set_features().
+
+2008-09-25  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* picsom.js 1.3:
+	Added set_all_checkboxes(), select_all_checkboxes(), unselect_all_checkboxes().
+
+2008-08-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom.js 1.2: Moved from ../xsl .
+

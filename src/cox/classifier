@@ -1,0 +1,116 @@
+// -*- C++ -*-
+
+// $Id: classifier,v 1.1 2007/11/19 07:59:57 jorma Exp $
+
+#ifndef _cox_classifier_
+#define _cox_classifier_
+
+#include <utility>
+#include <string>
+#include <vector>
+#include <list>
+#include <map>
+#include <iostream>
+#include <limits>
+
+namespace cox {
+  using std::pair;
+  using std::string;
+  using std::vector;
+  using std::list;
+  using std::multimap;
+  using std::cout;
+  using std::cerr;
+  using std::endl;
+  using std::numeric_limits;
+
+  ///
+  class classifier {
+  public:
+    ///
+    virtual ~classifier() {}
+
+    ///
+    virtual size_t vector_length() const = 0;
+
+    ///
+    virtual void vector_length(size_t) throw(string) = 0;
+
+    ///
+    virtual size_t class_count() const = 0;
+
+    ///
+    virtual list<string> class_labels() const = 0;
+
+    ///
+    virtual string description() const = 0;
+
+    ///
+    virtual double class_distance(const string&, const vector<float>&, double)
+      throw(string) = 0;
+
+    ///
+    virtual double class_similarity(const string&, const vector<float>&, double)
+      throw(string) = 0;
+    
+    ///
+    template <class T>
+    string classify(const vector<T>& v) throw(string) {
+      double m = std::numeric_limits<double>::max();
+      return classify(v, m);
+    }
+
+    ///
+    template <class T>
+    string classify(const vector<T>& v, double& m) throw(string) {
+      const list<string>& labels = class_labels();
+      list<string>::const_iterator r = labels.end();
+
+      for (list<string>::const_iterator i = labels.begin(); i!=labels.end();
+	   i++) {
+
+	// cout << *i << endl;
+
+	double d = class_distance(*i, v, m);
+	if (d<m) {
+	  r = i;
+	  m = d;
+	}
+      }
+      if (r==labels.end())
+	throw "cox::classifier::classify() failed";
+
+      return *r;
+    }    
+
+    ///
+    template <class T>
+    vector<pair<string,double> > class_distances(const vector<T>& v)
+      throw(string) {
+      const list<string>& labels = class_labels();
+      multimap<double,string> dist;
+
+      double m = numeric_limits<double>::max();
+      for (list<string>::const_iterator i = labels.begin(); i!=labels.end();
+	   i++) {
+
+	double d = class_distance(*i, v, m);
+	dist.insert(pair<double,string>(d, *i));
+      }
+
+      vector<pair<string,double> > ret(dist.size());
+      multimap<double,string>::const_iterator i = dist.begin();
+      for (size_t j=0; j<ret.size(); j++, i++)
+	ret[j] = pair<string,double>(i->second, i->first);
+
+      return ret;
+    }    
+
+  protected:
+
+
+  }; // class classifier
+} // namespace cox
+
+#endif // _cox_classifier_
+

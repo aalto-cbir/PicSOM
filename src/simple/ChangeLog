@@ -1,0 +1,395 @@
+2015-04-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSet.C 1.16: Added some progress tracing in KMeans().
+
+2014-11-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSet.C 1.15: Added alternative initialization in KMeans().
+
+2014-10-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSource.h 1.17:
+	Added VectorComponent(), AppendComponentDescription() and copying of components.
+
+2014-07-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Classifier.h 1.20, Histogram.h 1.4, List.h 1.7, Matrix.h 1.10, VectorSet.h 1.19, VectorSource.h 1.16:
+	Added using in multiple places.
+
+2014-02-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Vector.C 1.24: DistanceChiSquare() now avoids division by zero.
+
+2014-01-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSet.C 1.14, VectorSet.h 1.18:
+	Added Analysis::AnalyseKMeansHistograms().
+
+2013-11-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSource.h 1.15: Re-ordered #includes so that zlib.h comes last.
+
+	* Simple.C 1.20: Added #include <unistd.h> .
+
+2013-08-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Vector.h 1.20:
+	IntVector and FloatVector now use FastCopyValues() instead of Slow*().
+
+2013-06-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Vector.h 1.19, Vector.C 1.23:
+	Added out-commented n_created and n_destructed.
+
+2013-04-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Vector.C 1.22: Removed 2x bogus * in DistanceChiSquare().
+
+2013-03-13  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Vector.C 1.21, Vector.h 1.18:
+	Added DistTypes: chisquare, histogram_intersection.
+	Added DistanceChiSquare(), DistanceHistogramIntersection().
+
+2013-02-14  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* Simple.C 1.19:
+	Added __APPLE__ to recognized platforms in GetMemorySize().
+	Added resident size to GetMemorySize() for __APPLE__.
+
+2013-02-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Matrix.C 1.11: Updated ilaenv_() and ssyevx_() signatures.
+
+2012-12-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Vector.C 1.20, Vector.h 1.17, VectorSet.C 1.13, VectorSet.h 1.17:
+	Added DistanceType::cosine and optional DistanceType* argument to NearestNeighbors().
+
+2012-08-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.18, Simple.h 1.29, VectorSource.C 1.19, VectorSource.h 1.14:
+	Added support for "make mingw64" in Ubuntu 12.04.
+
+2012-06-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSet.C 1.12, VectorSet.h 1.16, VectorSource.C 1.18, VectorSource.h 1.13:
+	Added bool permissive argument for reading empty data files without errors.
+
+2012-06-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSource.C 1.17:
+	Added explicit (bad!) uses of picsom namespace for XMLutils.
+
+	* Vector.C 1.19: Removed ToStr()s in DistanceSquaredEuclidean().
+
+2012-05-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.17: Added rudimentary debugging in SortedDir().
+
+2012-04-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.16:
+	Changed some #ifdef linux to #ifdef __linux__ to make new standard compiler happy.
+
+2012-02-01  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Classifier.h 1.19, VectorSet.C 1.11, VectorSet.h 1.15:
+	Distance weights are now set directly to DistanceType as it should be.
+
+	* SOM.h 1.14, Vector.h 1.16:
+	SOM::VectorDistance() now uses correct metric.
+
+2012-01-30  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Classifier.h 1.18, Vector.C 1.18, Vector.h 1.15, VectorSet.C 1.10, VectorSet.h 1.14:
+	Implemented VectorSet::SetWeights(), some error checking for weighted_euclidean metric.
+
+2012-01-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Vector.C 1.17, Vector.h 1.14: Added DistType::weighted_euclidean.
+
+2011-12-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.15:
+	Chnaged to #ifdef(__linux__) because linux is not defined in g++ -std=c++0x.
+
+	* Vector.C 1.16, FigFile.h 1.5:
+	Added (float) casts to make g++ -pedantic -std=c++0x happy.
+
+2011-11-24  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* VectorSource.C 1.16:
+	Added more informative error message for VectorSource::ReadDescription().
+
+2011-03-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* TreeSOM.C 1.34:
+	Train() now doesn't write intermediate .cod and .div files.
+
+	* TreeSOM.C 1.33: Added divxml = false.
+
+2011-02-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.14: ShowError() now shows pthread identifier too.
+
+2011-01-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Classifier.h 1.17, VectorSource.h 1.12:
+	Renamed VectorSource::Components() to ComponentDescriptions().
+
+2010-12-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* TreeSOM.C 1.32: Added Analysis::AnalyseRewriteMapsLabelsOnly().
+
+2010-07-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* List.C 1.8, SOM.C 1.19, TreeSOM.C 1.31, TreeSOM.h 1.17, Vector.C 1.15, VectorSource.C 1.15, VectorSource.h 1.11:
+	Changed some delete to delete [] to satisfy valgrind.
+
+2010-06-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.13, Simple.h 1.28: Added 2x ShowStringStr().
+
+2010-04-16  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* Simple.h 1.27, TreeSOM.C 1.30, Classifier.h 1.16, Simple.C 1.12:
+	Moved ProgressText() from Simple to Util
+
+2010-03-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSource.h 1.10: Added copying of precision in copy constructor.
+
+2010-03-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* gzstream.C 1.1, gzstream.h 1.1:
+	Moved gzstream.[Ch] under cvs in simple.
+
+2009-11-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Classifier.C 1.11, Classifier.h 1.15, ConfusionMatrix.C 1.3, ConfusionMatrix.h 1.2, DataSet.C 1.3, DataSet.h 1.3, DecayVar.h 1.3, FigFile.h 1.4, GnuPlot.C 1.13, GnuPlot.h 1.6, Histogram.C 1.5, Histogram.h 1.3, List.C 1.7, List.h 1.6, Matrix.C 1.10, Matrix.h 1.9, OptVar.h 1.3, Planar.h 1.3, Point.C 1.3, Point.h 1.5, RandVar.C 1.4, RandVar.h 1.6, SOM.C 1.18, SOM.h 1.13, Simple.C 1.11, Simple.h 1.26, SimpleComplex.h 1.4, Source.C 1.2, Source.h 1.3, StatQuad.h 1.2, StatVar.h 1.3, SubSpace.C 1.5, SubSpace.h 1.3, Transformation.h 1.3, TreeSOM.C 1.29, TreeSOM.h 1.16, Vector.C 1.14, Vector.h 1.13, VectorSet.C 1.9, VectorSet.h 1.13, VectorSource.C 1.14, VectorSource.h 1.9:
+	Wrapped simple classes inside namespace simple.
+
+2009-11-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSet.h 1.12: AppendCopy() now returns a pointer to the copy.
+
+2009-10-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* GnuPlot.C 1.12, GnuPlot.h 1.5:
+	Added static bool GnuPlotData::keep and Keep().
+
+2009-10-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* SubSpace.C 1.4: Addded bool debug = false in Coefficients().
+
+2009-10-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* SubSpace.C 1.3, SubSpace.h 1.2: Added debugging in Coefficients().
+
+2009-09-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Matrix.C 1.9: Minor improvements in BlasTests.
+
+2009-09-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* List.C 1.6, Simple.C 1.10:
+	Simple free/delete changes to make valgrind quiet.
+
+	* Matrix.h 1.8, Classifier.h 1.14, Simple.h 1.25:
+	Removed #define HAS_LINPACKs which now come from missing-c-utils.h
+	Removed #ifdef USE_GC stuff.
+
+2009-08-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Classifier.h 1.13, RandVar.h 1.5, Simple.h 1.24, Vector.h 1.12:
+	Clarified config.h and missing-c-utils.h #includes.
+
+2009-05-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* GnuPlot.C 1.11, TreeSOM.C 1.28:
+	Added some return value checks / initializations to make gcc 4.3.2 -O3 silent.
+
+2009-05-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.9, Simple.h 1.23:
+	Moved implementation of PthreadIdentity(char *buf, pthread_t t) from .h to .C.
+
+	* Histogram.C 1.4, RandVar.C 1.3: Updated the comment header.
+
+	* Histogram.C 1.3: Suggestions by gcc 4.3.2.
+
+2009-04-22  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* RandVar.C 1.2: Fixed suggestions of new gcc.
+
+2009-04-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.8: Implemented "suggestions" of gcc 4.3.2.
+
+2009-04-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* SOM.C 1.17, TreeSOM.C 1.27, ConfusionMatrix.C 1.2, List.C 1.5, VectorSource.C 1.13, GnuPlot.C 1.10, Classifier.C 1.10, Vector.C 1.13, Matrix.C 1.8, Matrix.h 1.7, VectorSet.C 1.8:
+	Implemented "suggestions" of gcc 4.3.2.
+
+2009-04-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.h 1.22, Vector.h 1.11, VectorSource.h 1.8, TreeSOM.h 1.15:
+	Added parentheses/braces "suggested" by gcc 4.3.2.
+
+2009-03-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Classifier.h 1.12, GnuPlot.C 1.9, Matrix.h 1.6, RandVar.h 1.4, Simple.h 1.21, Vector.C 1.12, Vector.h 1.10, VectorSet.C 1.7, VectorSet.h 1.11, VectorSource.C 1.12:
+	Minor fixes to make MS Visual Studio happy.
+
+2009-03-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Classifier.C 1.9, GnuPlot.h 1.4, Histogram.C 1.2, Histogram.h 1.2, List.C 1.4, List.h 1.5, OptVar.h 1.2, Point.C 1.2, SOM.h 1.12, Simple.h 1.20, SimpleComplex.h 1.3, TreeSOM.C 1.26, TreeSOM.h 1.14, Vector.C 1.11, Vector.h 1.9, VectorSet.h 1.10, VectorSource.C 1.11:
+	Renamed Abort() macro to SimpleAbort().
+
+	* Simple.C 1.7, Simple.h 1.19: Reordered #include<>s.
+
+	* GnuPlot.C 1.8: Removed #ifdef HAVE_OPEN/CLOSE/POPEN/PCLOSE/WRITE.
+
+2009-02-12  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* TreeSOM.C 1.25, TreeSOM.h 1.13:
+	Added DoWriteDivXML() to control if xml version of div is written.
+
+2008-12-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Classifier.h 1.11: Added TrainDistLength() and TrainDistSetLength().
+
+2008-12-18  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* TreeSOM.C 1.24, TreeSOM.h 1.12:
+	Added bool lastiter parameter to TreeSOM::AdaptWriteDivide(). This is true when we are doing the last training iteration of a map layer. AdaptWriteDivide() now writes div.xml only for the last iteration to save some time.
+
+	* Classifier.C 1.8, Classifier.h 1.10:
+	Added bool lastiter parameter to Classifier::AdaptNew() and Classifier::AdaptWriteDivide(). This is true when we are doing the last training iteration of a map layer.
+
+	* Classifier.h 1.9:
+	Added void TrainDist(int,double) and double TrainDist(int) to access train_dist.
+
+	* TreeSOM.C 1.23:
+	Fixed bug in WriteXmlDivisionFile() for analyse=convertdiv.
+
+2008-12-17  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* TreeSOM.C 1.22: Now adds distances to bmus in division XML.
+
+	* TreeSOM.C 1.21, TreeSOM.h 1.11:
+	Moved TSSOM::WriteXmlDivisionFile() to TreeSOM.
+
+	* Classifier.h 1.8:
+	Added BmuDivDepth() which returns current value of bmu_div_depth.
+
+2008-12-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* TreeSOM.C 1.20:
+	Added some distyance-realtes illustration in AdaptWriteDivide().
+
+	* SOM.h 1.11: Added 2xMeanDistance() and 2xRmsDistance().
+
+	* Classifier.h 1.7, Classifier.C 1.7, SOM.C 1.16, SOM.h 1.10, TreeSOM.h 1.10, TreeSOM.C 1.19:
+	Added calculation of L1 and L2 quantization errors together with BMUs.
+
+2008-12-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Vector.h 1.8, Vector.C 1.10, VectorSet.h 1.9: Added Components().
+
+2008-09-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Classifier.C 1.6, Classifier.h 1.6, GnuPlot.C 1.7, Matrix.h 1.5, SOM.C 1.15, SOM.h 1.9, Simple.C 1.6, Vector.h 1.7:
+	Small changed to make _MSC_ happy.
+
+2008-08-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* GnuPlot.h 1.3: Commented out #include <unistd.h>.
+
+	* Simple.h 1.18: Started to check HAVE_STRINGS_H.
+	Commented out #include <unistd.h>, <sys/time.h>.
+
+2008-08-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSource.C 1.10:
+	Changed to use heap-allocated tmp instead of stack-allocated in 2nd GetLine().
+
+	* GnuPlot.C 1.6: Added bool keep = false in GnuPlotData::Refresh().
+	Added ttype["pdf"] and ttype["png"] in OpenPipe().
+	Added use of datalist[i].style instead of "linespoints" in Refresh().
+
+	* SOM.C 1.14: Added Tic() and Tac()'s in ReadCommon().
+
+2008-04-28  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* VectorSet.h 1.8:
+	GetByNumber() now uses more safe Get() instead of FastGet() when doing the fast check before the loop.
+
+	* VectorSet.h 1.7:
+	Added check to prevent calling of FastGet() with improper parameter.
+
+2008-04-25  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* VectorSet.h 1.6:
+	Small hack in GetByNumber() that speeds up check when called continuously in loops.
+
+2008-04-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Vector.h 1.6, Vector.C 1.9, Transformation.h 1.2, Source.h 1.2, SimpleComplex.h 1.2:
+	Comment and #include<> changes.
+
+	* Simple.h 1.17: Only comment changes.
+
+	* Point.h 1.4: Comment and #include<> changes.
+
+	* Matrix.h 1.4, List.h 1.4, DecayVar.h 1.2: Only comment changes.
+
+2008-04-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.5, Simple.h 1.16:
+	Moved MakeMatlabCompliant() from .h to .C.
+
+	* VectorSource.C 1.9:
+	Protected agains ptr=NULL in "This is a TreeSOM file" check in ReadDescription().
+
+2007-11-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSet.C 1.6, VectorSet.h 1.5, VectorSource.C 1.8, VectorSource.h 1.7:
+	Added VectorSource::CopyXMLDescription().
+	Extracted VectorSource::FindOrAddFeatureComponents,SetFeatureComponentMeanStDev()
+	from VectorSet::::Normalize().
+
+2007-11-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSource.h 1.6:
+	Added read access to components with Components().
+
+	* VectorSource.C 1.7:
+	Added check for "This is a TreeSOM file" in ReadDescription().
+
+2007-11-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* VectorSet.C 1.5, VectorSource.C 1.6, VectorSet.h 1.4, VectorSource.h 1.5:
+	Added mean and stdev in VectorComponent().
+	VectorSet::Normalize() now records mean and stdev if xmlDocPtr is given.
+
+2007-08-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.h 1.15:
+	Reverted typedef int pthread_t, now with #ifndef _BITS_PTHREADTYPES_H.
+
+	* Simple.h 1.14: Commented out NO_PTHREADS typedef int pthread_t.
+
+2007-08-24  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* TreeSOM.C 1.18, TreeSOM.h 1.9:
+	Added bool use_depth parameter to FindBestMatches(). If set to false it will force the method to always return only one best BMU from each map-layer.
+
+2007-08-22  MatsSjöberg  <mats.sjoberg@tkk.fi>
+
+	* TreeSOM.C 1.17:
+	Updated TreeSOM::FindBestMatches() to work with bmu_div_depths other than 1.
+
+	* TreeSOM.h 1.8: Added BmuDivDepthVector() for const vector<int>.
+

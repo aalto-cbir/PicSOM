@@ -1,0 +1,316 @@
+// -*- C++ -*-
+
+// $Id: knn,v 1.3 2010/09/08 19:50:21 jorma Exp $
+
+#ifndef _cox_knn_
+#define _cox_knn_
+
+#include <cox/classifier>
+#include <cox/sompak>
+
+#include <vector>
+#include <string>
+#include <sstream>
+#include <list>
+#include <map>
+#include <set>
+#include <cmath>
+
+namespace cox {
+  using std::string;
+  using std::stringstream;
+  using std::vector;
+  using std::list;
+  using std::map;
+  using std::multiset;
+  using std::cout;
+  using std::endl;
+  using std::numeric_limits;
+
+  using blas::euclidean_nearest_neighbors;
+  using blas::euclidean_squared_distance_break;
+  using blas::euclidean_squared_distance;
+
+  ///
+  class knn : public classifier {
+  public:
+    /// constructors and such:
+
+    ///
+    knn(int k = 0, const string& fname = "") :
+      _k(k), _discard(0), _l(0), _sqr_avg(false), _sum_break(false) {
+      if (fname!="")
+	read_sompak(fname);
+    }
+
+    ///
+    template <class C>
+    knn(int k, const C& c) :
+      _k(k), _discard(0), _l(0), _sqr_avg(false), _sum_break(false) {
+      // tictac_start();
+      add(c);
+    }
+
+    ///
+    virtual ~knn() {}
+
+    /// cox::classifier virtual interface:
+
+    ///
+    virtual size_t vector_length() const { return _l; }
+
+    ///
+    virtual void vector_length(size_t l) throw(string) {
+      if (l>_l || l<1)
+	throw "cox::knn::vector_length(int) failed";
+
+      _l = l;
+      for (container_t::iterator i = _v.begin(); i!=_v.end(); i++)
+	i->resize(_l);
+    }
+
+    ///
+    virtual size_t class_count() const { return _labels.size(); }
+
+    ///
+    virtual list<string> class_labels() const { return _labels; }
+
+    ///
+    virtual string description() const {
+      stringstream ss;
+      ss << "knn k=" << _k
+	 << " discard=" << _discard
+	 << " l=" << _l
+	 << " sqr_avg=" << _sqr_avg
+	 << " sum_break=" << _sum_break
+	 << " :";
+      
+      for (list<string>::const_iterator i=_labels.begin();
+	   i!=_labels.end(); i++)
+	ss << " " << *i << "(" << n(*i) << ")";
+      return ss.str();
+    }
+
+    ///
+    virtual double class_distance(const string& l, const vector<float>& v,
+				  double /*md*/) throw(string) {
+      const double mf = numeric_limits<double>::max();
+      vector<double> dv(_k, mf);
+      multiset<double> dl(dv.begin(), dv.end());
+      
+      size_t n = 0, m = 0, x = 0;
+      for (container_t::const_iterator i = _v.begin(); i!=_v.end(); i++)
+	if (i->label()==l) {
+	  n++;
+	  double r = *dl.rbegin(), d = _sum_break ?
+	    euclidean_squared_distance_break(v, *i, r)
+	    : euclidean_squared_distance(v, *i);
+	  if (d<r) {
+	    dl.erase(dl.find(r));
+	    dl.insert(d);
+	  }
+	}
+      
+      double sum = 0;
+      for (multiset<double>::const_iterator i = dl.begin();
+	   i!=dl.end() && m<n; i++, m++)
+	if (m>=_discard) {
+	  sum += sqr_avg() ? *i : std::sqrt(*i);
+	  x++;
+	}
+
+      return x==0 ? mf : sqr_avg() ? std::sqrt(sum/x) : sum/x;
+    }
+
+    ///
+    virtual double class_similarity(const string&, const vector<float>&,
+				    double) throw(string) { return 0; }
+    
+    ///
+    template <class T>
+    string classify(const vector<T>& v) {
+      int debug = 0;
+      
+      typedef pair<double,string> dl_entry_type;
+      typedef vector<dl_entry_type> dl_type;
+
+      double mf = numeric_limits<double>::max();
+      dl_type dl(_k, dl_entry_type(mf, ""));
+      for (container_t::const_iterator i = _v.begin(); i!= _v.end(); i++) {
+	double r = dl.back().first;
+	double d = _sum_break ?
+	  euclidean_squared_distance_break(v, *i, r)
+	  : euclidean_squared_distance(v, *i);
+
+	if (debug>1)
+	  cout << "r=" << r << " d=" << d << "   ";
+	if (d<r) {
+	  if (debug>1)
+	    cout << "BINGO!" << endl;
+	  dl.back() = dl_entry_type(d, i->label());
+	  std::sort(dl.begin(), dl.end());
+	}
+	if (debug>1) {
+	  for (dl_type::const_iterator j = dl.begin(); j!=dl.end(); j++)
+	    cout << j->first << " (" << j->second << ")  ";
+	  cout << endl;
+	}
+      }
+
+      if (debug) {
+	for (dl_type::const_iterator j = dl.begin(); j!=dl.end(); j++)
+	  cout << j->second << " (" << j->first << ")  ";
+	cout << endl;
+      }
+
+      string ret;
+      bool unique = false;
+      for (;;) {
+	map<string,int> cnts;
+	for (dl_type::const_iterator j = dl.begin(); j!=dl.end(); j++)
+	  cnts[j->second]++;
+	int max = 0;
+	for (map<string,int>::const_iterator j = cnts.begin();
+	     j!=cnts.end(); j++)
+	  if (j->second>max) {
+	    ret = j->first;
+	    max = j->second;
+	    unique = true;
+	  } else if (j->second==max)	    
+	    unique = false;
+	
+	if (unique)
+	  return ret;
+
+	dl.pop_back();
+      }
+      throw "cox::knn::classify() failed";
+    }
+
+
+    /// public members other:
+
+    ///
+    size_t k() const { return _k; }
+
+    ///
+    void k(size_t k) { _k = k; }
+
+    ///
+    size_t n(const string& l = "") const {
+      if (l=="")
+	return _v.size();
+      size_t n = 0;
+      for (container_t::const_iterator i=_v.begin(); i!=_v.end(); i++)
+	if (i->label()==l)
+	  n++;
+      return n;
+    }
+
+    ///
+    typedef float component_t;
+
+    ///
+    typedef vector<component_t> vector_t;
+    
+    ///
+    typedef labeled<vector_t> lvector_t;
+
+    /// 
+    void add(const vector_t& v, const string& l) throw(string) {
+      add(lvector_t(v, l));
+    }
+
+    ///
+    void add(const lvector_t& lv) throw(string) {
+      if (_v.empty() && _l==0)
+	_l = lv.size();
+
+      if (lv.size()!=_l)
+	throw "cox::knn:add() vector length mismatch";
+      _v.push_back(lv);
+      // cout << "cox::knn::add() adding [" << lv.second << "]" << endl;
+
+      for (list<string>::const_iterator i = _labels.begin();
+	   i!=_labels.end(); i++)
+	if (*i==lv.label())
+	  return;
+      _labels.push_back(lv.label());
+    }
+
+    ///
+    template <class T> void add(typename T::const_iterator b,
+				const typename T::const_iterator& e) {
+      while (b!=e)
+	add(*(b++));
+    }
+
+    ///
+    template <class T> void add(const T& l) {
+      add<T>(l.begin(), l.end());
+    }
+
+    ///
+    bool sum_break() const { return _sum_break; }
+
+    ///
+    void sum_break(bool b) { _sum_break = b; }
+
+    ///
+    bool sqr_avg() const { return _sqr_avg; }
+
+    ///
+    void sqr_avg(bool b) { _sqr_avg = b; }
+
+    ///
+    bool discard() const { return _discard; }
+
+    ///
+    void discard(bool b) { _discard = b; }
+
+  protected:
+    ///
+    void read_sompak(const string& fname) throw(string) {
+      _l = 0;
+
+      sompak::data d(fname);
+      _l = d.vector_length();
+
+      try {
+	for (;;)
+	  add(d.next_vector<component_t>());
+      }
+      catch (const string&) {}
+    }
+
+  private:
+    ///
+    size_t _k;
+
+    ///
+    size_t _discard;
+
+    ///
+    size_t _l;
+
+    ///
+    typedef list<lvector_t> container_t;
+
+    ///
+    container_t _v;
+
+    ///
+    list<string> _labels;
+
+    ///
+    bool _sqr_avg;
+
+    ///
+    bool _sum_break;
+
+  }; // class knn
+
+} // namespace cox
+
+#endif // _cox_knn_
+

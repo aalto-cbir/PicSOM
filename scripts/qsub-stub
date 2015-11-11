@@ -1,0 +1,10 @@
+#! picsom
+
+#$ -S /home/jorma/picsom/c++/picsom.linux64.fast
+#$ -N picsom
+#$ -cwd
+#$ -j yes
+#$ -l mem=4G,t=48:00:00
+
+analyse=dummy
+

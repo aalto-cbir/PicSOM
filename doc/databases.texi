@@ -1,0 +1,1448 @@
+\input texinfo                @c -*- Texinfo -*-
+@c %**start of header
+@setfilename databases.info
+@settitle @code{databases}
+@setchapternewpage off
+@c %**end of header
+
+@set RCSID $Id: databases.texi,v 1.39 2009/09/15 11:18:34 jorma Exp $
+@set VERSION $Revision: 1.39 $
+@set PICSOMVERSION 2.0
+@set UPDATED $Date: 2009/09/15 11:18:34 $
+
+@c Combine the variable and function indices:
+@syncodeindex vr fn
+@c Combine the program and concept indices:
+@syncodeindex pg cp
+
+@ifinfo
+@dircategory PicSOM
+@direntry
+* databases: (databases.info).            Format of PicSOM databases.
+@end direntry
+
+This file documents the format of the databases files of PicSOM.  This
+is version @value{VERSION} of the specification, last updated
+@value{UPDATED}, corresponding to PicSOM version @value{PICSOMVERSION}.
+
+Copyright (C) 1999-2009 HUT/CIS
+
+Permission is granted to make and distribute verbatim copies of
+this manual provided the copyright notice and this permission notice
+are preserved on all copies.
+@end ifinfo
+
+@titlepage
+@title PicSOM databases
+@subtitle Databases used in the PicSOM system.
+@subtitle @code{databases} version @value{VERSION}.
+@subtitle @value{UPDATED}
+@author Jorma Laaksonen, Sami Laakso, Hannes Muurinen
+@author @b{PicSOM Development Group}
+@author @b{P.O.BOX 5400}
+@author @b{Laboratory of Computer and Information Science}
+@author @b{Helsinki University of Technology}
+@author @b{Fin-02015 HUT, FINLAND}
+@email{picsom@@mail.cis.hut.fi}
+@page
+@vskip 0pt plus 1filll
+Copyright @copyright{} 1999-2009 HUT/CIS
+
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+@end titlepage
+@page
+
+@c **********************************************************************
+@node Top, Overview, , (dir)
+@top PicSOM databases
+
+All image databases used in the PicSOM system conform to a common
+specification to be given here.  This file describes the format of the
+databases, their maintenance, and the contents of the existing ones.
+
+This edition of PicSOM @cite{databases} specification, last updated
+@value{UPDATED}, is version @value{VERSION} and corresponds to PicSOM
+version @value{PICSOMVERSION}.
+
+@ifnottex
+This manual contains the following chapters:
+@end ifnottex
+
+@menu
+* Overview::                     Overview of PicSOM databases.
+* Database structure::           Structure of the databases.
+* Object structure::             Should be written.
+* Creating a new database::      How can one create a new database?
+* Existing databases::           What databases are there already?
+@end menu
+
+@c **********************************************************************
+@node Overview, Database structure, Top, Top
+@chapter Overview of PicSOM databases
+
+A PicSOM database consists of a group of images and other related files
+in a specific directory structure described here.  The same directory
+structure is used when collecting image databases from the World Wide
+Web using the @code{imgrobot} program. A slightly modified directory
+structure is used when using the @code{split_mail} program to form a 
+multimedia message database from a mailbox file. After the other files 
+are in place PicSOM system places its own resources on top of the 
+grabbed database.
+
+The database layout is a multi-level directory structure.  In each
+directory there should always exist a relatively small number, say less
+than 200, files.  This makes the use of some @code{unix} system
+facilities somewhat easier.  The database layout contains slots for both
+per-object and per-database additional information and is intended to be
+easily expandable with future additions.
+
+@c **********************************************************************
+@node Database structure, Object structure, Overview, Top
+@chapter Database structure
+
+All top-level objects in a PicSOM database have unique names of the form
+@code{00000000}, @code{00000001}, @dots{}, @code{99999999}. Each object
+can also have any number of subobjects that are given names
+@code{00000000:0}, @code{00000000:1}, @code{00000000:2}, @dots{} . 
+PicSOM database structure consists of a set of top-level directories and
+files, three levels of intermediate directories each holding up to 100
+subdirectories named 00-99, and bottom-level files (containing the
+actual images) and directories.  In each of the bottom-most intermediate
+directories, there can be up to 100 top-level objects.  Each object is 
+placed in that subdirectory whose path coincides with the first six 
+digits in the object's name. Additional information on the top-level 
+object and the subobjects are stored in optional bottom-level 
+directories @code{00000000.d}, @code{00000001.d}, @code{00000002.d}, 
+@dots{} .
+
+So it is possible to hold up to 100 000 000 (one hundred million)
+top-level objects in one database.  If more than that number of objects 
+needs to be stored in a single database, it is straightforward to extend
+the object names and add the fourth intermediate directory layer.
+
+@menu
+* Directories in root::   What subdirectories are at the top?
+* Files in root::         What files are at the top?
+* Directories in leaves:: What subdirectories are down there?
+* Files in leaves::       What files are down there?
+@end menu
+
+@image{dbstruct,14cm}
+
+@page
+
+@c ======================================================================
+@node Directories in root, Files in root, , Database structure
+@section Top-level directories
+
+The root or top-level directory may contain the following directories:
+
+@menu
+* images::                actual images in three-level hierarchy.
+* features: features-t.   features calculated from the objects.
+* classes::               object classes formed from the database objects.
+* views::                 different views containing subsets of the objects.
+* queries::               PicSOM's stored information on object queries.
+@end menu
+
+@c classes
+
+@c ----------------------------------------------------------------------
+@node images, features-t, , Directories in root
+@subsection @code{images} directory
+
+The @b{mandatory} @code{images} directory is the root for the
+three-layer intermediate directory structure.  All objects and per-object
+information is originally stored under this subtree.
+
+@c ----------------------------------------------------------------------
+@node features-t, classes, images, Directories in root
+@subsection @code{features} directory in root
+
+The feature extraction algorithms normally store their output in the
+first place in the bottom-level @code{features} directories, see
+@ref{features-b, @code{features} on bottom level, @code{features} on
+bottom level}.  The utility scripts of PicSOM then collect and permutate
+the vectors and store them in large files which are used in training the
+TS-SOMs.  These files are stored in the @b{mandatory} @code{features}
+directory in the root.
+
+@c ----------------------------------------------------------------------
+@node classes, views, features-t, Directories in root
+@subsection @code{classes} directory
+
+The @b{optional} @code{classes} directory may contain any number of
+files which specify which objects of the dabase belong to a certain object
+class.  The name of the object class and the name of the file are equal.
+
+The objects in the class are specified by their name, one per line.
+Lines starting with a hash sign (@code{#}), empty lines, and lines
+containing only whitespace characters are ignored.
+
+@noindent
+Here is an example:
+@example
+# Subset of contents selection: [gnats]
+# Originally selected set was:  [gnus]
+# All these images are beautiful in my opinion!
+00000002
+00000005
+@end example
+
+@noindent
+Here is another example:
+@example
+# Also a range of labels can be selected!
+00000002 .. 00000005
+@end example
+
+@c ----------------------------------------------------------------------
+@node views, queries, classes, Directories in root
+@subsection @code{views} directory
+
+The @b{optional} @code{views} directory may contain any number of
+directories that specify an alternative subset of objects that can
+be used in the query. By default all the objects in the database are
+used.
+
+The objects that are used in the view are specified in a file in the
+@code{classes} directory. The directory name of the view and the file
+name of the file in @code{classes} directory must be equal (????).
+
+Each subdirectory in @code{views} directory must have an own 
+@code{settings.xml} file and an own @code{features} directory. This
+@code{features} directory contains the TS-SOMs calculated for the
+object subset of the view.
+
+@c CHECK THIS!!!
+
+@c ----------------------------------------------------------------------
+@node queries, , views, Directories in root
+@subsection @code{queries} directory
+
+@b{OBSOLETED -- queries are now stored outside the database}
+
+PicSOM system stores run-time information on queries in this directory.
+
+Currently, the queries are never written on the disk.
+
+@c ======================================================================
+@node Files in root, Directories in leaves, Directories in root, Database structure
+@section Top-level files
+
+The root or top-level directory may contain the following files:
+
+@menu
+* settings.xml::              global settings of the database.
+* labels::                 list of the object labels in the database.
+* duplicates::             list of objects and their duplicates in the database.
+* description2::           description of the database.
+* access::                 list of hosts allowed to access the database.
+* contents::               object memberships in classes.
+* images-and-texts.html::  link to list of image pages.
+* thumbnails.html::        link to list of thumbnail pages.
+* messages.html::          link to local message pages.
+* examinedlist::           @code{imgrobot}'s list of URLs visited
+* memory::                 @code{imgrobot}'s list of open nodes
+@end menu
+
+@c ----------------------------------------------------------------------
+@node settings.xml, labels, , Files in root
+@subsection @code{settings.xml} file
+
+The @b{mandatory} @code{settings.xml} file contains settings of the
+database written in XML. All the settings are wrapped inside top-level
+@code{<database>} object.
+
+@noindent
+Here is an example:
+@example
+<?xml version="1.0"?> <!-- -*-XML-*- -->
+<database>
+  <longname>Mobimg_1</longname>
+  <shorttext>Mobimg database (1)</shorttext>
+  <longtext>
+    <p>Mobimg database (1).</p>
+  </longtext>
+
+  <visible>no</visible>
+  <deliverlocalcopies>yes</deliverlocalcopies>
+  <convtype>triangle-2-2-2-10</convtype>
+  <algorithm>picsom_bottom</algorithm>
+  <defaultfeatures>zo5:rgb,zo5:texture</defaultfeatures>
+
+  <extraction>
+    <segmentation name="km+rm" command="km + rm -w1" use="yes"/>
+    <feature name="rgb" outputname="zo5:rgb" target="image" use="yes"/>
+    <feature name="rgb" outputname="km+rm:rgb" target="segment" use="yes"
+             segmentation="km+rm" switches="-Ws"/>
+    <feature name="colm" outputname="km+rm:colm" target="segment" use="yes"
+             segmentation="km+rm" switches="-Ws"/>
+    <feature name="MPEG7-MotionActivity" target="video" use="yes"/>
+  </extraction>
+
+  <allowalgorithmselection>yes</allowalgorithmselection>
+  <allowcontentselection>no</allowcontentselection>
+  <allowinsertion>no</allowinsertion>
+  <allowownimage>no</allowownimage>
+  <allowtextsearch>no</allowtextsearch>
+  <allowclassdefinition>no</allowclassdefinition>
+  <allowobjecttypeselection>yes</allowobjecttypeselection>
+  <allowdisplaymodeselection>yes</allowdisplaymodeselection>
+
+  <virtualthumbnailsize>120x90</virtualthumbnailsize>
+
+  <access>
+    <oldrule>#130.233.177.1 0.0.0.0/0</oldrule>
+    <oldrule>130.233.173.0/24 130.233.173.0/24</oldrule>
+    <rule>
+      <right>   browse           </right>
+      <servant> 130.233.173.0/24 </servant>
+      <client>  ALL </client>
+    </rule>
+    <rule>
+      <right>   +image           </right>
+      <servant> 130.233.173.0/24 </servant>
+      <client>  130.233.173.0/24 </client>
+      <cookie>  xxxx </cookie>
+      <user>    xxxx </user>
+      <passwd>  xxxx </passwd>
+    </rule>
+  </access>
+
+  <defaultaspects>
+    <aspects targettype="video">
+      <aspect name="" />
+      <aspect name="CoordinateAspect" type="coordinates" />
+    </aspects>
+    
+    <aspects targettype="no_target">
+      <aspect name="Default" value="0.0" />
+      <aspect name="ThisOneIsCheckedByDefault" value="1.0" />
+    </aspects>
+  </defaultaspects>
+
+</database>
+
+@end example
+
+
+
+@c ----------------------------------------------------------------------
+@node labels, duplicates, settings.xml, Files in root
+@subsection @code{labels} file
+
+The @b{mandatory} @code{labels} file contains all the labels of the
+objects and subobjects stored in the database. The top-level objects 
+should be placed before their subobjects in the file.
+
+Each row of the file contains one label and optionally the object type 
+of the corresponding object. An object can be defined to belong to 
+many object type classes by separating the different classes with 
+@code{+} characters. By default all top-level objects are given object 
+type @code{file} and all their subobjects are given type @code{segment} 
+unless the object type is specified. 
+
+@noindent
+Here is an example:
+@example
+00000000 message+file
+00000000:0 text
+00000000:1 html
+00000000:2 image
+00000000:3 image
+00000001 message+file
+00000001:0 text
+00000001:1 html
+00000001:2 image
+00000001:3 image
+@end example
+
+@c ----------------------------------------------------------------------
+@node duplicates, description2, labels, Files in root
+@subsection @code{duplicates} file
+
+The @b{optional} @code{duplicates} file contains a list of objects and
+their duplicate objects if duplicates are found.
+
+@c WRITE THIS!!!
+
+@c ----------------------------------------------------------------------
+@node description2, access, duplicates, Files in root
+@subsection @code{description2} file
+
+@b{OBSOLETED -- information now in @code{settings.xml}}
+
+The @b{mandatory} @code{description2} file contains a set of
+descriptions for the database. It is divided on three or more lines.
+
+The first line contains the public name of the database. It is a plain
+text field which may contain whitescape.
+
+The second line contains the short description of the database. It is a
+plain text field which may contain whitescape.
+
+The third and more lines contain the long description of the database.
+The long description is HTML formatted text which may span any number of 
+lines.
+
+@noindent
+Here is an example:
+@example
+Corel Gallery Photos
+Photo Images from Corel Gallery 1,000,000
+<p>
+All the images in the <b> corel </b> data set are
+from Corel Gallery 1,000,000 Image Collection.
+See <a href="http://www.corel.com">
+http://www.corel.com </a>.
+</p>
+<p>
+All images are color photographs.
+</p>
+@end example
+
+@c ----------------------------------------------------------------------
+@node access, contents, description2, Files in root
+@subsection @code{access} file
+
+@b{OBSOLETED -- information now in @code{settings.xml}}
+
+The @b{mandatory} @code{access} file contains a list of hosts that are
+allowed to access the database.  Each line specifies one or more servant
+hosts and one or more client hosts.
+
+The servant hosts are separated with commas, a whitespace separates
+servants from clients, and clients are again seprated with commas.
+
+Each hosts is specified in notation @code{xxx.xxx.xxx.xxx/yyy} where
+@code{xxx.xxx.xxx.xxx} is an IP address and @code{yyy} the number of
+significant bits in the address.
+ 
+The client may optionally be suffixed with a @code{:}-starting cookie.
+
+Each line can be appended with a @code{#}-starting comment.
+
+Empty lines and comment lines starting with @code{#} are ignored. 
+
+@noindent
+Here is an example:
+@example
+130.233.173.0/24 0.0.0.0/0               # any one can see ftp.sunet.se
+130.233.173.0/24 130.233.173.0/24        # only CIS lab can see corel
+130.233.173.0/24 130.233.173.0/24:cookie # only with cookie "cookie"
+@end example
+
+@c ----------------------------------------------------------------------
+@node contents, images-and-texts.html, access, Files in root
+@subsection @code{contents} file
+
+If textual class information for the images is available, the
+@b{optional} @code{contents} file contains one line for each image whose
+contents is known.  On each line, there is first the image label and
+then the classes which that image belongs to, separated by commas.
+
+The contents-file does not have to be complete, so image labels which
+do not belong to any class can be omitted.
+
+@noindent
+Here is an example:
+@example
+00015037 CLOUDS
+00015043 BUILDING
+00015045 CLOUDS,SNOW
+00015046 FOREST
+...
+@end example
+
+@c ----------------------------------------------------------------------
+@node images-and-texts.html, thumbnails.html, contents, Files in root
+@subsection @code{images-and-texts.html} file
+
+@code{images-and-texts.html} is an @b{optional} auto-refresh file which
+makes a link for local browsing of the database.
+
+@c ----------------------------------------------------------------------
+@node thumbnails.html, messages.html, images-and-texts.html, Files in root
+@subsection @code{thumbnails.html} file
+
+@code{thumbnails.html} is an @b{optional} auto-refresh file which makes
+a link for local browsing of the database.
+
+@c ----------------------------------------------------------------------
+@node messages.html, examinedlist, thumbnails.html, Files in root
+@subsection @code{messages.html} file
+
+@code{messages.html} is an @b{optional} auto-refresh file which 
+transfers the user to a page where he/she can browse the message
+database. This file is created only if the database contains 
+multimedia messages.
+
+@c ----------------------------------------------------------------------
+@node examinedlist, memory, messages.html, Files in root
+@subsection @code{examinedlist} file
+
+@code{examinedlist} file is used by @code{imgrobot} and is not yet
+documented here.
+
+@c ----------------------------------------------------------------------
+@node memory, , examinedlist, Files in root
+@subsection @code{memory} file
+
+@code{memory} file is used by @code{imgrobot} and is not yet documented
+here.
+
+@c ======================================================================
+@node Directories in leaves, Files in leaves, Files in root, Database structure
+@section Bottom-level directories
+
+The bottom-level or leaf directories in the three-layer intermediate 
+directory structure may contain the following subdirectories:
+
+@menu
+* features: features-b.  feature vectors calculated from images images.
+* tn-WxH::               thumbnails, W = width, H = height.
+* texts::                texts gathered from the surrounding pages.
+* text-html::            filtered texts with images and links.
+* links::                linkage information from surrounding pages.
+* segments::             segmentation information.
+* ????????.d::           object information and subobjects.
+@end menu
+
+@c ----------------------------------------------------------------------
+@node features-b, tn-WxH, , Directories in leaves
+@subsection @code{features} on bottom level
+
+The feature extraction programs calculate the feature vectors in each
+leaf directory and place the vectors in corresponding files in the
+@code{features} subdirectory.  Each feature type is stored in its own
+file, one line per image.  When the database is ready, PicSOM utility
+scripts collect and permutate the vectors in large files in the root
+@code{features} directory, see @ref{features-t, @code{features} in root,
+@code{features} in root}.
+
+@c ----------------------------------------------------------------------
+@node tn-WxH, texts, features-b, Directories in leaves
+@subsection @code{tn-WxH} a.k.a. thumbnails
+
+In every image directory (the final subdirectories) there is also a
+thumbnail directory which contains thumbnails of each image in that
+directory.  Every thumbnail size is currently made to be 120x90 pixels
+by adding transparent pixels so that the ratio of the image stays the
+same as original.  The symbolic constants @code{W} and @code{H} thus now
+have values 120 and 90, respectively. In the future, there may also
+exist thumbnails of different sizes.  
+
+Currently, all thumbnails are stored in GIF format irrespectively of the
+image's original format.  The thumbnails are named like:
+
+@example
+00000000.gif
+00000001.gif
+00000002.gif
+...
+@end example
+
+Every thumbnail directory contains also a HTML page
+@code{thumbnails.html}, which shows all thumbnails in that directory.
+The thumbnails are links to the original images. The
+@code{thumbnails.html} file contains links to the previous and next
+thumbnail pages.
+
+@c ----------------------------------------------------------------------
+@node texts, text-html, tn-WxH, Directories in leaves
+@subsection @code{texts} directory
+
+The @code{texts} directory holds files, one per image, containing texts
+extracted from the pages containing the images.  If the image was not
+found in a text-containg page, the corresponding file is missing or
+empty. The files are named simply like:
+
+@example
+00000000.txt
+00000001.txt
+00000002.txt
+...
+@end example
+
+@c ----------------------------------------------------------------------
+@node text-html, links, texts, Directories in leaves
+@subsection @code{text-html} directory
+
+The @code{text-html} directory holds HTML files, one per image, which
+contain links to the original images and their surrounding pages, the
+filtered text of the surrounding page, and links to previous and next
+such pages. The files are named simply like:
+
+@example
+00000000.html
+00000001.html
+00000002.html
+...
+@end example
+
+@c ----------------------------------------------------------------------
+@node links, segments, text-html, Directories in leaves
+@subsection @code{links} directory
+
+The @code{links} directory holds files, one per image, which hold
+information on Web links found in the image's surrounding page.
+The files are named simply like:
+
+@example
+00000000
+00000001
+00000002
+...
+@end example
+
+@noindent
+@b{The contents of the files is subject to future specification.} 
+
+@noindent
+The following is just the current proposal:
+@example
+# any number of #-starting comment lines in any place of the file
+# first, the surrounding page's own URL:
+page = URL
+# second, the image's own URL:
+image = URL
+# third, if the image itself activates an action, its URL:
+action = URL
+# fourth, list of other links' URLs:
+URL
+URL
+URL
+@end example
+
+@noindent
+Here is an example:
+@example
+# this is Erkki's home page...
+page = http://www.cis.hut.fi/oja/
+image = http://www.cis.hut.fi/people_photos/erkki.gif
+http://www.cis.hut.fi/oja/curr.ps
+http://www.cis.hut.fi/oja/julk.ps
+http://www.cis.hut.fi/projects/ica/
+http://www.cis.hut.fi/projects/ica/fastica/
+http://www.cis.hut.fi/cis/main.html
+@end example
+
+@c ----------------------------------------------------------------------
+@node segments, ????????.d, links, Directories in leaves
+@subsection @code{segments} directory
+
+@code{segments} directory conatins information on the segmentation of
+the images.  This information is currently kept in TIFF files.
+
+@c ----------------------------------------------------------------------
+@node ????????.d, , segments, Directories in leaves
+@subsection @code{????????.d} directory
+
+Each top-level object can have an @b{optional} directory named 
+@code{????????.d}, where @code{????????} is replaced with the
+object's label. The directory contains information on the object 
+and its subobject files. The subobjects are saved in files
+@code{????????:0}, @code{????????:2}, @code{????????:2}, @dots{} .
+
+If the database contains multimedia messages, this directory
+contains files @code{message.html}, @code{message_full.html}, 
+@code{message.txt} and @code{message_utf8.txt}. The html files
+and @code{message.txt} are for local browsing. @code{message_utf8.txt} 
+contains the message text coded in utf8 compatible form.
+
+@c ======================================================================
+@node Files in leaves, , Directories in leaves, Database structure
+@section Bottom-level files
+
+The bottom-level or leaf directories contain the following files:
+
+@menu
+* origins::        information on the source of the objects.
+* origins.parts::  information on the source of the subobjects.
+* object files::   the actual images.
+@end menu
+
+@c ----------------------------------------------------------------------
+@node origins, origins.parts, , Files in leaves
+@subsection @code{origins} file
+
+In every file object directory there is a @code{origins} file.  It contains a
+list of all files in that directory with the following information:
+
+@itemize @bullet
+@item the object's local name and extension
+@item address to the object
+@item address to the page where the object was found
+@item object's format in MIME notation
+@item number of colors in the image if the object is an image
+@item image's dimensions (width @code{x} height)
+@item object's size (in bytes)
+@item MD5 checksum of object
+@item time when object was retrieved (yyyymmddhhmmss)
+@end itemize
+
+The fields are separated with tabs. Each field is mandatory. So, if some 
+information really is missing, the field needs to be filled with an
+appropriate dummy value.
+
+@noindent
+Example line split on tabs:
+@example
+00000000.gif
+http://www.hut.fi/Pictures/ots_logo.gif
+http://www.hut.fi/
+image/gif
+6
+74x96
+852
+f4d2683146242124e252282eef294d30
+19991001165318
+@end example
+
+@c ----------------------------------------------------------------------
+@node origins.parts, object files, origins, Files in leaves
+@subsection @code{origins.parts} file
+
+If the database contains subobjects, their information is stored
+in the @code{origins.parts} file.  It contains the following 
+information:
+
+@itemize @bullet
+@item the subobject's local name and extension
+@item address to the object
+@item address to the page where the object was found
+@item object's format in MIME notation
+@item number of colors in the image if the object is an image
+@item image's dimensions (width @code{x} height)
+@item object's size (in bytes)
+@item MD5 checksum of object
+@item time when object was retrieved (yyyymmddhhmmss)
+@end itemize
+
+The fields are separated with tabs. Each field is mandatory. So, if some 
+information really is missing, the field needs to be filled with an
+appropriate dummy value.
+
+@noindent
+Example line split on tabs:
+@example
+00000000.d/00000000:1
+-
+-
+image/gif
+6
+74x96
+852
+f4d2683146242124e252282eef294d30
+19991001165318
+@end example
+
+@c ----------------------------------------------------------------------
+@node object files, , origins.parts, Files in leaves
+@subsection Object files
+
+The actual top-level objects are stored in the bottom-level directories.
+If the database is large, it is to expected that the objects are stored 
+in the database only temporarily.  This means that the objects are there only
+for that time all the needed features have been calculated.  Then, the
+objects can be disposed.  If they are later needed, they can be retrieved
+again by using the information in the @code{origins} file, see
+@ref{origins}. 
+
+The images must be named according to the directory structure so that
+for example the images in the directory
+@code{<database>images//01/23/45} must be named 
+@code{01234500.jpg}, @dots{}, @code{01234599.gif} and so on.
+
+The valid image formats so far are JPEG, GIF and PNG, so the valid file
+type extensions are jpg/JPG, gif/GIF, and png/PNG. It does not matter if
+they are lowercase or uppercase letters.
+
+The only supported multimedia message format is message/rfc822, and 
+this kind of objects should have file type extension eml/EML.
+
+@c **********************************************************************
+@node Object structure, Creating a new database, Database structure, Top
+@chapter Object structure
+
+This chapter should be written.
+
+@page
+
+@c **********************************************************************
+@node Creating a new database, Existing databases, Object structure, Top
+@chapter Creating a new database
+
+There exist many ways to create a new PicSOM database.  This text
+describes only the most advanced technique, namely the use of the
+@code{picsom} program and its related binaries in database creation.
+
+The creation of a new database contains three consecutive primary steps,
+namely:
+
+@menu
+* Insertion of objects::     Running @code{picsom -i} for image insertion. 
+* Specifying extractions::   Automatic segmentation and feature extraction.
+* Segmentation of images::   Running @code{segmentation} for segmentation.
+* Calculation of features::  Running @code{features} for feature extraction.
+* Creation of TS-SOMs::      Running @code{picsom -c} for training the maps. 
+* Using procmail::           Using procmail to automate mail object insertion. 
+@end menu
+
+@c ======================================================================
+@node Insertion of objects, Specifying extractions, , Creating a new database
+@section Creation of a new database and insertion of objects in it
+
+The @code{picsom} program has its internal mode of operation, which
+determines the system's operation in that invocation.  One of these
+modes is the @code{insert} mode or @code{operation_type} as the
+corresponding @code{enum} is named.  The insertion mode is selected by
+invoking the @code{picsom} program as:
+
+@example
+%> picsom -insert
+@end example
+@noindent
+or
+@example
+%> picsom -i
+@end example
+
+@noindent
+The obligatory arguments in the insertion mode include:
+
+@example
+database=MY-DB
+@end example
+
+@noindent
+The optional arguments in the insertion mode include (at least):
+
+@example
+label=NEXT-FREE-LABEL
+thumbnailsize=WIDTHxHEIGHT
+class=CLASS1,CLASS2,CLASS3
+recursive=yes|no
+insertmode=copy|move|softlink|hardlink
+extraction=yes|no
+framestep=N
+@end example
+
+If the @code{label} option is not given, the standard object labeling
+starting from @code{00000000} will be applied.
+
+If the @code{thumbnailsize} option is not given, the system will create
+thumbnails of size 120x90 pixels.  If one doesn't want thumbnails at
+all, one may specify @code{thumbnailsize=0x0}.
+
+It is also possible to create class ground truth data or keywords for
+the inserted objects.  The @code{class} option is used for this purpose.
+One can give a comma separated list of classes.
+
+The objects to be inserted can be specified on the command line.  In
+that case, the first object file name need to preceeded by a single dash
+(-) as:
+
+@example
+%> picsom -i database=MY-DB - my-1st-image.jpg
+@end example
+
+There may be any number of objects specified on the command line.
+
+An alternative way of giving the object names is to provide them as the
+standard input to the program as:
+
+@example
+%> echo my-2nd-image.gif | picsom -i database=MY-DB
+%> cat imagelist | picsom -i database=MY-DB
+%> picsom -i database=MY-DB < imagelist
+%> find . -name "*.jpg" | picsom -i database=MY-DB
+@end example
+
+The object file names, whether they are given on command line or read
+from the standard input, may be intervened by addional
+@code{label=NEXT-FREE-LABEL} and/or @code{class=CLASS} specifications.
+
+In the second and third cases above, the file @code{imagelist} should
+contain lines of whitespace-separated object file names and label and
+class specifications.
+
+Another example with label and class specifications:
+
+@example
+%> picsom -i database=MY-DB - my-3rd-image.gif label=600 my-4th-image.png
+%> echo label=700 class=secret my-5th-image.gif | picsom -i database=MY-DB
+@end example
+
+The given @code{class=CLASS} specification applies to all subsequent
+objects until a new or empty class specification is given.
+
+If an encountered file name refers to a directory instead of a plain
+file, the directory's content is read and all appropriate files are
+inserted.  Furthermore, if the @code{recursive=yes} option has been
+specified, all subdirectories are traversed recursively.  Selection of
+the inserted object files is done based on their extension.  Also,
+empty files are gracefully skipped.
+
+After inserting the first objects, one needs to edit the
+@code{settings.xml} file of the new database prior to the next invocation
+of the @code{picsom} program.  Otherwise, the system will give a warning
+for an uninitialized @code{settings.xml} file.  It is, however, not really
+harmful and the editing of the @code{settings.xml} file can also be done
+later.
+
+It is also possible to create an empty database without yet inserting
+any images.  This is done as follows:
+
+@example
+%> picsom -i database=MY-DB - ""
+@end example
+
+or
+
+@example
+%> picsom -nocin -i database=MY-DB
+@end example
+
+The practical way how object files are inserted is controlled by the
+@code{insertmode} option.  It may have any of values @code{copy}
+(default), @code{move}, @code{softlink} or @code{hardlink}.  The
+meanings of these are self-explanatory.
+
+After inserting one object file, the system calculates all available
+features from it.  This can be prevented by setting the
+@code{extraction=no} option. @code{extraction=yes} is the default.
+
+The @code{framestep=N} option controls how large portion of image frames
+in video files are made parts of the database by feature extraction.  If
+@code{N} equals one, which is the default, all frames of videos are
+inserted as separate objects.
+
+@c ======================================================================
+@node Specifying extractions, Segmentation of images, Insertion of objects, Creating a new database
+@section Specifying segmentation and feature extraction
+
+When a new database is created by using @code{picsom -i}, the system
+tries to list all available feature extraction methods in the created
+@code{settings.xml} file.  The list is obtained by invoking the
+@code{features} command with @code{-lx} switch like:
+
+@example
+%> features -lx
+<?xml version="1.0"?>
+<featurelist>
+  <feature name="rgb" outputname="zo5:rgb" target="image"/>
+  <feature name="raw" target="image" segmentation="region.box"/>
+  ...
+</featurelist>
+@end example
+
+The @code{<featurelist>} structure is rewritten in the @code{settings.xml}
+file as @code{<extraction>} element.  The @code{<feature>} nodes
+can there have the following attributes:
+
+@itemize @bullet
+@item @code{name}          Name of the feature given to @code{features}
+@item @code{outputname}    Feature's name used in PicSOM, ie. segmentation
+                    method prepended
+@item @code{target}        Feature's target type like image, segment, video
+@item @code{use}           yes or no
+@item @code{segmentation}  name of the segmentation method to apply first
+@item @code{switches}      additional switches to @code{features}, eg. @code{-Ws}
+@end itemize
+
+@code{name} is mandatory, the others are not.  If @code{outputname} is
+not specified, it defaults to @code{name}. @code{use} defaults to
+@code{yes}. All others default to empty.
+
+The @code{<extraction>} element may contain also @code{<segmentation>}
+nodes which have the following attributes:
+
+@itemize @bullet
+@item @code{name}          segmentation's name used by the @code{<feature>}s
+@item @code{command}       segmentation specification given to @code{segmentation}
+@item @code{use}           yes or no
+@end itemize
+
+@code{use} defaults to @code{yes}. All others are mandatory.
+
+All @code{<segmentation>} nodes need to appear in @code{<extraction>}
+before the their @code{name}s are referenced as @code{segmentation}s in
+any @code{<feature>} nodes.
+
+Here is a valid example:
+
+@example
+  <extraction>
+    <segmentation name="km+rm" command="km + rm -w1" use="yes"/>
+
+    <feature name="rgb" outputname="zo5:rgb" target="image" use="yes"/>
+
+    <feature name="rgb" outputname="km+rm:rgb" target="segment" 
+             use="yes" segmentation="km+rm" switches="-Ws"/>
+
+    <feature name="colm" outputname="km+rm:colm" target="segment" 
+             use="yes" segmentation="km+rm" switches="-Ws"/>
+
+    <feature name="MPEG7-MotionActivity" target="video" use="yes"/>
+  </extraction>
+
+@end example
+
+Note that @code{framestep=N} specification for @code{picsom -i} has
+effect on how many images from a video object are made objects of the
+database.  The same effect can also be obtained by setting
+@code{switches="-sN"} in @code{<feature>} specification.
+
+@c ======================================================================
+@node Segmentation of images, Calculation of features, Specifying extractions, Creating a new database
+@section Segmentation of images
+
+Image segmentation is needed in some databases prior to feature
+calculation.  The segmentation process can be run in the bottom-level
+(leaf) directories of the database as:
+
+@example
+%> segmentation -O mm 00*
+@end example
+
+More details should be written here.
+
+@c ======================================================================
+@node Calculation of features, Creation of TS-SOMs, Segmentation of images, Creating a new database
+@section Calculation of features
+
+Low-level visual and other types of features need to calculated for the
+database objects before the database can be further used by the PicSOM
+system.
+
+The feature extraction commands are available in the @code{picsom}
+executable.  The following is an example of how the feature extraction
+can be performed:
+
+@example
+%> picsom -c database=MY-DB extractfeatures=yes features=zo5:rgb,zo5:texture
+@end example
+
+In order to see how the feature extraction is progressing one may want
+to append @code{debugfeatures=2} in the above command.
+
+@noindent
+THE FOLLOWING APPLIES TO THE GOOD OLD WAY OF EXTRACTING FEATURES WITH
+THE @code{features} COMMAND:
+
+Assuming that there has not been any segmentation stage before feature
+extraction, one invokes feature extraction as:
+
+@example
+%> features -O texture 00*
+@end example
+
+If a preceding segmentation stage has taken place, the feature
+extraction stage (may) look as:
+
+@example
+%> features -I mm -O texture 00*
+@end example
+
+More details should be written here.
+
+@c ======================================================================
+@node Creation of TS-SOMs, Using procmail, Calculation of features, Creating a new database
+@section Creation of TS-SOMs for a new database
+
+In the @code{picsom} program, there exists a operation mode named
+@code{create} for creating new TS-SOMs and related files.  The TS-SOM
+creation mode is selected by
+invoking the @code{picsom} program as:
+
+@example
+%> picsom -create
+@end example
+@noindent
+or
+@example
+%> picsom -c
+@end example
+
+In the traditional setting, the feature vectors for training a TS-SOM
+have had to be copied in one large @code{.dat} file in the
+@code{features} directory of the database before starting the
+training. In the current situation, this is no more necessary as the
+@code{picsom} program now is able to locate the @code{.dat} files also
+in the leaf directories' @code{features} subdirectories.
+
+@noindent
+The obligatory arguments in the TS-SOM creation mode include:
+
+@example
+database=MY-DB
+features=FEAT1,FEAT2,FEAT3
+treesomstruct=4x4,16x16,etc.
+traincount=100,100,etc.
+@end example
+
+The @code{traincount} argument tells how many iterations over the whole
+training set are performed in the training of each TS-SOM layer.  The
+other arguments should be obvious by themselves.
+
+The output of the TS-SOM training consists of @code{.cod} and
+@code{.div} files which are written in the current directory, not to the
+@code{features} directory of the database.  So, before using the newly
+trained TS-SOMs one needs to move them there by hand, unless the TS-SOM
+training has been directly performed in that directory.
+
+Here is one practical example:
+
+@example
+picsom -c database=MY-DB traincount=100,100 treesomstruct=4x4,16x16 \
+          features=zo5:rgb,zo5:texture
+@end example
+
+@noindent
+The optional arguments in the TS-SOM creation mode include (at least):
+
+@example
+target=image
+zipped=yes
+labelsonly=yes
+preprocess=MY-METHOD
+@end example
+
+The @code{target} of the TS-SOM is by default @code{file}, so the above
+setting changes it to @code{image}.  It might also be eg. @code{segment}
+or @code{message}.
+
+The @code{zipped=yes} arguments forces the @code{.cod} and @code{.div}
+output files to be written zipped on the fly.
+
+The @code{labelsonly=yes} arguments causes the program to ignore the
+actual TS-SOM weight or memory vector values in writeout.  Only the
+labels are recorded in the @code{.cod} files.
+
+The existing @code{preprocess} aka @code{normalization} methods include
+eg. @code{z}, @code{polar}, @code{001}, @code{pca}, @code{min} and
+@code{max}.
+
+There exists also an excellent script @code{scripts/train-map} for
+training TS-SOMs.  Copy it in the database's @code{features} directory
+and run it there.
+
+@c **********************************************************************
+
+@node Using procmail, , Creation of TS-SOMs, Creating a new database
+@section Using procmail to automate mail object insertion
+
+Procmail can be used to automate mail object insertion into a PicSOM
+database. Add the following lines to your @code{~/.procmailrc} to add all
+e-mails sent to address @code{$USER+$OPTIONALSUFFIX@@cis.hut.fi} into the 
+database @code{$DB}:
+@example
+:0 c: 
+* ^(To|Cc).*$USER\+$OPTIONALSUFFIX.*
+|ssh itl-pc55 ~/picsom/perl/mailed_images2database -database=$DB
+@end example
+
+This creates a copy (because of the @code{c} in the first row) of the 
+message and sends it to the script specified
+here. The script will add the message to the database @code{$DB} by using
+@code{picsom -i}.
+
+To also save the messages into a separate folder, add the following
+lines @code{after} the previously given lines to your @code{.procmailrc}:
+@example
+:0: 
+* ^(To|Cc).*$USER\+$OPTIONALSUFFIX.*
+picsom-messages
+@end example
+
+@c **********************************************************************
+@node Existing databases, , Creating a new database, Top
+@chapter Existing databases
+
+In the development of the PicSOM system and the @code{imgrobot} program
+we have used and created two series of databases of increasing size.
+
+@menu
+PicSOM development databases:
+
+* TV::             Tee Vee shots.
+* ftp.sunet.se::   Swedish FTP images.
+* corel::          Corel Gallery Photos.
+* mobimg::         Multimedia message database.
+
+@code{imgrobot} databases:
+
+* coil-100::       Columbia Object Image Library.
+* web-hut.fi::     Web-grabbed images from @code{hut.fi} domain.
+* web-fi::         Web-grabbed images from @code{fi} domain.
+* web::            Web-grabbed images from all the Web.
+@end menu
+
+@c ======================================================================
+@node TV, ftp.sunet.se, Existing databases, Existing databases
+@section Tee Vee shots
+
+@table @b
+@item database
+TV
+
+@item images
+283
+
+@item descript
+The database was downloaded in spring 1998 for the very first
+experiments with the PicSOM system.
+
+@item contents
+mostly color photographs
+
+@item source
+@uref{ftp://ftp.funet.fi/pub/mirrors/ftp.maths.tcd.ie/pub/images/TV/}
+
+@item formats
+GIF, JPEG
+
+@item classes
+no
+
+@item features
+rgb
+
+@item thumbnail
+120x90
+
+@item texts
+no
+
+@item links
+no
+
+@end table
+
+@c ======================================================================
+@node ftp.sunet.se, corel, TV, Existing databases
+@section Swedish FTP images
+
+@table @b
+@item database
+ftp.sunet.se
+
+@item images
+4350
+
+@item descript
+The database was downloaded in summer 1998 for first systematic
+experiments with the PicSOM system.
+
+@item contents
+mostly color photographs
+
+@item source
+@uref{ftp://ftp.sunet.se/pub/pictures/}
+
+@item formats
+GIF, JPEG
+
+@item classes
+34
+
+@item features
+rgb, texture, fourier128, @enddots{}  Altogether 19 types.
+
+@item thumbnail
+120x90
+
+@item texts
+no
+
+@item links
+no
+
+@end table
+
+@c ======================================================================
+@node corel, mobimg, ftp.sunet.se, Existing databases
+@section Corel Gallery Photos
+
+@table @b
+@item database
+corel
+
+@item images
+59995
+
+@item descript
+This database was extracted from the Corel Gallery 1,000,000 Image
+Collection CD-ROMs.
+
+@item contents
+All images are color photographs.
+
+@item source
+For more information, see @uref{http://www.corel.com, Corel's Home
+Page}.
+
+@item formats
+JPEG
+
+@item classes
+3
+
+@item features
+rgb, colormom, comatrix8-norm, texture, shapehist, shapefft
+
+@item thumbnail
+120x90
+
+@item texts
+no
+
+@item links
+no
+
+@end table
+
+@c ======================================================================
+@node mobimg, coil-100, corel, Existing databases
+@section Multimedia Message Databases
+
+@table @b
+@item database
+mobimg_1, mobimg_2, mobimg_3, mobimg_4
+
+@item images
+?
+
+@item messages
+?
+@item texts
+?
+
+@item descript
+This database was extracted from mailbox files collected during
+"Mobiili kuva" experiment.
+
+@item contents
+Most messages contain a text object and several attached images.
+
+@item source
+
+@item formats
+jpeg, gif, message/rfc822, text
+
+@item features
+rgb, texture, date-polar, trigram, addresses
+
+@item thumbnail
+120x90
+
+@end table
+
+@c ======================================================================
+@node coil-100, web-hut.fi, mobimg, Existing databases
+@section Columbia Object Image Library COIL-100 
+
+@table @b
+@item database
+coil-100
+
+@item images
+7200
+
+@item descript
+COIL-100 (Columbia Object Image Library) is a database of color images
+    of 100 miscellaneous objects. Images of the objects were taken at 
+    pose intervals of 5 degrees, corresponding to 72 poses per object. 
+    The size of all images is 128x128 pixels.
+
+@item contents
+salient objects on a black background
+
+@item source
+The database is available online at @* 
+@uref{http://www.cs.columbia.edu/CAVE/research/softlib/coil-100.html}.       
+
+@item formats
+PNG
+
+@item classes
+100
+
+@item features
+MPEG-7 descriptors
+
+@item thumbnail
+128x128
+
+@item texts
+no
+
+@item links
+no
+
+@end table
+
+@c ======================================================================
+@node web-hut.fi, web-fi, coil-100, Existing databases
+@section Images from @code{hut.fi} domain
+
+@table @b
+@item database
+web-hut.fi
+
+@item images
+94860
+
+@item descript
+This database was grabbed from the @code{hut.fi} domain in January 2000.
+
+@item contents
+All kinds of images, photographs, icons, drawings, @enddots{}
+
+@item source
+@uref{http://www.hut.fi} and all @code{hut.fi} links therefrom. 
+
+@item formats
+GIF, JPEG
+
+@item classes
+no
+
+@item features
+rgb, texture, shapehist, shapefft
+
+@item thumbnail
+120x90
+
+@item texts
+no
+
+@item links
+@b{to be collected}
+
+@end table
+
+@c ======================================================================
+@node web-fi, web, web-hut.fi, Existing databases
+@section Images from @code{fi} domain
+
+To be created some day @enddots{}
+
+@c ======================================================================
+@node web, , web-fi, Existing databases
+@section Images from all the Web
+
+To be created some day @enddots{}
+
+@c **********************************************************************
+@contents
+@bye
+
+@c Local Variables:
+@c mode: auto-fill
+@c End:
+

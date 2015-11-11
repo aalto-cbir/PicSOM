@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<!--
+  XML Schema for picsom::TSSOM namespace and CBIR system.
+
+  $Id: tssom.xsd,v 1.2 2008/12/19 11:52:23 mats Exp $
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.cis.hut.fi/picsom/ns"
+           elementFormDefault="qualified"
+           version="$Id: tssom.xsd,v 1.2 2008/12/19 11:52:23 mats Exp $">
+
+  <xs:element name="tssomlocation">
+    <xs:complexType>
+      <xs:sequence maxOccurs="unbounded">
+	<xs:element name="bmulist"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="bmulist">
+    <xs:complexType>
+      <xs:all>
+	<xs:element name="bmu"/>
+      </xs:all>
+      <xs:attribute name="layer"  type="xs:integer"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="bmu">
+    <xs:complexType>
+      <xs:attribute name="order"  type="xs:integer"/>
+      <xs:attribute name="index"  type="xs:integer"/>
+      <xs:attribute name="weight" type="xs:double"/>
+      <xs:attribute name="sqrdist" type="xs:double"/>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

@@ -1,0 +1,12 @@
+#! /home/mvsjober/picsom/c++/picsom.linux64.fast
+
+#SBATCH --time=0-4:0
+#SBATCH --mem-per-cpu=4000
+#SBATCH --partition=batch
+
+analyse=dummy
+
+# or if used as a master:
+#
+# slaves=localhost(sbatch,free,partition=short,time=04:00:00,mem-per-cpu=8192)
+#

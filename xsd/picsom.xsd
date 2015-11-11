@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<!--
+  XML Schema for picsom namespace and CBIR system.
+
+  $Id: picsom.xsd,v 1.1 2008/08/18 13:08:42 jorma Exp $
+-->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.cis.hut.fi/picsom/ns"
+           elementFormDefault="qualified"
+           version="$Id: picsom.xsd,v 1.1 2008/08/18 13:08:42 jorma Exp $">
+
+  <xs:include schemaLocation="object.xsd"/>
+  <xs:include schemaLocation="tssom.xsd"/>
+
+</xs:schema>
