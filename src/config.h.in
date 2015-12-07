@@ -27,6 +27,9 @@
 /* Define to 1 if you have the `clock_gettime' function. */
 #undef HAVE_CLOCK_GETTIME
 
+/* Define to 1 if you have the <cuda_runtime.h> header file. */
+#undef HAVE_CUDA_RUNTIME_H
+
 /* Define to 1 if you have the declaration of `CLOCK_REALTIME', and to 0 if
    you don't. */
 #undef HAVE_DECL_CLOCK_REALTIME
@@ -206,8 +209,8 @@
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
 
-/* Define to 1 if you have the `cv' library (-lcv). */
-#undef HAVE_LIBCV
+/* Define to 1 if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
 
 /* Define to 1 if you have the `fftw3' library (-lfftw3). */
 #undef HAVE_LIBFFTW3
@@ -224,9 +227,6 @@
 
 /* Define to 1 if you have the `glog' library (-lglog). */
 #undef HAVE_LIBGLOG
-
-/* Define to 1 if you have the `highgui' library (-lhighgui). */
-#undef HAVE_LIBHIGHGUI
 
 /* Define to 1 if you have the `iconv' library (-liconv). */
 #undef HAVE_LIBICONV
