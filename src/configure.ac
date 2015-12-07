@@ -1,4 +1,4 @@
-## -*- C++ -*-  $Id: configure.ac,v 2.107 2015/11/11 10:20:20 jorma Exp $
+## -*- C++ -*-  $Id: configure.ac,v 2.109 2015/12/07 11:22:08 jorma Exp $
 ## 
 ## Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
@@ -6,11 +6,11 @@
 ## 
 
 AC_INIT(PicSOM, 0.33, picsom@ics.aalto.fi)
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE
 
 AC_PREREQ(2.59)
 AC_COPYRIGHT(PicSOM Development Group)
-AC_REVISION($Revision: 2.107 $)
+AC_REVISION($Revision: 2.109 $)
 
 AC_CONFIG_SRCDIR([PicSOM.C])
 AC_CONFIG_HEADER([config.h])
@@ -48,7 +48,8 @@ AC_CHECK_HEADERS([sys/syscall.h ext/stdio_filebuf.h])
 AC_CHECK_HEADERS([netdb.h pwd.h detdb.h sys/resource.h sys/utsname.h \
 		  sys/socket.h netinet/in.h arpa/inet.h unistd.h \
 		  sys/loadavg.h sys/param.h sys/wait.h inttypes.h strings.h \
-		  sys/resource.h sys/stat.h sys/mman.h glog/logging.h])
+		  sys/resource.h sys/stat.h sys/mman.h \
+		  glog/logging.h cuda_runtime.h])
 
 # Headers found only in WIN32
 AC_CHECK_HEADERS([winsock2.h winreg.h basetsd.h io.h process.h ws2tcpip.h])
@@ -142,19 +143,48 @@ AC_CHECK_TYPES([struct hostent],,,[
 #endif
 ])
 
+AC_CHECK_LIB(rt,      clock_gettime)
+
+# these are replicated in missing-c-utils.[Ch]
+AC_CHECK_FUNCS([fork kill sleep _sleep getuid getpwuid getpwnam inet_aton  \
+ 		ntohs times clock_gettime localtime_r strptime nanosleep \
+                gethostname gethostbyname getpagesize getloadavg \
+                getcwd getpid link symlink rmdir round \
+		strcasecmp mkstemp erand48 nrand48 rand_r chmod mkdir access \
+                popen pclose erf gamma snprintf fcntl unlink \
+                getaddrinfo freeaddrinfo])
+
+# these are used with #ifdef HAVE_xxx in some place where needed
+AC_CHECK_FUNCS([sysconf strsignal getppid pipe ttyname waitpid setenv isatty \
+		readlink])
+
+# these are perhaps not needed at all
+AC_CHECK_FUNCS([gethostbyname inet_ntoa memmove memset])
+
+# don't yet know what to do with this one...
+AC_CHECK_FUNCS([mremap])
+
+AC_CHECK_LIB(lapack,    main)
+
+AC_CHECK_FUNCS([ilaenv_], [], 
+  [warnings="$warnings|LAPACK use disabled due to missing library."])
+
+AM_PATH_LIBGCRYPT
+AC_CHECK_HEADERS([gcrypt.h])
+
+AM_ICONV
+
 AC_CHECK_LIB(mad,       main)
 AC_CHECK_LIB(sndfile,   main)
 AC_CHECK_LIB(audiofile, main)
 AC_CHECK_LIB(fftw3,     main)
 
-AC_CHECK_LIB(rt,      clock_gettime)
 AC_CHECK_LIB(sqlite3, sqlite3_open)
+
+AC_CHECK_LIB(dl, dlopen)
 
 AC_CHECK_LIB(mpi,     main)
 AC_CHECK_LIB(mpi_cxx, main)
-
-AC_CHECK_LIB(cv,      cvCreateImage)
-AC_CHECK_LIB(highgui, cvLoadImage)
 
 AC_CHECK_LIB(flandmark_shared, main)
 
@@ -170,6 +200,37 @@ else
   AC_SUBST(NOPTHREADS,"-DNO_PTHREADS")
   notices="$notices|POSIX threads not available."
 fi
+
+# general stuff
+AC_CHECK_LIB(magic, main)
+
+# needed in MSYS/MinGW
+AH_TEMPLATE([MKDIR_ONE_ARG], [Defined in MSYS/MinGW])
+AC_CHECK_LIB(gdi32,  main)
+AC_CHECK_LIB(ws2_32, main, [AC_DEFINE(MKDIR_ONE_ARG, 1)])
+
+# general stuff
+AC_CHECK_LIB(z,     main)
+AC_CHECK_LIB(iconv, main)
+AC_CHECK_LIB(regex, main)
+
+# needed in SunOS
+AC_CHECK_LIB(nsl, main)
+AC_CHECK_LIB(socket, main)
+
+AC_CHECK_LIB(jpeg,      main)
+AC_CHECK_LIB(tiff,      main)
+AC_CHECK_LIB(png,       main)
+
+AC_CHECK_LIB(gfortran,  main)
+AC_CHECK_LIB(blas,      main)
+
+AC_CHECK_LIB(ssl,       main)
+AC_CHECK_LIB(crypto,    main)
+AC_CHECK_LIB(aspell,    main)
+AC_CHECK_LIB(wordnet,   main)
+AC_CHECK_LIB(WN,        main)
+AC_CHECK_LIB(vl,        main)
 
 ## ImageMagick++, GraphicsMagick++ and picsom::imagefile
 #magicktype="imagemagick"
@@ -250,38 +311,6 @@ AM_PATH_MYCSOAP(1.1.0, [AC_DEFINE(PICSOM_USE_CSOAP, 1)],[
 ])
 AM_CONDITIONAL([PICSOM_SOAP], [test x$havecsoap = xyes])
 
-# general stuff
-AC_CHECK_LIB(magic, main)
-
-# needed in MSYS/MinGW
-AH_TEMPLATE([MKDIR_ONE_ARG], [Defined in MSYS/MinGW])
-AC_CHECK_LIB(gdi32,  main)
-AC_CHECK_LIB(ws2_32, main, [AC_DEFINE(MKDIR_ONE_ARG, 1)])
-
-# general stuff
-AC_CHECK_LIB(z,     main)
-AC_CHECK_LIB(iconv, main)
-AC_CHECK_LIB(regex, main)
-
-# needed in SunOS
-AC_CHECK_LIB(nsl, main)
-AC_CHECK_LIB(socket, main)
-
-AC_CHECK_LIB(jpeg,      main)
-AC_CHECK_LIB(tiff,      main)
-AC_CHECK_LIB(png,       main)
-
-AC_CHECK_LIB(gfortran,  main)
-AC_CHECK_LIB(blas,      main)
-AC_CHECK_LIB(lapack,    main)
-
-AC_CHECK_LIB(ssl,       main)
-AC_CHECK_LIB(crypto,    main)
-AC_CHECK_LIB(aspell,    main)
-AC_CHECK_LIB(wordnet,   main)
-AC_CHECK_LIB(WN,        main)
-AC_CHECK_LIB(vl,        main)
-
 AC_CHECK_LIB(avcodec,   main)
 AC_CHECK_LIB(avformat,  main)
 AC_CHECK_LIB(avutil,    main)
@@ -289,33 +318,6 @@ AC_CHECK_LIB(swscale,   main)
 
 AC_CHECK_LIB(caffe,     main)
 AC_CHECK_LIB(glog,      main)
-
-# these are replicated in missing-c-utils.[Ch]
-AC_CHECK_FUNCS([fork kill sleep _sleep getuid getpwuid getpwnam inet_aton  \
- 		ntohs times clock_gettime localtime_r strptime nanosleep \
-                gethostname gethostbyname getpagesize getloadavg \
-                getcwd getpid link symlink rmdir round \
-		strcasecmp mkstemp erand48 nrand48 rand_r chmod mkdir access \
-                popen pclose erf gamma snprintf fcntl unlink \
-                getaddrinfo freeaddrinfo])
-
-# these are used with #ifdef HAVE_xxx in some place where needed
-AC_CHECK_FUNCS([sysconf strsignal getppid pipe ttyname waitpid setenv isatty \
-		readlink])
-
-# these are perhaps not needed at all
-AC_CHECK_FUNCS([gethostbyname inet_ntoa memmove memset])
-
-# don't yet know what to do with this one...
-AC_CHECK_FUNCS([mremap])
-
-AC_CHECK_FUNCS([ilaenv_], [], 
-  [warnings="$warnings|LAPACK use disabled due to missing library."])
-
-AM_PATH_LIBGCRYPT
-AC_CHECK_HEADERS([gcrypt.h])
-
-AM_ICONV
 
 AH_TEMPLATE([PICSOM_HAVE_OCTAVE], [Defined if we have support for Octave])
 AM_PATH_MYOCTAVE(3.0.0, [AC_DEFINE(PICSOM_HAVE_OCTAVE, 1)],[
