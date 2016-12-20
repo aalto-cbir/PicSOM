@@ -1,10 +1,10 @@
-// $Id: ZernikeMom.C,v 1.5 2012/01/31 08:27:19 vvi Exp $	
+// $Id: ZernikeMom.C,v 1.6 2016/10/25 08:14:43 jorma Exp $	
 
 #include <ZernikeMom.h>
 
 namespace picsom {
   static const char *vcid =
-    "$Id: ZernikeMom.C,v 1.5 2012/01/31 08:27:19 vvi Exp $";
+    "$Id: ZernikeMom.C,v 1.6 2016/10/25 08:14:43 jorma Exp $";
 
 static ZernikeMom list_entry(true);
 
@@ -13,8 +13,6 @@ static ZernikeMom list_entry(true);
 string ZernikeMom::Version() const {
   return vcid;
 }
-
-
 
 //=============================================================================
 
@@ -314,10 +312,10 @@ bool ZernikeMom::CalculateOneFrame(int frame){
 
     int width = Width(true), height = Height(true);
     for (int y=0; y<height; y++)
-      for (int x=0; x<width; x++){
+      for (int x=0; x<width; x++) {
 	vector<int> svec = SegmentVector(frame, x, y);
 	for (size_t j=0; j<svec.size(); j++) {
-	  if(svec[j]==label){
+	  if (svec[j]==label) {
 	    count++;
 	    x_avg[label] += x;
 	    y_avg[label] += y; 
@@ -325,8 +323,8 @@ bool ZernikeMom::CalculateOneFrame(int frame){
 	}
       }
 
-      x_avg[label] /= count;
-      y_avg[label] /= count;
+    x_avg[label] /= count;
+    y_avg[label] /= count;
 
     // now the segment middle points are calculated
 

@@ -1,6 +1,6 @@
-## -*- C++ -*-  $Id: Makefile.am,v 2.34 2015/11/11 10:21:21 jorma Exp $
+## -*- C++ -*-  $Id: Makefile.am,v 2.35 2016/12/19 21:10:58 jorma Exp $
 ## 
-## Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+## Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
 ## PO Box 15400, FI-00076 Aalto, FINLAND
 ## 
@@ -24,6 +24,26 @@ picsom_SOURCES = PicSOM.C DataBase.C Analysis.C Query.C Index.C \
 		 simple/RandVar.C simple/Histogram.C simple/gzstream.C \
 		 segmentation/Segmentation.C segmentation/segmentfile.C \
 		 segmentation/AddDescription.C segmentation/DisplayResults.C \
+                 segmentation/AlignmentMarks.C segmentation/Binarise.C \
+                 segmentation/ByTypicality.C segmentation/CreateThumbnail.C \
+                 segmentation/CropEdges.C \
+                 segmentation/FaceParts.C segmentation/FilterbyBoundingbox.C \
+                 segmentation/FilterbyColor.C segmentation/FilterCentral.C \
+                 segmentation/FLandmark.C segmentation/GenerateHeatmap.C \
+                 segmentation/GKMeans.C \
+                 segmentation/ImportBitmap.C segmentation/KMeans.C \
+                 segmentation/ListAdjacent.C segmentation/ListOverlaps.C \
+                 segmentation/LocateFaceBox.C segmentation/MergeColM.C \
+                 segmentation/MergeNeighbourhood.C segmentation/MergeSame.C \
+                 segmentation/OCVface.C segmentation/PickLargest.C \
+                 segmentation/PixelTemplate.C \
+                 segmentation/Random.C segmentation/RegionMerge.C \
+                 segmentation/RegionMerger.C segmentation/RemoveHoles.C \
+                 segmentation/RestoreScale.C segmentation/SampleRandom.C \
+                 segmentation/ScaleDown.C segmentation/SeparateMultipart.C \
+                 segmentation/SpringModel.C segmentation/TagDark.C \
+                 segmentation/TemporalMorphology.C segmentation/Tile.C \
+                 segmentation/TestInterface.C segmentation/TilePyramid.C  \
 		 features/Feature.C features/textfile.C \
 		 features/PorterStemmer.C features/PixelBased.C \
 		 features/Rgb.C features/RegionBased.C features/Raw.C \
@@ -55,7 +75,7 @@ picsom_DEPENDENCIES = image/picsom-imagefile-@IMAGEFILEIMPL@.o @CBIRALGORITHMS@
 
 picsom_CPPFLAGS = -std=c++11 -Wno-deprecated \
            -I./simple -I./image -I./features -I./segmentation \
-	   -DPICSOM_IMAGEDATA_FAST @NOPTHREADS@ \
+	   -DPICSOM_IMAGEDATA_FAST -DPICSOM_USE_OPENCV @NOPTHREADS@ \
 	   @XML_CPPFLAGS@ @LIBGCRYPT_CFLAGS@ @CSOAP_CFLAGS@ \
 	   @OCTAVE_CFLAGS@ @MYSQL_CFLAGS@
 

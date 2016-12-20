@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: DataBase.C,v 2.878 2015/11/10 13:47:40 jorma Exp $
+// -*- C++ -*-  $Id: DataBase.C,v 2.935 2016/12/19 09:03:39 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -10,10 +10,6 @@
 #include <DataSet.h>
 #include <Feature.h>
 #include <base64.h>
-
-#ifdef PICSOM_USE_PYTHON
-#include <Python.h>
-#endif // PICSOM_USE_PYTHON
 
 #ifdef HAVE_GCRYPT_H
 #include <NGram.h>
@@ -45,19 +41,15 @@
 #undef GetProp
 #endif // HAVE_WINSOCK2_H
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
-#ifdef HAVE_JAULA_H
+#if defined(HAVE_JAULA_H) && defined(PICSOM_USE_JAULA)
 #include <jaula.h>
-#endif // HAVE_JAULA_H
-
-#ifdef HAVE_JSON_JSON_H
-#include <json/json.h>
-#endif // HAVE_JSON_JSON_H
+#endif // HAVE_JAULA_H && PICSOM_USE_JAULA
 
 #include <boost/algorithm/string/replace.hpp>
 
@@ -66,7 +58,7 @@
 
 namespace picsom {
   static const string DataBase_C_vcid =
-    "@(#)$Id: DataBase.C,v 2.878 2015/11/10 13:47:40 jorma Exp $";
+    "@(#)$Id: DataBase.C,v 2.935 2016/12/19 09:03:39 jorma Exp $";
 
   // a special guest appearance...
   const string& object_info::db_name() const {
@@ -94,13 +86,18 @@ namespace picsom {
 
   size_t DataBase::debug_leafdir      = 0;
   size_t DataBase::debug_detections   = 0;
+  size_t DataBase::debug_captionings  = 0;
   size_t DataBase::debug_features     = 0;
   size_t DataBase::debug_segmentation = 0;
   size_t DataBase::debug_images       = 0;
 
-  bool DataBase::open_read_write_sql     = false;
-  bool DataBase::open_read_write_fea     = false;
-  bool DataBase::open_read_write_det     = false;
+  bool DataBase::open_read_write_sql = false;
+  bool DataBase::open_read_write_fea = false;
+  bool DataBase::open_read_write_det = false;
+  bool DataBase::open_read_write_txt = false;
+
+  bool DataBase::force_lucene_unlock = false;
+
   bool DataBase::insert_mplayer          = false;
   bool DataBase::remove_broken_datafiles = false;
 
@@ -226,6 +223,7 @@ namespace picsom {
     extractobjectpath       = "";
     extra_features_dir      = "";
     alwaysusetarfiles       = false;
+    extractfulltars         = true;
 
     defaultquery = new Query(Picsom());
     defaultquery->SetDefaultQueryIdentity();
@@ -307,14 +305,14 @@ namespace picsom {
     }
     WriteLog(pathss.str());
 
-#ifdef USE_OD
+#ifdef PICSOM_USE_OD
     odone.Initialize(Picsom()->Quiet());
     odone.SetUsedDetector("sift");
     odone.SetUsedDescriptor("sift");
     odone.SetBlur(false);
     odone.SetShowKeypoints(false);
     odone.SetShowResults(false);
-#endif // USE_OD
+#endif // PICSOM_USE_OD
 
     bool use_sql_settings = SqlAll() || SqlSettings(), sql_ok = false;
     string tmpsfile, dbfile = SqliteDBFile(false);
@@ -671,6 +669,11 @@ void DataBase::Dump(Simple::DumpMode /*dt*/, ostream& os) const {
 	continue;
       }
 
+      if (key=="featureaugmentation") {
+	SetFeatureAugmentation(node);
+	continue;
+      }
+
       if (key=="namedcmdline") {
 	SetNamedCmdLine(node);
 	continue;
@@ -721,6 +724,43 @@ void DataBase::Dump(Simple::DumpMode /*dt*/, ostream& os) const {
 	  macro[name] = cont;
 
 	  n = n.NextElement("macro");
+	}
+	continue;
+      }
+
+      if (key=="linked_data_mappings") {
+	XmlDom m(node->doc, node->ns, node);
+	XmlDom n = m.FirstElementChild("linked_data_mapping");
+	for (;;) {
+	  if (!n)
+	    break;
+
+	  string toc  = n.Property("sparq");
+	  string stoc = "sparq/"+toc;
+
+	  map<string,string> kv;
+	  XmlDom r = n.FirstElementChild("mapping");
+	  for (;;) {
+	    if (!r)
+	      break;
+
+	    string src = r.Property("src");
+	    string dst = r.Property("dst");
+	    kv[dst] = src;
+
+	    if (Query::DebugInfo())
+	      cout << stoc << " " << dst << " " << src << endl;
+
+	    r = r.NextElement("mapping");
+	  }
+	  if (Query::DebugInfo())
+	    cout << endl;
+
+	  if (linked_data_mappings.find(stoc)==linked_data_mappings.end())
+	    linked_data_mappings[stoc] = list<map<string,string> >();
+	  linked_data_mappings[stoc].push_back(kv);
+
+	  n = n.NextElement("linked_data_mapping");
 	}
 	continue;
       }
@@ -1187,6 +1227,8 @@ bool DataBase::ApplyDefaultAspectsXML(xmlNodePtr l) {
     db.Element("convtype",            "triangle-1-2-4-8");
     db.Element("permapobjects",       "500");
 
+    db.Element("erf_detection_images", "");
+
     AddExtraction(db);
 
     db.Element("allowalgorithmselection",       "yes");
@@ -1276,8 +1318,9 @@ bool DataBase::ApplyDefaultAspectsXML(xmlNodePtr l) {
     vector<string> cmd;
     cmd.push_back("*picsom-features-internal*");
     cmd.push_back("-lx");
+    list<incore_feature_t> incore;
     feature_result feat_res;
-    int r = Feature::Main(cmd, &feat_res);
+    int r = Feature::Main(cmd, incore, &feat_res);
     xmlDocPtr doc = r==0 ? feat_res.xml.doc : NULL;
   
     xmlNodePtr root = xmlDocGetRootElement(doc);
@@ -1743,7 +1786,18 @@ void DataBase::CheckEmptyText(const string& txt) {
     else if (key=="alwaysusetarfiles")
       alwaysusetarfiles = IsAffirmative(val);
 
-    else if (key=="addobject") {
+    else if (key=="extractfulltars")
+      extractfulltars = IsAffirmative(val);
+
+    else if (key=="erf_detection_images") {
+      if (val=="")
+	erf_detection_images.clear();
+      else {
+	vector<string> v = SplitInCommas(val);
+	erf_detection_images = list<string>(v.begin(), v.end());
+      }
+
+    } else if (key=="addobject") {
       vector<string> v = SplitInSomething("|", false, val);
       if (v.size()==4) {
 	if (LabelIndexGentle(v[0], false)<0) {
@@ -1768,7 +1822,7 @@ void DataBase::CheckEmptyText(const string& txt) {
 	ret = 0;      
     }
 
-#ifdef USE_OD
+#ifdef PICSOM_USE_OD
     else if (key=="odmatch") {
       string dblist = val, index;
       if (dblist.find("./")!=0 && dblist.find("../")!=0 &&
@@ -1792,12 +1846,12 @@ void DataBase::CheckEmptyText(const string& txt) {
     // } else if (key=="od") {
     //   odone.();
     }
-#endif // USE_OD
+#endif // PICSOM_USE_OD
 
-#ifdef HAVE_CAFFE_CAFFE_HPP
+#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
     else if (key=="caffefusion")
       caffefusion = val;
-#endif // HAVE_CAFFE_CAFFE_HPP
+#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
 
     else if (key.find("gt(")==0 && *key.rbegin()==')')
       ret = SetGroundTruth(key.substr(3, key.size()-4), val);
@@ -3398,15 +3452,18 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
       else if (key=="objectinsertion")
 	ok = DescribedObjectInsertion(node);
 
-       else if (key=="detection")
+      else if (key=="detection")
 	ok = DescribedDetection(node);
+
+      else if (key=="captioning")
+	ok = DescribedCaptioning(node);
 
       else if (key=="media")
 	ok = DescribedMedia(node);
 
       else
 	return ShowError(msg+"parser error : not <feature>/<segmentation>"
-			 "/<detection>/<media> but <"+key+">");
+			 "/<detection>/<captioning>/<media> but <"+key+">");
 
       if (!ok)
 	return ShowError(msg+"processing <"+key+"> failed");
@@ -3508,9 +3565,6 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 	return ShowError(msg+"processing <"+key+"> failed");
     }
 
-    // for (auto i=textindices_stored_lines.begin();
-    // 	 i!=textindices_stored_lines.end(); i++)
-    //   if (!TextIndexInput(*i))
     if (!TextIndexInput(textindices_stored_lines))
 	return ShowError(msg+"TextIndexInput() failed");
 
@@ -3584,10 +3638,49 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 
   /////////////////////////////////////////////////////////////////////////////
 
+  vector<string> DataBase::SolvePicSOMLuceneArguments(const string& n) {
+    string msg = "DataBase::SolvePicSOMLuceneArguments("+n+") : ";
+
+    const list<pair<string,string> >& d = TextIndexDescription(n);
+    map<string,string> m(d.begin(), d.end());
+    string l = m["lucene"];
+
+    if (l!="" && l!="3" && l!="4" && l!="5") {
+      ShowError(msg+"lucene argument should be empty|3|4|5");
+      return vector<string>();
+    }
+
+    list<string> vlist;
+    if (l=="3")
+      vlist = list<string> { "3.6.1", "3.5.0", "3.4.0", "3.3.0" };
+    else
+      vlist = list<string> { "5.4.0", "5.3.1" };
+
+    string r = Picsom()->Path()+"/lucene", v;
+    for (auto i=vlist.begin(); v=="" && i!=vlist.end(); i++)
+      if (DirectoryExists(r+"/lucene-"+*i))
+	v = *i;
+
+    if (v=="") {
+      ShowError(msg+"solving lucene version failed");
+      return vector<string>();
+    }
+
+    vector<string> ret;
+    // ret.push_back("--debug");
+    // ret.push_back("--compile");
+    ret.push_back("--root");
+    ret.push_back(r);
+    ret.push_back("--lucene");
+    ret.push_back(v);
+
+    return ret;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   Connection *DataBase::LuceneTextIndex(const string& n) {
     string msg = "DataBase::LuceneTextIndex("+n+") : ";
-
-    bool force_unlock = true;
 
     auto p = textindices.find(n);
     if (p!=textindices.end())
@@ -3595,13 +3688,18 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 
     vector<string> cmd {
       Picsom()->UserHomeDir()+"/picsom/java/lucene/picsom-lucene",
-      "--compile", "--"
     };
+    vector<string> arg = SolvePicSOMLuceneArguments(n);
+    cmd.insert(cmd.end(), arg.begin(), arg.end());
+    cmd.push_back("--");
+
+    if (debug_text)
+      cout << msg << "command [" << JoinWithString(cmd, "][") << "]" << endl;
 
     Connection *c = Picsom()->CreatePipeConnection(cmd, false);
     if (!c) {
-      ShowError(msg+"creating lucene pine failed : ["+JoinWithString(cmd,"][")
-		+"]");
+      ShowError(msg+"creating lucene pipe failed : ["+
+		JoinWithString(cmd, "][")+"]");
       return NULL;
     }
 
@@ -3627,22 +3725,28 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
     if (n!="") {
       auto id = TextIndexDescription(n);
 
-      if (force_unlock) {
-	string idir;
-	for (auto i=id.begin(); i!=id.end(); i++)
-	  if (i->first=="index")
-	    idir = i->second;
-	if (idir!="")
-	  Unlink(Path()+"/lucene/"+idir+"/write.lock");
+      /* this shouldn't be needed...
+      string idir, write_lock;
+      for (auto i=id.begin(); i!=id.end(); i++)
+	if (i->first=="index")
+	  idir = i->second;
+      if (idir!="")
+	write_lock = Path()+"/lucene/"+idir+"/write.lock";
+      if (write_lock!="") {
+	if (force_lucene_unlock)
+	  Unlink(write_lock);
+	if (FileExists(write_lock))
+	  ShowError(msg+"write lock <"+write_lock+"> exists...");
       }
+      */
 
       if (id.size()) {
 	list<string> in;
-	if (debug_gt)
+	if (debug_gt || debug_text)
 	  in.push_back("verbose");
 	for (auto i=id.begin(); i!=id.end(); i++)
 	  if (i->first=="name" || i->first=="type" || i->first=="fields" ||
-	      i->first.substr(0, 5)=="rule#")
+	      i->first=="lucene" || i->first.substr(0, 5)=="rule#")
 	    continue;
 	  else {
 	    string val = i->second;
@@ -3650,9 +3754,16 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 	      val = Path()+"/lucene/"+val;
 	    in.push_back(i->first+" "+val);
 	  }
-	list<string> out = LuceneOperation(n, in);
+	in.push_back("flush-index");
+	bool ok = LuceneOperation(n, in).first;
+	if (!ok) {
+	  ShowError(msg+"initialization failed");
+	  c->Close();
+	  return NULL;
+	}
       }
     }
+
     return c;
   }
 
@@ -3661,23 +3772,34 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
   bool DataBase::CloseTextIndices() {
     list<string> lucenequit { "quit" };
     while (textindices.size()) {
-      LuceneOperation(textindices.begin()->first, lucenequit);
+      const string& name = textindices.begin()->first;
+      Connection *c = LuceneTextIndex(name);
+      if (c && !c->IsClosed())
+	LuceneOperation(name, lucenequit);
+
       textindices.erase(textindices.begin());
     }
+
     return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
 
-  list<string> DataBase::LuceneOperation(const string& name,
-					 const list<string>& in,
-					 bool syncin) {
+  pair<bool,list<string> > DataBase::LuceneOperation(const string& name,
+						     const list<string>& in,
+						     bool syncin) {
+    string msg = "DataBase::LuceneOperation("+name+",...) : ";
     list<string> out;
 
     Connection *c = LuceneTextIndex(name);
     if (!c) {
-      ShowError("DataBase::LuceneOperation("+name+",...) failed");
-      return out;
+      ShowError(msg+"failing because LuceneTextIndex() failed");
+      return make_pair(false, out);
+    }
+    
+    if (c->IsClosed()) {
+      ShowError(msg+"failing because connection "+c->Identity()+" has been closed");
+      return make_pair(false, out);
     }
 
     FILE *ifh = fdopen(c->Rfd(), "r");
@@ -3687,6 +3809,8 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
     istream is(&ibuf);
     ostream os(&obuf);
 
+    bool errored = false;
+    string errmsg;
     size_t n = 0, m = 0;
     for (auto i=in.begin();; i++) {
       bool sync = syncin || i==in.end() || (m+1)%10==0;
@@ -3699,7 +3823,7 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
       }
 
       if (sync)
-	for (; n<m; n++)
+	for (; !errored && n<m; n++)
 	  for (;;) {
 	    string s;
 	    getline(is, s);
@@ -3707,6 +3831,11 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 	      cout << "lucene out " << n << " [" << s << "]" << endl;
 	    if (s=="* ok")
 	      break;
+	    if (s.find("* ERROR")==0) {
+	      errored = true;
+	      errmsg = s.substr(8);
+	      break;
+	    }
 	    if (s.find("* "))
 	      continue;
 	    out.push_back(s.substr(2));
@@ -3716,14 +3845,21 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 	break;
     }
 
-    return out;
+    if (errored) {
+      ShowError(msg+"failing because ERROR \""+errmsg+"\"");
+      c->Close();
+
+      return make_pair(false, list<string>());
+    }
+
+    return make_pair(true, out);
   }
 
   /////////////////////////////////////////////////////////////////////////////
 
   string DataBase::LuceneVersion(const string& n) {
     list<string> in { "version" };
-    list<string> out = LuceneOperation(n, in);
+    list<string> out = LuceneOperation(n, in).second;
     if (out.empty())
       out.push_back("*unknown*");
 
@@ -3737,13 +3873,19 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
   /////////////////////////////////////////////////////////////////////////////
 
   bool DataBase::TextIndexInput(const list<string>& listlin) {
+    string msg = "DataBase::TextIndexInput(...) : ";
+    if (listlin.size()==0)
+      return true;
+
+    if (!open_read_write_txt)
+      return ShowError(msg+"not opened for writing, use -rw=...txt...");
+
     list<string> all;
     string nnn;
 
     for (auto lliter=listlin.begin(); lliter!=listlin.end(); lliter++) {
       const string& lin = *lliter;
-
-      string msg = "DataBase::TextIndexInput("+lin+") : ";
+      msg = "DataBase::TextIndexInput("+lin+") : ";
 
       string l = lin;
       while (l[0]==' ' || l[0]=='\t')
@@ -3772,9 +3914,10 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 	l.erase(0, 1);
 
       if (l.find("add-attribute")==0) {
-	string field = l.substr(14), txt = field;
+	string field = l.substr(14);
 	while (field.size() && (field[0]==' ' || field[0]=='\t'))
 	  field.erase(0, 1);
+	string txt = field;
 	size_t p = field.find_first_of(" \t");
 	if (p!=string::npos) {
 	  field.erase(p);
@@ -3783,12 +3926,14 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 	    txt.erase(0, 1);
 	}
 
+	/* commented out 2016-01-07 as now any field name is allowed
 	list<string> fields_list = TextIndexFields(n);
 	set<string> fields_set(fields_list.begin(), fields_list.end());
 	if (fields_set.find(field)==fields_set.end())
 	  return ShowError(msg+"text index <"+n+"> field <"+field+
 			   "> not defined");
-
+	*/
+	
 	textindex_fields[n].push_back(make_pair(field, txt));
       }
 
@@ -3819,21 +3964,27 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
     }
 
     if (nnn!="" && all.size())
-      LuceneOperation(nnn, all, false);
+      return LuceneOperation(nnn, all, false).first;
 
     return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
 
-  list<pair<string,string>> DataBase::TextIndexRetrieve(size_t idx,
-							const string& nin) {
+  list<pair<string,string> > DataBase::TextIndexRetrieve(size_t idx,
+							 const string& nin) {
+    string msg = " DataBase::TextIndexRetrieve() : ";
+
     string n = nin;
     if (n=="")
       n = DefaultTextIndex();
     string l = "retrieve-document "+Label(idx);
     list<string> ll { l };
-    list<string> o = LuceneOperation(n, ll);
+    auto bl = LuceneOperation(n, ll);
+    if (!bl.first)
+      ShowError(msg+"failed");
+
+    list<string>& o = bl.second;
     list<pair<string,string>> res;
     for (auto i=o.begin(); i!=o.end(); i++) {
       auto p = i->find(" : ");
@@ -3848,6 +3999,10 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 
   bool DataBase::TextIndexUpdate(size_t idx, const string& nin,
 				 const list<pair<string,string> >& lkv) {
+    string msg = "DataBase::TextIndexUpdate(...) : ";
+    if (!open_read_write_txt)
+      return ShowError(msg+"not opened for writing, use -rw=...txt...");
+
     string n = nin;
     if (n=="")
       n = DefaultTextIndex();
@@ -3856,9 +4011,8 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
     for (auto i=lkv.begin(); i!=lkv.end(); i++)
       ll.push_back("add-attribute "+i->first+" "+i->second);
     ll.push_back("update-document "+Label(idx));
-    list<string> o = LuceneOperation(n, ll);
 
-    return true;
+    return LuceneOperation(n, ll).first;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -3911,8 +4065,9 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
       "textfield "+f,
       "search-string label:"+labelesc
     };
-    list<string> out = LuceneOperation(n, in);
-    if (out.empty())
+    auto bl = LuceneOperation(n, in);
+    list<string>& out = bl.second;
+    if (!bl.first || out.empty())
       return "";
 
     string s = out.front();
@@ -3988,8 +4143,9 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
       "textfield "+field,
       "search-string "+q
     };
-    list<string> out = LuceneOperation(n, in);
-    if (out.empty()) {
+    auto bl = LuceneOperation(n, in);
+    list<string>& out = bl.second;
+    if (!bl.first || out.empty()) {
       // ShowError(err+"empty result");
       return res;
     }
@@ -5007,7 +5163,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
   bool DataBase::DescribedDetection(const XmlDom& node) {
     string msg = "DataBase::DescribedDetection() : ";
  
-    bool debug = DebugDetections();
+    bool expand = true, debug = DebugDetections();
 
     string use = node.Property("use");
     if (use!="" && !IsAffirmative(use))
@@ -5073,11 +5229,12 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       l.push_back(make_pair(name, val));
     }
 
-    return ExpandAndStoreDescribedDetections(desname, l);
-
-    described_detections[desname] = l;
-
-    return true;
+    if (expand)
+      return ExpandAndStoreDescribedDetections(desname, l);
+    else {
+      described_detections[desname] = l;
+      return true;
+    }
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -5135,6 +5292,149 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     described_detections[desnamein] = lin;
    
     if (DebugDetections())
+      WriteLog("Added description for detection <"+desnamein+">");
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::DescribedCaptioning(const XmlDom& node) {
+    string msg = "DataBase::DescribedCaptioning() : ";
+ 
+    bool expand = false, debug = DebugCaptionings();
+
+    string use = node.Property("use");
+    if (use!="" && !IsAffirmative(use))
+      return true;
+
+    string desname = node.Property("name");
+    if (desname=="")
+      return ShowError(msg+"name should be defined");
+
+    string type = node.Property("type");
+    if (type=="")
+      return ShowError(msg+"type should be defined");
+
+    if (described_captionings.find(name)!=described_captionings.end())
+      return ShowError(msg+"captioning with name <"+name+"> already exists");
+
+    string dbname;
+
+    list<pair<string,string> > l;
+
+    for (_xmlAttr *p = node.node->properties; p; p=p->next) {
+      string name = (char*)p->name, val;
+      if (p->children && p->children->content)
+	val = (char*)p->children->content;
+
+      if (name=="use")
+	continue;
+
+      if (name=="database")
+	dbname = val;
+
+      // obs! old stuff from DescribedDetection()
+      // if (name=="features" || name=="detectors" || name=="evaluators")
+      // 	for (;;) {
+      // 	  size_t p = val.find_first_of(" \t\n");
+      // 	  if (p==string::npos)
+      // 	    break;
+      // 	  size_t q = val.find_first_not_of(" \t\n", p);
+      // 	  val.erase(p, q-p);
+      // 	}
+	  
+      // obs! old stuff from DescribedDetection()
+      // if (name=="class") {
+      // 	DataBase *db = this;
+      // 	if (dbname!="") {
+      // 	  Picsom()->AddAllowedDataBase(dbname);
+      // 	  db = Picsom()->FindDataBaseEvenNew(dbname, false);
+      // 	  if (!db)
+      // 	    return ShowError(msg+"database <"+dbname+"> not found");
+      // 	}
+
+      // 	// upto version 2.765 metaclassfile was solved in current db
+      // 	if (db->IsMetaClassFile(val)) {
+      // 	  string mcname = dbname=="" ? val : dbname+"#"+val;
+      // 	  l.push_back(make_pair("metaclassfile", val));
+      // 	  list<string> cl_list = db->SplitClassNames(val);
+      // 	  val = CommaJoin(cl_list);
+      // 	}
+      // }
+
+      if (debug) 
+	cout << TimeStamp() << msg << desname << " : <"
+	     << name << ">=<" << val << ">" << endl;
+
+      l.push_back(make_pair(name, val));
+    }
+
+    if (expand) 
+      return ExpandAndStoreDescribedCaptionings(desname, l);
+    else {
+      described_captionings[desname] = l;
+      return true;
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::ExpandAndStoreDescribedCaptionings(const string& desnamein,
+						   const list<pair<string,
+						   string> >& lin) {
+    /// obs! still working on detections...
+
+    string msg = "DataBase::ExpandAndStoreDescribedCaptionings() <"+
+      desnamein+"> : ";
+
+    string key;
+    for (auto i=lin.begin(); key=="" && i!=lin.end(); i++)
+      if (i->first!="class" && i->first!="detectors" && i->first!="multi" &&
+	  i->first!="features" && i->first!="evaluators" &&
+	  i->second.find(',')!=string::npos)
+	key = i->first;
+    
+    if (key!="") {
+      string desname = desnamein, pat = "${"+key+"}", val;
+      size_t p = desname.find(pat);
+      if (p==string::npos)
+	return ShowError(msg+"attribute "+pat+" not found in <"+desname+">");
+
+      // obs! until 2015-05-21 old name remained...
+      list<pair<string,string> > l;
+      for (auto i=lin.begin(); i!=lin.end(); i++)
+	if (i->first==key)
+	  val = i->second;
+	else if (i->first!="name")
+	  l.push_back(*i);
+
+      if (val.find('{')==string::npos)
+	val = "{"+val+"}";
+
+      list<string> a = BraceCommaExpand(val);
+      for (auto i=a.begin(); i!=a.end(); i++) {
+	string name = desname;
+	name.replace(p, pat.size(), *i);
+	list<pair<string,string> > lx = l;
+	lx.push_back(make_pair(key, *i));
+	lx.push_back(make_pair("name", name)); // added 2015-05-21
+	if (!ExpandAndStoreDescribedCaptionings(name, lx))
+	  return false;
+      }
+
+      return true;
+    }
+
+    if (described_detections.find(desnamein)!=described_detections.end())
+      return ShowError(msg+"<"+desnamein+"> already defined");
+
+    if (desnamein.find("$")!=string::npos)
+      return ShowError(msg+"unsolved ${attribute} in <"+desnamein+">");
+
+    described_detections[desnamein] = lin;
+   
+    if (DebugCaptionings())
       WriteLog("Added description for detection <"+desnamein+">");
 
     return true;
@@ -5421,6 +5721,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				 const string& classname,
 				 const string& instance,
 				 const list<string>& feats,
+				 const string& augm,
+				 bool tolerate_missing,
 				 Segmentation *ad, XmlDom& xml,
 				 PicSOM::detection_stat_t& dstat) {
     string msg = "DataBase::DoAllDetections() : ";
@@ -5436,7 +5738,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
     for (size_t i=0; i<name.size(); i++)
       if (!DoOneDetectionForAll(force, idx, name[i], classname,
-				instance, feats, ad, xml, dstat))
+				instance, feats, augm, tolerate_missing,
+				ad, xml, dstat))
 	return ShowError(msg+"<"+name[i]+"> failed");
 
     return true;
@@ -5445,9 +5748,11 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
   /////////////////////////////////////////////////////////////////////////////
 
   string DataBase::DetectionName(const list<pair<string,string> >& l,
-				 const list<string>& f,
+				 const list<string>& f, const string& augm,
 				 const string& c, const string& i,
 				 bool eout) const {
+    const string msg = "DataBase::DetectionName() : ";
+
     map<string,string> m(l.begin(), l.end());
 
     string t = m["type"];
@@ -5460,9 +5765,17 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       // now eout hints to use extraout rather then extra, if defined...
       string extra, svmopts;
       if (eout && m.find("extraout")!=m.end())
-	extra = m["extraout"];
+      	extra = m["extraout"];
       else
-	extra = m["extra"];
+      	extra = m["extra"];
+
+      // if (extra!="" && augm!="") {
+      // 	ShowError(msg+"extra=<"+extra+"> augm=<"+augm+">");
+      // 	return "";
+      // }
+      // if (extra=="")
+      // 	extra = augm;
+      extra += augm;
 
       if (m["svm_homker"]=="intersection") {
 	svmopts = "hkm-int";
@@ -5511,6 +5824,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				 const list<upload_object_data>& objs,
 				 const list<string>& detectin,
 				 const list<string>& feats,
+				 bool tolerate_missing,
 				 Segmentation *ad) {
     string msg = "DataBase::DoAllDetections() : ";
     
@@ -5547,9 +5861,11 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       string classname, instance; // obs!
       XmlDom xml; // obs!
       PicSOM::detection_stat_t dstat;
+      string augm;
       if (idxvec.size() && !DoOneDetectionForAll(force, idxvec, *d,
 						 classname, instance,
-						 feats, ad, xml, dstat))
+						 feats, augm, tolerate_missing,
+						 ad, xml, dstat))
 	return false;
     }
   
@@ -5563,6 +5879,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				      const string& classname,
 				      const string& instancein,
 				      const list<string>& feats,
+				      const string& augm,
+				      bool tolerate_missing,
 				      Segmentation *ad, XmlDom& xml,
 				      PicSOM::detection_stat_t& dstat) {
     string msg = "DataBase::DoOneDetectionForAll("+name+") : ";
@@ -5586,7 +5904,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       instance = instancein; // don't know when this would be needed...
 
     return DoOneDetectionForAll(force, idx, *d, classname, instance,
-				feats, ad, xml, dstat);
+				feats, augm, tolerate_missing, ad, xml, dstat);
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -5597,6 +5915,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				 &descr, const string& classname,
 				 const string& instance,
 				 const list<string>& feats,
+				 const string& augm,
+				 bool tolerate_missing,
 				 Segmentation *ad, XmlDom& xml,
 				 PicSOM::detection_stat_t& dstat) {
     string name = descr.first, ttype;
@@ -5617,7 +5937,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
     // 2015-06-29 this uses "extra" if "extraout" is not defined even with last
     //            argument is true
-    string dname = DetectionName(descr.second, feats, classname,
+    string dname = DetectionName(descr.second, feats, augm, classname,
 				 instance, true);
     // obs! should we warn if this is empty??? yes!!!
     //if (dname=="")
@@ -5665,8 +5985,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       }
 
       bool hasdata = true;
-      if (!DoOneDetection(force, idx[i], descr, classname, instance, feats, ad,
-			  hasdata, xml))
+      if (!DoOneDetection(force, idx[i], descr, classname, instance, feats, augm,
+			  ad, tolerate_missing, hasdata, xml))
 	return ShowError(msg+"DoOneDetection() failed");
 
       dstat.ndone   +=  hasdata;
@@ -5690,8 +6010,9 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				const pair<string,list<pair<string,string> > >
 				&descrin, const string& classname,
 				const string& instance,
-				const list<string>& feats,
-				Segmentation *ad, bool& hasdata, XmlDom& xml) {
+				const list<string>& feats, const string& augm,
+				Segmentation *ad, bool tolerate_missing,
+				bool& hasdata, XmlDom& xml) {
     string name = descrin.first, type;
     string msg = "DataBase::DoOneDetection("+ToStr(idx)+","+name+") : ";
 
@@ -5707,17 +6028,17 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     if (!has_class && type=="caffe")
       descr.second.push_back(make_pair("class", "*caffe*"));
 
-    if (type=="svmpred" || type =="fusion" || type=="lsc" ||
+    if (type=="svmpred" || type=="fusion" || type=="lsc" ||
 	type=="children" || type=="combine" || type=="random" ||
 	type=="caffe" || type=="timefusion" || type=="timethreshold" ||
-	type=="sentenceselection") {
+	type=="sentenceselection" || type=="superclass") {
 
       if (instance!="")
 	descr.second.push_back(make_pair("multi", "single,"+instance));
 
       bool fsep = type=="svmpred" || type=="lsc";
       return CommonDetection(type, idx, fsep, descr.second, classname,
-			     feats, ad, hasdata, xml);
+			     feats, augm, ad, tolerate_missing, hasdata, xml);
     }
 
     // if (type=="caffe")
@@ -5763,7 +6084,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				      const list<pair<string,string> >& d) {
     string msg = "DataBase::DoOneObjectDetection("+ToStr(idx)+") : ";
 
-#ifdef USE_OD
+#ifdef PICSOM_USE_OD
     map<string,string> m(d.begin(), d.end());
     string name = m["name"];
     auto p = odset.find(name);
@@ -5813,8 +6134,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
 #else
     bool dummy = d.size(); dummy = !dummy;
-    return ShowError(msg+"USE_OD not defined");
-#endif // USE_OD
+    return ShowError(msg+"PICSOM_USE_OD not defined");
+#endif // PICSOM_USE_OD
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -5846,6 +6167,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
   /////////////////////////////////////////////////////////////////////////////
 
   float DataBase::VideoFrameRate(size_t idx) {
+    bool angry = false;
+
     string msg = "DataBase::VideoFrameRate("+ToStr(idx)+") : ";
 
     size_t pidx = RootParent(idx);
@@ -5856,7 +6179,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       return ShowError(msg+"framerate not known");
 
     float fps = atof(framerate.c_str());
-    if (!fps)
+    if (!fps && angry)
       ShowError(msg+"framerate <"+framerate+"> is zero");
 
     return fps;
@@ -6594,7 +6917,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				 const list<pair<string,string> >& min,
 				 const string& classname,
 				 const list<string>& feats,
-				 Segmentation *adseg, bool& hasdata,
+				 const string& augm, Segmentation *adseg,
+				 bool tolerate_missing, bool& hasdata,
 				 XmlDom& xml) {
     string msg = "DataBase::CommonDetection("+type+","+ToStr(idx)+") : ";
     bool debug = DebugDetections()>2;
@@ -6658,14 +6982,22 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       }
     }
     
+    vector<string> feat_spec_split = SplitInCommas(feat_spec), feat_spec_e;
+    for (auto i=feat_spec_split.begin(); i!=feat_spec_split.end(); i++) {
+      list<string> al = ExpandFeatureAlias(*i);
+      feat_spec_e.insert(feat_spec_e.end(), al.begin(), al.end());
+    }
+    string feat_spec_exp = CommaJoin(feat_spec_e);
+
     vector<string> feat_list1;
     if (splitfeat)
-      feat_list1 = SplitInCommas(feat_spec);
+      feat_list1 = SplitInCommas(feat_spec_exp);
     else
-      feat_list1.push_back(feat_spec);
+      feat_list1.push_back(feat_spec_exp);
 
     if (debug)
-      cout << TimeStamp() << msg << "feat_list.size()=" << feat_list1.size()
+      cout << TimeStamp() << msg << "feat_spec_exp=" << feat_spec_exp
+	   << " feat_list.size()=" << feat_list1.size()
 	   << " [ " << ToStr(feat_list1) << " ]" << endl;
 
     vector<string> feat_list;
@@ -6744,8 +7076,9 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 	    valp  = &multi_val[h];
 	    namep = &inst_name[h];
 	  }
-	  if (!CommonDetectionSingle(type, idx, mcopy, feats, adseg,
-				     valp, namep, hasdata, xml))
+	  if (!CommonDetectionSingle(type, idx, mcopy, feats, augm, adseg,
+				     valp, namep, tolerate_missing, hasdata,
+				     xml))
 	    return ShowError(msg+"features="+feat+" class="+classs+
 			     " instance="+instance+" failed");
 	}
@@ -7015,10 +7348,14 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
     bool incore = fname.find("/dev/null")==0;
     bool rw = OpenReadWriteDet()||incore;
-    bindetections[dname].open(fname, rw,
-			      bin_data::header::format_float, 0, dim);
-    if (!bindetections[dname].is_ok())
-      return ShowError(msg+"open() failed");
+    try {
+      bindetections[dname].open(fname, rw,
+				bin_data::header::format_float, 0, dim);
+      if (!bindetections[dname].is_ok())
+	return ShowError(msg+"open() failed");
+    } catch (const string& emsg) {
+      return ShowError(msg+"open() failed <"+emsg+">");
+    }
 
     WriteLog("Opened binary detection data file <"+ShortFileName(fname)
 	     +"> for "+(rw?"updating":"reading")
@@ -7150,7 +7487,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       }
 
       if (bd.nobjects()<Size()) {
-	WriteLog("Resizing binary detection file <"+ShortFileName(fname)+">");
+	WriteLog("Resizing binary detection file <"+ShortFileName(fname)+"> "
+		 +ToStr(bd.nobjects())+" "+ToStr(Size()));
 	bd.resize(Size());
 	WriteLog("  "+bd.str());
       }
@@ -7263,8 +7601,11 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
   bool DataBase::CommonDetectionSingle(const string& type, size_t idx,
 				       const list<pair<string,string> >& m,
 				       const list<string>& feats,
+				       const string& augm, 
 				       Segmentation *adseg, double *valp,
-				       string *namep, bool& hasdata,
+				       string *namep,
+				       bool tolerate_missing,
+				       bool& hasdata,
 				       XmlDom& xml) {
     string msg = "DataBase::CommonDetectionSingle("+type+","
       +ToStr(idx)+") : ";
@@ -7327,55 +7668,60 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
     if (type=="svmpred") {
       known = true;
-      ret = SvmPredDetectionSingle(idx, par, kv, db, feats,
-				   adseg, valp, namep, hasdata);
+      ret = SvmPredDetectionSingle(idx, par, kv, db, feats, augm,
+				   adseg, valp, namep, tolerate_missing, hasdata);
     }
 
     if (type=="fusion") {
       known = true;
-      ret = FusionDetectionSingle(idx, par, kv, db, feats, adseg/*, valp*/);
+      ret = FusionDetectionSingle(idx, par, kv, db, feats, augm, adseg/*, valp*/);
     }
 
     if (type=="children") {
       known = true;
-      ret = ChildrenDetectionSingle(idx, par, kv, db, feats, adseg/*, valp*/);
+      ret = ChildrenDetectionSingle(idx, par, kv, db, feats, augm, adseg/*, valp*/);
+    }
+
+    if (type=="superclass") {
+      known = true;
+      ret = SuperClassDetectionSingle(idx, par, kv, db, feats, augm, adseg/*, valp*/);
     }
 
     if (type=="timefusion") {
       known = true;
-      ret = TimeFusionDetectionSingle(idx, par, kv, db, feats, adseg/*, valp*/);
+      ret = TimeFusionDetectionSingle(idx, par, kv, db, feats, augm, adseg/*, valp*/);
     }
 
     if (type=="timethreshold") {
       known = true;
-      ret = TimeThresholdDetectionSingle(idx, par, kv, db, feats, adseg
+      ret = TimeThresholdDetectionSingle(idx, par, kv, db, feats, augm, adseg
 					 /*, valp*/);
     }
 
     if (type=="sentenceselection") {
       known = true;
-      ret = SentenceSelectionDetectionSingle(idx, par, kv, db, feats,
+      ret = SentenceSelectionDetectionSingle(idx, par, kv, db, feats, augm,
 					     adseg/*, valp*/);
     }
 
     if (type=="combine") {
       known = true;
-      ret = CombineDetectionSingle(idx, par, kv, db, feats, adseg/*, valp*/);
+      ret = CombineDetectionSingle(idx, par, kv, db, feats, augm, adseg/*, valp*/);
     }
 
     if (type=="lsc") {
       known = true;
-      ret = LscDetectionSingle(idx, par, kv, db, feats, adseg, valp, namep);
+      ret = LscDetectionSingle(idx, par, kv, db, feats, augm, adseg, valp, namep);
     }
 
     if (type=="random") {
       known = true;
-      ret = RandomDetectionSingle(idx, par, kv, db, feats, adseg, valp, namep);
+      ret = RandomDetectionSingle(idx, par, kv, db, feats, augm, adseg, valp, namep);
     }
 
     if (type=="caffe") {
       known = true;
-      ret = CaffeDetectionSingle(idx, par, kv, db, feats, adseg, valp, namep,
+      ret = CaffeDetectionSingle(idx, par, kv, db, feats, augm, adseg, valp, namep,
 				 xml);
     }
 
@@ -7393,6 +7739,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				       const map<string,string>& parin,
 				       const list<pair<string,string> >& m,
 				       DataBase*, const list<string>& /*feat*/,
+				       const string& /*augm*/,
 				       Segmentation*) {
     string msg = "DataBase::FusionDetectionSingle("+ToStr(idx)+") : ";
 
@@ -7498,7 +7845,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       
       if (debug2) {
 	if (!found)
-	  cout << "NOT FOUND AT ALL";
+	  cout << "NOT FOUND AT ALL a";
 	cout << endl;
       }
     }
@@ -7548,8 +7895,26 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
     if (onefound) {
       string detname = par["name"];
-      if (detresvec.size()==1)
-	detname += "#"+par["class"];
+      // obs! until 2016-03-02 incore fusion was named fusion()#class
+      // even though class name were given...
+      bool class_missing = true;
+      size_t p = detname.find("#");
+      if (p!=string::npos && detname.substr(p, 3)!="#%c")
+	class_missing = false;
+      if (detresvec.size()==1 && class_missing) {
+	bool replaced = false;
+	for (;;) {
+	  p = detname.find("#%c");
+	  if (p==string::npos)
+	    break;
+	  detname.replace(p+1, 2, par["class"]);
+	  replaced = true;
+	}
+	// until 2016-04-13 this was done always, then never
+	// since 2016-05-02 this conditioned on !replaced...
+	if (!replaced)
+	  detname += "#"+par["class"];  
+      }
       XmlDom xml; // obs!
       if (!StoreDetectionResult(idx, detname, detresvec, xml, incore))
 	return ShowError(msg+"failed to store detection data");
@@ -7566,10 +7931,13 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 					 const map<string,string>& parin,
 					 const list<pair<string,string> >& m,
 					 DataBase*, const list<string>& feat,
+					 const string& /*augm*/,
 					 Segmentation*) {
     string msg = "DataBase::ChildrenDetectionSingle("+ToStr(idx)+") : ";
 
     Tic("ChildrenDetectionSingle");
+
+    bool report_missing = false; // these happen for incore(incore(...))
 
     bool debug1 = DebugDetections()>1;
     bool debug2 = DebugDetections()>2;
@@ -7659,23 +8027,25 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 	  bool dummy = true;
 	  map<string,vector<float> > alldetects =
 	    RetrieveOrProduceDetectionData(oi->children[c], dd, classs,
-					   true, dummy);
+					   true, dummy, incore);
 	  auto p = alldetects.find(ddmatch);
 
 	  if (p!=alldetects.end()) {
-	    if (p->second.size()!=1)
-	      ShowError(msg+"detection dimensionality != 1");
+	    if (p->second.size()!=1) {
+	      if (report_missing)
+		ShowError(msg+"detection dimensionality != 1");
+	    } else {
+	      if (debug2)
+		cout << p->second[0] << "  ";
 
-	    if (debug2)
-	      cout << p->second[0] << "  ";
+	      int cfy = fpclassify(p->second[0]);
+	      if (cfy==FP_NAN || cfy==FP_INFINITE)
+		ShowError(msg+"value is nan or infinite");
 
-	    int cfy = fpclassify(p->second[0]);
-	    if (cfy==FP_NAN || cfy==FP_INFINITE)
-	      ShowError(msg+"value is nan or infinite");
-
-	    val_vec.push_back(p->second[0]);
-	    det_vec.push_back(dd);
-	    found = true;
+	      val_vec.push_back(p->second[0]);
+	      det_vec.push_back(dd);
+	      found = true;
+	    }
 
 	  } else
 	    if (debug2)
@@ -7686,7 +8056,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       
       if (debug2) {
 	if (!found)
-	  cout << "NOT FOUND AT ALL";
+	  cout << "NOT FOUND AT ALL b";
 	cout << endl;
       }
 
@@ -7722,10 +8092,150 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  bool DataBase::SuperClassDetectionSingle(size_t idx,
+					   const map<string,string>& parin,
+					   const list<pair<string,string> >& m,
+					   DataBase*, const list<string>&/*feat*/,
+					   const string& /*augm*/,
+					   Segmentation*) {
+    string msg = "DataBase::SuperClassDetectionSingle("+ToStr(idx)+") : ";
+
+    Tic("SuperClassDetectionSingle");
+
+    bool report_missing = false; // these happen for incore(incore(...))
+
+    bool debug1 = DebugDetections()>1;
+    bool debug2 = DebugDetections()>2;
+    // bool debug3 = DebugDetections()>3;
+
+    map<string,string> par = parin;
+    string classs = par["class"];
+
+    string fusion, detectors;
+    bool incore = false;
+    for (auto i=m.begin(); i!=m.end(); i++)
+      if (i->first=="fusion")
+	fusion = i->second;
+      else if (i->first=="detectors")
+	detectors = i->second;
+      else if (i->first=="incore")
+	incore = IsAffirmative(i->second);
+      else
+	return ShowError(msg+"parameter <"+i->first+">=<"+i->second+
+			 "> not understood");
+
+    if (fusion=="" || detectors=="")
+      return ShowError(msg+"fusion and detectors should be specified");
+
+    if (!IsKnownFusion(fusion))
+      return ShowError(msg+"fusion="+fusion+" not implemented");
+
+    if (debug2)
+      cout << TimeStamp() << msg << "starting metaclass=" << classs
+	   << " fusion=" << fusion << " detectors=" << detectors << endl;
+
+    // const object_info *oi = FindObject(idx);
+
+    auto dets = SplitInCommasObeyParentheses(detectors);
+
+    if (dets.size()==1) {
+      string d = dets[0];
+      size_t p = d.find("%C");
+      if (p!=string::npos) {
+	dets.clear();
+	list<string> cl = SplitClassNames(classs);
+	for (auto i=cl.begin(); i!=cl.end(); i++) {
+	  string dd = d;
+	  dd.replace(p, 2, *i);
+	  dets.push_back(dd);
+	}
+      }
+    }
+
+    vector<double> val_vec;
+    vector<string> det_vec;
+
+    bool found = false;
+
+    if (debug2)
+      cout << classs << " #" << idx << " <" << Label(idx) << "> ";
+      
+    for (auto k=dets.begin(); k!=dets.end(); k++) {
+      string dd = *k;
+
+      if (debug2)
+	cout << "| #" << idx << "@" << dd << "=";
+      
+      bool dummy = true;
+      map<string,vector<float> > alldetects =
+	RetrieveOrProduceDetectionData(idx, dd, classs, true, dummy, incore);
+      auto p = alldetects.find(dd);
+
+      if (p!=alldetects.end()) {
+	if (p->second.size()!=1) {
+	  if (report_missing)
+	    ShowError(msg+"detection dimensionality != 1");
+	} else {
+	  if (debug2)
+	    cout << p->second[0] << " ";
+	  
+	  int cfy = fpclassify(p->second[0]);
+	  if (cfy==FP_NAN || cfy==FP_INFINITE)
+	    ShowError(msg+"value is nan or infinite");
+	  
+	  val_vec.push_back(p->second[0]);
+	  det_vec.push_back(dd);
+	  found = true;
+	}
+	
+      } else
+	if (debug2)
+	  cout << "not found  ";
+    }
+    // obs! should report stronger if not all children have the value?
+      
+    if (debug2) {
+      if (!found)
+	cout << "NOT FOUND AT ALL b";
+      cout << endl;
+    }
+
+    if (val_vec.size()) {
+      size_t vcomp = 0;
+      double val = FusionResult(val_vec, fusion, det_vec, vector<double>(),
+				vcomp);
+	
+      if (debug1)
+	cout << TimeStamp() << msg << "  total of " << val_vec.size()
+	     << " values with "
+	     << fusion << " fusion result of " << val << endl;
+
+      string detname = par["name"];
+      size_t p = detname.find("%C");
+      if (p!=string::npos)
+	detname.replace(p, 2, classs);	
+
+      vector<float> valvec { (float)val };
+      XmlDom xml; // obs!
+      if (!StoreDetectionResult(idx, detname, valvec, xml, incore))
+	return ShowError(msg+"failed to store detection data");
+	
+    } else if (debug1)
+      cout << TimeStamp() << msg << "  no input results for "
+	   << fusion << " fusion, storing nothing" << endl;
+
+    Tac("ChildrenDetectionSingle");
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   bool DataBase::TimeFusionDetectionSingle(size_t idx,
 					   const map<string,string>& parin,
 					   const list<pair<string,string> >& m,
 					   DataBase*, const list<string>& feat,
+					   const string& /*augm*/,
 					   Segmentation*) {
     string msg = "DataBase::TimeFusionDetectionSingle("+ToStr(idx)+") : ";
 
@@ -7857,7 +8367,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       
       if (debug2) {
 	if (!found)
-	  cout << "NOT FOUND AT ALL";
+	  cout << "NOT FOUND AT ALL c";
 	cout << endl;
       }
 
@@ -7896,6 +8406,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 					 const map<string,string>& parin,
 					 const list<pair<string,string> >& m,
 					 DataBase*, const list<string>& feat,
+					 const string& /*augm*/,
 					 Segmentation*) {
     string msg = "DataBase::TimeThresholdDetectionSingle("+ToStr(idx)+") : ";
 
@@ -8031,7 +8542,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       
 	if (debug2) {
 	  if (!found)
-	    cout << "NOT FOUND AT ALL";
+	    cout << "NOT FOUND AT ALL d";
 	  cout << endl;
 	}
 
@@ -8074,6 +8585,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				   const map<string,string>& parin,
 				   const list<pair<string,string> >& m,
 				   DataBase*, const list<string>& /*feat*/,
+				   const string& /*augm*/,
 				   Segmentation*) {
     string msg = "DataBase::SentenceSelectionDetectionSingle("+
       ToStr(idx)+") : ";
@@ -8284,6 +8796,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 					const map<string,string>& parin,
 					const list<pair<string,string> >& m,
 					DataBase*, const list<string>& feat,
+					const string& /*augm*/,
 					Segmentation*) {
     string msg = "DataBase::CombineDetectionSingle("+ToStr(idx)+") : ";
 
@@ -8568,8 +9081,10 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 					const map<string,string>& par,
 					const list<pair<string,string> >& m,
 					DataBase *db, const list<string>& feats,
+					const string& augm,
 					Segmentation *adseg,
 					double *valp, string *namep,
+					bool tolerate_missing,
 					bool& hasdata) {
     string msg = "DataBase::SvmPredDetectionSingle("+ToStr(idx)+") : ";
 
@@ -8580,11 +9095,13 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     // WriteLog(msg+"is_main="+ToStr(is_main));
 
     if (is_main && use_pthreads_detection)
-      ret = SvmPredDetectionSingleBatch(idx, par, m, db, feats,
-					adseg, valp, namep, hasdata);
+      ret = SvmPredDetectionSingleBatch(idx, par, m, db, feats, augm,
+					adseg, valp, namep,
+					tolerate_missing, hasdata);
     else
-      ret = SvmPredDetectionSingleSelf(idx, par, m, db, feats,
-				       adseg, valp, namep, hasdata);
+      ret = SvmPredDetectionSingleSelf(idx, par, m, db, feats, augm,
+				       adseg, valp, namep,
+				       tolerate_missing, hasdata);
 
     Tac("SvmPredDetectionSingle");
 
@@ -8597,14 +9114,15 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
   DataBase::SvmPredDetectionSingleSelf(size_t idx,
 				       const map<string,string>& parin,
 				       const list<pair<string,string> >& m,
-				       DataBase *db, const list<string>&,
+				       DataBase *db,
+				       const list<string>& /*feats*/,
+				       const string& augm,
 				       Segmentation *adseg,
 				       double *valp, string *namep,
+				       bool tolerate_missing,
 				       bool& hasdata) {
     string msg = "DataBase::SvmPredDetectionSingleSelf("+ToStr(idx)+") : ";
     bool debug = DebugDetections()>1, debug2 = DebugDetections()>2;
-
-    bool tolerate_missing = true; // was like zero until 2013-08-20
 
     AddDescription *ad = (AddDescription*)adseg;
 
@@ -8690,30 +9208,32 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     string vecidxnameorig = svm->IndexName();
     size_t z = vecidxnameorig.find("::");
     string prefix = vecidxnameorig.substr(0, z);
-    string vecidxname = SVMfeaturename(vecidxnameorig);
+    string vecidxnamebase = SVMfeaturename(vecidxnameorig);
+    string vecidxnameaugm = vecidxnamebase+augm;
 
     if (prefix!="svm" && prefix!="linear")
       return ShowError(msg+"svm:: or linear:: prefix not found in <"+
      		       vecidxnameorig+">");
 
-    Index *baseidx = FindIndexInternal(vecidxname, true);
+    // Index *baseidx = FindIndexInternal(vecidxname, true);
+    Index *baseidx = FindIndex(vecidxnameaugm, "", true, false);
     if (!baseidx)
-      return ShowError(msg+"failed to find index <"+vecidxname+">");
+      return ShowError(msg+"failed to find index <"+vecidxnameaugm+">");
     if (baseidx->IsDummy())
-      baseidx = FindIndex(vecidxname, "", true, false);
+      baseidx = FindIndex(vecidxnameaugm, "", true, false);
     VectorIndex *vecidx = dynamic_cast<VectorIndex*>(baseidx);
     if (!vecidx)
-      return ShowError(msg+"index <"+vecidxname+"> is not VectorIndex but "
+      return ShowError(msg+"index <"+vecidxnameaugm+"> is not VectorIndex but "
 		       +baseidx->MethodName());
 
     bool delete_v = false;
     const FloatVector *v = vecidx->DataVector(idx);
     if (!v) {
       if (SqlFeatures())
-	v = SqlFeatureData(vecidxname, idx, true);
+	v = SqlFeatureData(vecidxnameaugm, idx, true);
       else {
 	vector<size_t> idxv { idx };
-	FloatVectorSet fvs = vecidx->DataByIndices(idxv);
+	FloatVectorSet fvs = vecidx->DataByIndices(idxv, tolerate_missing);
 	if (fvs.Nitems()) {
 	  v = fvs.Get(0);
 	  fvs.Relinquish(0);
@@ -8727,7 +9247,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     if (!v) {
       hasdata = false;
       string err = msg+"failed to get data vector for #"+ToStr(idx)+
-	" <"+Label(idx)+"> of <"+vecidxname+">";
+	" <"+Label(idx)+"> of <"+vecidxnameaugm+">";
 
       if (tolerate_missing)
 	WriteLog(err+" will have zero value");
@@ -8769,7 +9289,21 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     }
 
     string detname = vecidxnameorig;
-      
+    // if (augm!="") {
+    //   size_t p = detname.find("::#");
+    //   if (p==string::npos)
+    // 	return ShowError(msg+"augm=<"+augm+"> but \"::#\" not found in <"
+    // 			 +vecidxnameorig+">");
+    //   detname.insert(p+2, augm);
+    // }
+    if (augm!="") {
+      size_t p = detname.rfind("#");
+      if (p==string::npos)
+    	return ShowError(msg+"augm=<"+augm+"> but \"#\" not found in <"
+    			 +vecidxnameorig+">");
+      detname.insert(p, augm);
+    }
+
     if (valp)
       *valp = val;
     if (namep)
@@ -8792,8 +9326,11 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 					const map<string,string>& parin,
 					const list<pair<string,string> >&,
 					DataBase*, const list<string>& feats,
+					const string& augm,
 					Segmentation *adseg,
-					double *valp, string*, bool& hasdata) {
+					double *valp, string*, 
+					bool tolerate_missing,
+					bool& hasdata) {
     string msg = "DataBase::SvmPredDetectionSingleBatch("+ToStr(idx)+") : ";
 
     hasdata = false;
@@ -8803,6 +9340,9 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
     if (valp)
       return ShowError(msg+"cannot handle valp!=NULL");
+
+    if (augm!="")
+      return ShowError(msg+"cannot handle augm=<"+augm+">");
 
     string featseltxt;
     if (feats.size())
@@ -8817,6 +9357,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     script.push_back("class="+par["class"]);
     if (featseltxt!="")
       script.push_back(featseltxt);
+    script.push_back("tolerate_missing_features="+
+		     string(tolerate_missing?"yes":"no"));
     script.push_back("args=#"+ToStr(idx));
 
     vector<string> argv;
@@ -8834,6 +9376,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				    const list<pair<string,string> >& m,
 				    DataBase* /*db*/,
 				    const list<string>& featl,
+				    const string& /*augm*/,
 				    Segmentation* /*adseg*/,
 				    double *valp, string *namep) {
     string msg = "DataBase::LscDetectionSingle("+ToStr(idx)+") : ";
@@ -9046,6 +9589,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				       const list<pair<string,string> >& m,
 				       DataBase* /*db*/,
 				       const list<string>& /*featl*/,
+				       const string& /*augm*/,
 				       Segmentation* /*adseg*/,
 				       double *valp, string* /*namep*/) {
     string msg = "DataBase::RandomDetectionSingle("+ToStr(idx)+") : ";
@@ -9088,12 +9632,13 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-#ifdef HAVE_CAFFE_CAFFE_HPP
+#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
   bool DataBase::CaffeDetectionSingle(size_t idx,
 				      const map<string,string>& parin,
 				      const list<pair<string,string> >& /*m*/,
 				      DataBase* db,
 				      const list<string>& /*featl*/,
+				      const string& /*augm*/,
 				      Segmentation* /*adseg*/,
 				      double *valp, string* /*namep*/,
 				      XmlDom& xml) {
@@ -9137,13 +9682,14 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 				      const list<pair<string,string> >&,
 				      DataBase*,
 				      const list<string>&,
+				      const string&,
 				      Segmentation*,
 				      double *, string*,
 				      XmlDom&) {
     string msg = "DataBase::CaffeDetectionSingle("+ToStr(idx)+") : ";
-    return ShowError(msg+"HAVE_CAFFE_CAFFE_HPP not defined");
+    return ShowError(msg+"HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE not defined");
   }
-#endif // HAVE_CAFFE_CAFFE_HPP
+#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -9489,21 +10035,39 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
   map<string,vector<float> > 
   DataBase::RetrieveOrProduceDetectionData(size_t idx, const string& spec,
 					   const string& clsname,
-					   bool angry, bool& exists) {
+					   bool angry, bool& exists,
+					   bool allow_incore) {
     // string msg = "DataBase::RetrieveOrProduceDetectionData("+ToStr(idx)
     //   +","+spec+","+clsname+") : ";
 
-    if (spec.find("fusion(")==0)
-      return ProduceDetectionData(idx, spec, clsname);
+    bool tolerate_missing = false;  // this should be an argument
+
+    if (spec.find("fusion(")==0 || spec.find("incore(")==0)
+      return ProduceDetectionData(idx, spec, clsname, tolerate_missing);
+
+    if (allow_incore) {
+      size_t p = spec.find(",");
+      if (p==string::npos) { // added 2016-04-20
+	string f = ExpandPath("detections", spec+".bin");
+	p = f.find("%c");
+	if (p!=string::npos)
+	  f.replace(p, 2, clsname);
+	
+	if (!FileExists(f)) 
+	  return ProduceDetectionData(idx, "incore("+spec+")", clsname,
+				      tolerate_missing);
+      }
+    }
 
     // it _would_ be better to always have clsname defined and no #xxx in spec...
     // but instance information comes _after_ class...  
     string specx = spec;
     if (clsname!="") {
       size_t p = specx.rfind("#%c");
-      if (p==specx.size()-3 && p==specx.find("#%c"))
+      if (/*p==specx.size()-3 &&*/ p!=string::npos && p==specx.find("#%c")) {
+	// p==specx.size()-3 condition removed because can be e.g. #%c§s1
 	specx.replace(p+1, 2, clsname); 
-      else {
+      } else {
 	p = specx.rfind("#");
 	if (p==string::npos || specx.find("(),/", p+1)!=string::npos)
 	  specx += "#"+clsname;
@@ -9517,7 +10081,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
   
   map<string,vector<float> > 
   DataBase::ProduceDetectionData(size_t idx, const string& spec,
-				 const string& cname) {
+				 const string& cname, bool tolerate_missing) {
     string msg = "DataBase::ProduceDetectionData("+ToStr(idx)
       +","+spec+","+cname+") : ";
 
@@ -9525,8 +10089,11 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
     map<string,vector<float> > empty, ret;
 
-    if (spec.find("fusion(")!=0) {
-      ShowError(msg+"only fusion supported");
+    bool is_fusion = spec.find("fusion(")==0;
+    bool is_incore = spec.find("incore(")==0;
+
+    if (!is_fusion && !is_incore) {
+      ShowError(msg+"only fusion() and incore() supported");
       return empty;
     }
 
@@ -9538,55 +10105,94 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     if (debug)
       cout << TimeStamp() << msg << "starting" << endl;
 
-    string ss = spec;
-    size_t p = ss.find('(');
-    ss.erase(0, p+1);
-    p = ss.rfind(')');
-    if (p!=ss.size()-1) {
-      ShowError(msg+"spec doesn't end with ')'");
+    string ssx = spec;
+    size_t p = ssx.find('(');
+    ssx.erase(0, p+1);
+    p = ssx.rfind(')');
+    if (p!=ssx.size()-1) {
+      ShowError(msg+"spec \""+spec+"\" doesn't end with ')'");
       return empty;
     }
+    ssx.erase(p);
 
     list<pair<string,string> > l {
       make_pair("name",   spec),
-      make_pair("type",   "fusion"),
       make_pair("class",  cname),
       make_pair("incore", "true")
     };
 
-    ss.erase(p);
-    vector<string> a = SplitInCommasObeyParentheses(ss);
-    string dets;
-    for (size_t i=0; i<a.size(); i++)
-      if (a[i][0]=='/')
-	l.push_back(SplitKeyEqualValueNew(a[i].substr(1)));
-      else 
-	dets += (dets==""?"":",")+a[i];
+    if (is_fusion) {
+      l.push_back(make_pair("type", "fusion"));
+	
+      vector<string> a = SplitInCommasObeyParentheses(ssx);
+      string dets;
+      for (size_t i=0; i<a.size(); i++)
+	if (a[i][0]=='/') {
+	  try {
+	    l.push_back(SplitKeyEqualValueNew(a[i].substr(1)));
+	  } catch (const logic_error& em) {
+	    ShowError(msg+em.what());
+	    return empty;
+	  }
+	} else 
+	  dets += (dets==""?"":",")+a[i];
+      l.push_back(make_pair("detectors", dets));
+    }
 
-    l.push_back(make_pair("detectors", dets));
+    // until 2016-03-02 ss==ssx for fusion() too...
+    string ss = is_incore ? ssx : spec; 
+
+    if (is_incore) {
+      string sstmp = ss;
+      if (described_detections.find(sstmp)==described_detections.end()) {
+	size_t p = sstmp.find("#%c");
+	if (p==sstmp.size()-3) {
+	  sstmp.erase(p);
+	  if (described_detections.find(sstmp)==described_detections.end()) {
+	    ShowError(msg+"detection with name <"+ss+"> not found");
+	    return empty;
+	  }
+	}
+      }
+      auto dd = described_detections[sstmp];
+      l.insert(l.end(), dd.begin(), dd.end());
+    }
 
     pair<string,list<pair<string,string> > > descr { make_pair(spec, l) };
 
     string instance;
     list<string> feats;
+    string augm;
     bool hasdata = false;
     XmlDom xml;
 
-    if (!DoOneDetection(true, idx, descr, cname, instance, feats, NULL,
-			hasdata, xml)) {
+    if (!DoOneDetection(true, idx, descr, cname, instance, feats, augm,
+			NULL, tolerate_missing, hasdata, xml)) {
       ShowError(msg+"DoOneDetection() failed");
       return empty;
     }
 
-    string detname = spec+"#"+cname;
+    string detname = ss;
+    p = detname.find("#");
+    if (p==string::npos)
+      detname += "#%c";
+    for (;;) {
+      p = detname.find("#%c");
+      if (p==string::npos)
+	p = detname.find("#%C");
+      if (p==string::npos)
+	break;
+      detname.replace(p+1, 2, cname);
+    }
+
     auto i = bindetections.find(detname);
     if (i==bindetections.end()) {
-      stringstream ss;
-      FindObject(idx)->dump_nonl(ss);
-      ss << " available bindetections:";
+      stringstream tmpss;
+      FindObject(idx)->dump_nonl(tmpss);
+      tmpss << " available bindetections:";
       for (auto bb=bindetections.begin(); bb!=bindetections.end(); bb++)
-	ss << " \"" << bb->first << "\"";
-      ShowError(msg+"detection data <"+detname+"> not found for "+ss.str());
+	tmpss << " \"" << bb->first << "\"";
+      ShowError(msg+"detection data <"+detname+"> not found for "+tmpss.str());
       return empty;
     }
 
@@ -12651,7 +13257,9 @@ bool DataBase::CloseLabelsFile(bool strict) {
       if (!AddLabelAndParents(p, ptt, keep_open))
 	return ShowError(msg+"failing in segment=>parent recursion");
 
-    } else if (tt==target_image || tt==target_text || tt==target_videosegment) {
+    } else if (tt==target_image || tt==target_text ||
+	       tt==target_video || tt==target_videosegment||
+	       tt==target_sound) {
       // this should be a dummy call and the parent already exist.
       // if not then this gets trapped inside recursion.
       // obs! as of 2013-04-08 tt==target_videosegment was added in the hope
@@ -13041,6 +13649,10 @@ bool DataBase::SetClassAugment(const xmlNodePtr &n) {
     if (f=="lscom2trecvid" && aa.size()>=3)      // $lscom2trecvid()
       return GroundTruthLscom2Trecvid(tt, f, aa[0], aa[1], aa[2],
 				      V(aa.begin()+3, aa.end()));
+
+    if (f=="middleframe" && aa.size()>=1)        // $middleframe()
+      return GroundTruthMiddleFrame(tt, f, aa[0], 
+				    V(aa.begin()+1, aa.end()));
 
     ShowError(msg+" : function ["+f+"] with ",
 	      ToStr(aa.size()), " arguments is unknown");
@@ -13722,10 +14334,10 @@ bool DataBase::SetClassAugment(const xmlNodePtr &n) {
     if (debug_gt)
       cout << "SEARCH \"" << expr << "\" in \"" << iname << "\"" << endl;
 
-    list<string> out = LuceneOperation(iname, in);
+    list<string> out = LuceneOperation(iname, in).second;
     for (auto i=out.begin(); i!=out.end(); i++) {
       if (debug_gt)
-      cout << *i << endl;
+	cout << *i << endl;
 
       string label = *i;
       auto p = label.find(' ');
@@ -13983,6 +14595,33 @@ bool DataBase::SetClassAugment(const xmlNodePtr &n) {
 	       "] to ["+cname+"]");
 
     return GroundTruthCommons(gt, tt, f, cls+","+pre+","+pos, a);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  ground_truth DataBase::GroundTruthMiddleFrame(target_type tt,
+						const string& f,
+						const string& expr,
+						const vector<string>& a) {
+    stringstream msgss;
+    msgss << "GroundTruthMiddleFrame/" << f << "(" << TargetTypeString(tt)
+	  << ", [" << expr << "]," << CommaJoin(a) << ") ";
+    string msg = msgss.str();
+
+    if (debug_gt)
+      cout << TimeStamp() << msg << endl;
+
+    ground_truth gtb = GroundTruthExpression(expr);
+    ground_truth gt(Size(), -1);
+    
+    for (size_t i=0; i<gtb.size(); i++)
+      if (gtb[i]==1) {
+	auto m = VideoOrSegmentMiddleFrame(i, true);
+	if (m.first!=(size_t)-1)
+	  gt[m.first] = 1;
+      }
+    
+    return GroundTruthCommons(gt, tt, f, expr, a);
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -14463,10 +15102,13 @@ DataBase::GroundTruthExpression(const string& ss, target_type tt,
   if (cls.size()>2 && cls[0]=='/' && cls[cls.size()-1]=='/') {
     if (debug_gt)
       cout << " * * calling GroundTruthRegExp(" << cls << ")" << endl;
-    // return GroundTruthRegExp(target_any_target, "/regexp/", cls,
+
+    // it seems that tt is not really effective...
+    return GroundTruthRegExp(tt, "regexp", cls, vector<string>());
+
+    // until 2016-12-07:
+    // return GroundTruthRegExp(target_any_target, "regexp", cls,
     //			     vector<string>());  
-    return GroundTruthRegExp(target_any_target, "regexp", cls,
-			     vector<string>());  
     // that is new interface: tt=any_target, other=-1, expand=false !
   }
 
@@ -15954,7 +16596,7 @@ string DataBase::SolveObjectPathOrigins(const string& dir, const string& obj,
     string msg = "DataBase::ExtractObjects() : ";
     WriteLog(msg+"starting with "+ToStr(idxs.size())+" objects");
 
-    vector<size_t> vframes;
+    vector<size_t> vframes, images;
 
     for (auto i=idxs.begin(); i!=idxs.end(); i++) {
       size_t idx = *i;
@@ -15971,7 +16613,7 @@ string DataBase::SolveObjectPathOrigins(const string& dir, const string& obj,
 	ok = ExtractAudioClip(idx, subd);
 
       else if (IsMissingImageFromTar(idx))
-	ok = ExtractImageFromTar(idx);
+	images.push_back(idx);
 
       else
 	ok = ShowError(msg+"type of #"+ToStr(idx)+" not known");
@@ -15980,7 +16622,13 @@ string DataBase::SolveObjectPathOrigins(const string& dir, const string& obj,
 	return false;
     }
 
-    return vframes.size()==0 || ExtractVideoFrames(vframes);
+    if (vframes.size() && !ExtractVideoFrames(vframes))
+      return false;
+
+    if (images.size() && !ExtractImagesFromTar(images))
+      return false;
+
+    return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -16071,8 +16719,10 @@ string DataBase::SolveObjectPathOrigins(const string& dir, const string& obj,
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool DataBase::ExtractImageFromTar(size_t idx) /*const*/ {
-    string msg = "DataBase::ExtractImageFromTar() : ";
+  bool DataBase::ExtractFromTarCommon(size_t idx, string& type, string& cont,
+				      string& contesc, string& file) {
+
+    type = cont = file = "";
 
     if (ObjectsTargetType(idx)==target_imagefile)
       return false;
@@ -16088,45 +16738,186 @@ string DataBase::SolveObjectPathOrigins(const string& dir, const string& obj,
     vector<string> tar_or_recipe = SplitInSomething("|", false, url);
     string tarspec = tar_or_recipe[0];
 
-    bool is_zip = false;
     p = tarspec.find(".tar[");
     if (p==string::npos)
-       p = tarspec.find(".tar.gz[");
+      p = tarspec.find(".tar.gz[");
     if (p==string::npos)
-       p = tarspec.find(".tgz[");
+      p = tarspec.find(".tgz[");
+    if (p!=string::npos)
+      type = "tar";
+    
     if (p==string::npos) {
        p = tarspec.find(".zip[");
        if (p!=string::npos)
-	 is_zip = true;
+	 type = "zip";
     }
 
     if (p==string::npos || p<1 || tarspec[tarspec.size()-1]!=']')
       return false;
 
     size_t pp = tarspec.find('[', p);
-    string tar  = tarspec.substr(0, pp), tarkey = tar;
-    string file = tarspec.substr(pp+1);
+    cont  = tarspec.substr(0, pp);
+    file = tarspec.substr(pp+1);
     if (file.size())
       file.erase(file.size()-1);
 
-    //cout << "[" << tar << "] [" << file << "]" << endl;
+    //cout << "[" << cont << "] [" << file << "]" << endl;
 
-    string taresc = tar;
+    contesc = cont;
     for (;;) {
       bool found = false;
-      size_t p = taresc.find("://");
+      size_t p = contesc.find("://");
       if (p!=string::npos) {
 	found = true;
-	taresc.replace(p, 3, "___");
+	contesc.replace(p, 3, "___");
       }
-      p = taresc.find_first_of("+&?;\\\"'()[]{}!~");
+      p = contesc.find_first_of("+&?;\\\"'()[]{}!~");
       if (p!=string::npos) {
 	found = true;
-	taresc.replace(p, 1, "_");
+	contesc.replace(p, 1, "_");
       }
       if (!found)
 	break;
     }
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::ExtractImagesFromTar(const vector<size_t>& idxs) /*const*/ {
+    string msg = "DataBase::ExtractImagesFromTar() : ";
+
+    if (extractfulltars) {
+      for (auto i=idxs.begin(); i!=idxs.end(); i++)
+	if (!ExtractImageFromTar(*i))
+	  return false;
+      return true;
+    }
+
+    map<string,list<pair<size_t,string> > > files;
+
+    for (auto i=idxs.begin(); i!=idxs.end(); i++) {
+      string type, cont, contesc, file;
+      if (!ExtractFromTarCommon(*i, type, cont, contesc, file))
+	return false;
+
+      bool is_zip = type=="zip";
+      if (is_zip)
+	return ShowError(msg+"cannot handle zip");
+
+      if (cont!=contesc)
+	return ShowError(msg+"cannot handle cont!=contesc");
+
+      if (file=="" || cont=="")
+	return ShowError(msg+"empty cont or file");
+      
+      files[cont].push_back(make_pair(*i, file));
+    }
+
+    if (files.empty())
+      return ShowError(msg+"no files found");
+
+    string tdir = TempDir("tars_extracted_partial");
+
+    for (auto i=files.begin(); i!=files.end(); i++) {
+      string contfile = path+"/tars/"+i->first;
+      string ttdir = tdir+"/"+i->first;
+      Picsom()->MkDirHier(ttdir, 0777);
+
+      string cmd = "cd "+ttdir+" && tar xf "+contfile;
+
+      for (auto j=i->second.begin(); j!=i->second.end(); j++)
+	cmd += " "+j->second;
+
+      if (Picsom()->ExecuteSystem(cmd, true, true, true))
+	return ShowError(msg+"ExecuteSystem() failed");
+
+      for (auto j=i->second.begin(); j!=i->second.end(); j++) {
+	string z = ttdir+"/"+j->second;
+	string r = InsertedObjectPath(j->first, false, false, false);
+	string d = ConvertGlobalToLocalDiskName(r);
+	// cout  << "[" << z << "] [" << r << "] [" << d << "]" << endl;
+
+	if (!Picsom()->MakeDirectory(d, true))
+	  return ShowError(msg+"MakeDirectory("+d+") failed");
+	
+	if (!Rename(z, d))
+	  return ShowError(msg+"Rename("+z+","+d+") failed");
+
+	extracted_files = true;
+      }
+    }
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::ExtractImageFromTar(size_t idx) /*const*/ {
+    string msg = "DataBase::ExtractImageFromTar() : ";
+
+    string type, tar, taresc, file;
+    if (!ExtractFromTarCommon(idx, type, tar, taresc, file))
+      return false;
+
+    bool is_zip = type=="zip";
+    
+    // if (ObjectsTargetType(idx)==target_imagefile)
+    //   return false;
+
+    // auto h = ReadOriginsInfo(idx, false, true);
+    // string url = h["url"], ext = h["name"];
+    // size_t p = ext.rfind(".");
+    // if (p!=string::npos)
+    //   ext.erase(0, p);
+
+    // //cout << url << endl;
+
+    // vector<string> tar_or_recipe = SplitInSomething("|", false, url);
+    // string tarspec = tar_or_recipe[0];
+
+    // bool is_zip = false;
+    // p = tarspec.find(".tar[");
+    // if (p==string::npos)
+    //    p = tarspec.find(".tar.gz[");
+    // if (p==string::npos)
+    //    p = tarspec.find(".tgz[");
+    // if (p==string::npos) {
+    //    p = tarspec.find(".zip[");
+    //    if (p!=string::npos)
+    // 	 is_zip = true;
+    // }
+
+    // if (p==string::npos || p<1 || tarspec[tarspec.size()-1]!=']')
+    //   return false;
+
+    // size_t pp = tarspec.find('[', p);
+    // string tar  = tarspec.substr(0, pp), tarkey = tar;
+    // string file = tarspec.substr(pp+1);
+    // if (file.size())
+    //   file.erase(file.size()-1);
+
+    // //cout << "[" << tar << "] [" << file << "]" << endl;
+
+    // string taresc = tar;
+    // for (;;) {
+    //   bool found = false;
+    //   size_t p = taresc.find("://");
+    //   if (p!=string::npos) {
+    // 	found = true;
+    // 	taresc.replace(p, 3, "___");
+    //   }
+    //   p = taresc.find_first_of("+&?;\\\"'()[]{}!~");
+    //   if (p!=string::npos) {
+    // 	found = true;
+    // 	taresc.replace(p, 1, "_");
+    //   }
+    //   if (!found)
+    // 	break;
+    // }
+
+    string tarkey = tar;
 
     string tdir = TempDir("tars_extracted");
     string ttdir = tdir+"/"+taresc;
@@ -18032,7 +18823,7 @@ void DataBase::CreateDefaultFeatureAliases(bool force, bool find) {
     return;
   }
 
-  featurealias.clear();
+  // featurealias.clear(); // commented out 2015-11-25
 
   typedef pair<string,list<string> > p_t;
 
@@ -18091,41 +18882,139 @@ void DataBase::CreateDefaultFeatureAliases(bool force, bool find) {
   RwUnlockWrite("CreateDefaultFeatureAliases");
 }
 
-///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
-bool DataBase::SetFeatureAlias(const string &n, const string &e, 
-			       const string &t) {
-  vector<string> fe = SplitInCommas(e);
-  list<string> l;
-      
-  vector<string>::iterator i;
-  featurealias_t::iterator j;
-  for (i=fe.begin(); i!=fe.end(); i++) 
-    if ((j = featurealias.find(*i)) != featurealias.end()) {
-      // is an alias ==> insert all the features of the alias
-      l.insert(l.end(), j->second.second.begin(), j->second.second.end());
+  list<string> DataBase::ExpandFeatureAlias(const string& n) {
+    string msg = "DataBase::ExpandFeatureAlias("+n+") : ";
 
-    } else if (i->size()>2 && (*i)[0]=='/' && (*i)[i->size()-1]=='/') {
-      // is a /xxx/ regexp.
-      RegExp re(i->substr(1, i->size()-2),false);
-      if (!re.ok())
-	return ShowError("SetFeatureAlias() : RegExp() failed", re.error());
+    // DumpFeatureAlias();
 
-      FindAllIndices();
-      for (size_t jj=0; jj<Nindices(); jj++)
-	if (re.match(IndexName(jj)))
-	  l.push_back(IndexName(jj));
-
-    } else {
-      // is not an alias ==> insert just the given feature name
-      l.push_back(*i);
+    featurealias_t::iterator i = featurealias.find(n);
+    if (i==featurealias.end() && n[0]=='*') {
+      CreateDefaultFeatureAliases(true, true);
+      i = featurealias.find(n);
     }
-      
-  pair<string,list<string> > p(t,l);
-  featurealias[n] = p;
 
-  return true;
-}
+    size_t p = n.find("§");
+    if (i==featurealias.end() && p!=string::npos) {
+      featurealias_t::iterator j = featurealias.find(n.substr(p));
+      if (j!=featurealias.end()) {
+	list<string> l;
+	for (auto a=j->second.second.begin(); a!=j->second.second.end(); a++) {
+	  string fbase = n.substr(0, p), faugm = fbase+*a;
+	  l.push_back(faugm);
+
+	  if (!PossiblyImplementFeatureAugmentation(faugm)) {
+	    ShowError(msg+"implementing augmentation <"+faugm+"> failed");
+	    return list<string>();
+	  }
+
+	}
+	return l;
+
+      } else if (!PossiblyImplementFeatureAugmentation(n)) {
+	ShowError(msg+"PossiblyImplementFeatureAugmentation() failed");
+	return list<string>();
+      }
+    }
+
+    return i==featurealias.end() ? list<string>(1, n) : i->second.second;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::SetFeatureAlias(const string &n, const string &e, 
+				 const string &t) {
+    string msg = "DataBase::SetFeatureAlias("+n+","+e+","+t+") : ";
+
+    vector<string> fe = SplitInCommas(e);
+    list<string> l;
+      
+    vector<string>::iterator i;
+    featurealias_t::iterator j;
+    for (i=fe.begin(); i!=fe.end(); i++) 
+      if ((j = featurealias.find(*i)) != featurealias.end()) {
+	// is an alias ==> insert all the features of the alias
+	l.insert(l.end(), j->second.second.begin(), j->second.second.end());
+
+      } else if (i->size()>2 && (*i)[0]=='/' && (*i)[i->size()-1]=='/') {
+	// is a /xxx/ regexp.
+	RegExp re(i->substr(1, i->size()-2),false);
+	if (!re.ok())
+	  return ShowError("SetFeatureAlias() : RegExp() failed", re.error());
+
+	FindAllIndices();
+	for (size_t jj=0; jj<Nindices(); jj++)
+	  if (re.match(IndexName(jj)))
+	    l.push_back(IndexName(jj));
+
+      } else {
+	// is not an alias ==> insert just the given feature name
+	l.push_back(*i);
+      }
+      
+    featurealias[n] = make_pair(t, l);
+
+    if (DebugFeatures())
+      cout << msg << "[" << n << "]=(" << t << ")+(" << CommaJoin(l) << ")"
+	   << endl;
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::SetFeatureAugmentation(const string &n, const string &e, 
+					const string &t) {
+    string msg = "DataBase::SetFeatureAugmentation("+n+","+e+","+t+") : ";
+
+    vector<string> v = SplitInSpaces(e);
+    list<string> l(v.begin(), v.end());
+      
+    featureaugmentation[n] = make_pair(t, l);
+
+    if (DebugFeatures())
+      cout << msg << "[" << n << "]=(" << t << ")+(" << CommaJoin(l) << ")"
+	   << endl;
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::PossiblyImplementFeatureAugmentation(const string& n) {
+    string msg = "DataBase::PossiblyImplementFeatureAugmentation("+n+") : ";
+
+    size_t p = n.find("§");
+    if (p==string::npos)
+      return true;
+
+    Index *idxaugm = FindIndexInternal(n, true);
+    if (idxaugm)
+      return true;
+
+    string fbase = n.substr(0, p);
+    string augm  = n.substr(p);
+
+    auto fa = featureaugmentation.find(augm);
+    if (fa==featureaugmentation.end())
+      return ShowError(msg+"augmentation <"+augm+"> not known");
+
+    const list<string>& aopts = fa->second.second;
+
+    Index *idxbase = FindIndex(fbase);
+    idxaugm = FindIndex(n, "", false, true);
+    *idxaugm = *idxbase;
+    idxaugm->SetIndexName(n);
+    vector<string> cmdvec = idxbase->FeaturesCommand();
+	    
+    cmdvec.insert(cmdvec.end(), aopts.begin(), aopts.end());
+    idxaugm->FeaturesCommand(cmdvec, DebugFeatures());
+    if (DebugFeatures())
+      cout << msg+"augmented " << fbase << " to " << n << endl;
+
+    return true;
+  }
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -18927,6 +19816,7 @@ bool DataBase::AddToXMLcontentitem(xmlNodePtr list, xmlNsPtr ns,
     string msg = "DataBase::ExtractMediaClip("+ToStr(idx)+","+
       TargetTypeString(tt)+") : ";
 
+    bool may_copy_parent = true;
     float min_dur = 2.0; // obs!
 
     // these are now members with these defaults
@@ -18935,6 +19825,8 @@ bool DataBase::AddToXMLcontentitem(xmlNodePtr list, xmlNsPtr ns,
     bool audio = tt & target_sound, image = tt & target_image;
     const string& label = Label(idx);
     int pidx = GetParentVideo(label, tt);
+    if (pidx==-1)
+      return ShowError(msg, "GetParentVideo("+label+") returned -1");
 
     /* 
     // obs! ObjectsTargetType(pidx) & target_message doesn't work anymore
@@ -18959,9 +19851,16 @@ bool DataBase::AddToXMLcontentitem(xmlNodePtr list, xmlNsPtr ns,
 
     string parobj = SolveObjectPath(Label(pidx), "", "", false, NULL, true);
 
+    double pardur = VideoDuration(pidx);
+    bool copy_parent = false;
+
     auto psd = ParentStartDuration(idx, tt);
     double tp_orig = psd.second.first, dur_orig = psd.second.second;
     double tp_mod  = tp_orig, dur_mod = dur_orig;
+
+    if (fabs(dur_mod-pardur)<1.0/15 && may_copy_parent)
+      copy_parent = true;
+
     if (dur_mod<min_dur) {
       tp_mod -= (min_dur-dur_mod)/2;
       dur_mod = min_dur;
@@ -18984,7 +19883,7 @@ bool DataBase::AddToXMLcontentitem(xmlNodePtr list, xmlNsPtr ns,
     string opath  = SolveObjectPath(label, subdir, "",
 				    true, NULL, true)+ext;
  
-    string finalname = opath, destname = opath;
+    string finalname = opath, destname = opath, tempname;
     if (UseSql()) {
       string tdir = TempDir("media_extracted");
       finalname = tdir+"/"+label+ext;
@@ -18995,24 +19894,32 @@ bool DataBase::AddToXMLcontentitem(xmlNodePtr list, xmlNsPtr ns,
     if (tempmediafiles)
       parobj = CopyFileFromGlobalToLocalDisk(parobj);
 
-    videofile vf(parobj, false, TempDir("video-tmp"));
+    if (audio)
+      copy_parent = false;
 
-    /// obs!  this shoud be database-specific!
-    video_codec vcodec = vcodec_mpeg4; // vcodec_copy
-    string tempname;
-    try {
-      tempname = vf.extract_video_segment_to_tmp(ext, tp_mod, dur_mod, vcodec,
-						 acodec_copy, VF_FFMPEG, "",
-						 TempDir("tmp-video"));
-      if (audio) {
-	string wavname = vf.extract_audio(tempname);
-	Unlink(tempname);
-	tempname = wavname;
-      }
-    } catch (const string& emsg) {
-      return ShowError(msg, "extracting video segment from <",
-		       ShortFileName(parobj), "> failed");
-    } 
+    if (copy_parent) {
+      tempname = TempFile("copied.file");
+      CopyFile(parobj, tempname);
+
+    } else {
+      videofile vf(parobj, false, TempDir("video-tmp"));
+
+      /// obs!  this shoud be database-specific!
+      video_codec vcodec = vcodec_mpeg4; // vcodec_copy
+      try {
+	tempname = vf.extract_video_segment_to_tmp(ext, tp_mod, dur_mod, vcodec,
+						   acodec_copy, VF_FFMPEG, "",
+						   TempDir("tmp-video"));
+	if (audio) {
+	  string wavname = vf.extract_audio(tempname);
+	  Unlink(tempname);
+	  tempname = wavname;
+	}
+      } catch (const string& emsg) {
+	return ShowError(msg, "extracting video segment from <",
+			 ShortFileName(parobj), "> failed");
+      } 
+    }
 
     if (!extractobjectpath.empty())
       destname = extractobjectpath+"/"+label+MediaExt(tt);
@@ -19029,7 +19936,8 @@ bool DataBase::AddToXMLcontentitem(xmlNodePtr list, xmlNsPtr ns,
       cout << TimeStamp() << msg << "succesfully moved file <" << tempname
 	   << "> to <" << ShortFileName(destname) << ">" << endl;
   
-    WriteLog("Extracted "+ToStr(FileSize(destname))+" bytes for "+
+    WriteLog((copy_parent?"Copied ":"Extracted ")+
+	     ToStr(FileSize(destname))+" bytes for "+
 	     (audio ? "audio " : image ? "image " : "video ")+label+" from <"+
 	     ShortFileName(parobj)+"> to <"+ShortFileName(destname)+">");
     AddCreatedFile(destname);
@@ -19088,6 +19996,7 @@ bool DataBase::AddToXMLcontentitem(xmlNodePtr list, xmlNsPtr ns,
       return true;
     }
 
+    size_t pframes = 0;
     float fps = 0;
     string dim = ohash["dimensions"];
     size_t at = dim.find('@');
@@ -19099,8 +20008,15 @@ bool DataBase::AddToXMLcontentitem(xmlNodePtr list, xmlNsPtr ns,
 	map<string,string> parohash = ReadOriginsInfo(pidx, false, true);
 	string podim = parohash["dimensions"];
 	size_t poat = podim.find('@');
-	if (poat!=string::npos)
+	if (poat!=string::npos) {
 	  fps = atof(podim.substr(poat+1).c_str());
+	  if (fps) {
+	    string s = podim.substr(0, poat);
+	    vector<string> dd = SplitInSomething("x", false, s);
+	    if (dd.size()==3)
+	      pframes = atoi(dd[2].c_str());
+	  }
+	}
         int ppidx = ParentObject(pidx);
 	if (!fps && ppidx<0) {
 	  string opath  = SolveObjectPath(Label(pidx));
@@ -19136,6 +20052,10 @@ bool DataBase::AddToXMLcontentitem(xmlNodePtr list, xmlNsPtr ns,
       timepoint = p==string::npos ? subrange   : subrange.substr(0, p);
       duration  = p==string::npos ? "PT0S0N1F" : subrange.substr(p);
 
+    } else if (subrange=="*") {
+      timepoint = "0";
+      duration  = ToStr(pframes/fps);
+
     } else
       return ShowError(msg, "could not interpret \""+subrange+"\"");
 
@@ -19154,6 +20074,9 @@ bool DataBase::SolveObjectSubrangeXML(const string& label, int pidx,
   string mov_code  = RemoveZeros(parent_label.substr(1,3));  // trecvid...
   string shot_code = RemoveZeros(label.substr(4,4));         // trecvid...
   string seek_id   = "shot"+mov_code+"_"+shot_code;          // trecvid...
+
+  if (!FileExists(xmlfile))
+    return ShowError(msg, "Mpeg7MCXML file <"+xmlfile+"> inexistent");
 
   if (DebugVirtualObjects())
     cout << TimeStamp() << msg << "fetching subrange for <"+seek_id+"> from <"+
@@ -19978,7 +20901,7 @@ bool DataBase::GetSubstring(const string& str, string& result,
     string lab1 = "([0-9]{"+lls+"})";
     // string lab2 = "([0-9]{"+lls+"}:[0-9]+)";
     string lab2 = "([0-9]{"+lls+"}:[a-zA-Z]+[0-9]+)";
-    string frme = "(:[0-9a-zA-Z]+)?";
+    string frme = "(:[-0-9a-zA-Z]+)?";
     string segm = "(_[0-9a-zA-Z,\\+]+)?$";
 
     string pat1 = meth+lab1+frme+segm;
@@ -20204,7 +21127,7 @@ bool DataBase::GetSubstring(const string& str, string& result,
     bool nbr = false;
     bool ret = true;
 
-    if (do_match)
+    if (do_match) {
       for (size_t i=0; i<Nindices(); i++)
 	if (IndexIs(i, "tssom"))
 	  TsSomDeprecated(i).ReadFiles(false, nodata,
@@ -20212,7 +21135,8 @@ bool DataBase::GetSubstring(const string& str, string& result,
 	else
 	  cout << "DataBase::InsertObjects() skipping matching with index "
 	       << MethodAndIndexName(i) << endl;;
-
+    }
+    
     FindAllIndices(false);  // looks really stupid but is necessary...
 
     int old_size = Size();
@@ -20239,7 +21163,7 @@ bool DataBase::GetSubstring(const string& str, string& result,
 	  continue;
 	}
 
-#ifdef USE_OD
+#ifdef PICSOM_USE_OD
 	// this should be moved to the part that can be sent to threads/slaves
 	if (odlist.size()) {
 	  XmlDom oi = ol.LastElementChild();
@@ -20263,8 +21187,8 @@ bool DataBase::GetSubstring(const string& str, string& result,
 	}
 #else
 	if (odlist.size())
-	  ShowError("odlist given but USE_OD not defined");
-#endif // USE_OD
+	  ShowError("odlist given but PICSOM_USE_OD not defined");
+#endif // PICSOM_USE_OD
       }
     }
 
@@ -20409,8 +21333,8 @@ bool DataBase::GetSubstring(const string& str, string& result,
     if (detect.size()) {
       Tic("_detections_");
       list<string> feats;
-      bool force = true;
-      DoAllDetections(force, objs, detect, feats, ad);
+      bool tolerate_missing = true, force = true;
+      DoAllDetections(force, objs, detect, feats, tolerate_missing, ad);
       Tac("_detections_");
     }
 
@@ -21483,6 +22407,23 @@ bool DataBase::ReWriteChangedDivisionFiles(bool cwd, bool zipped) {
       if (!ok && ignore_symlink_errors)
 	ok = true;
 
+    } else if (insertmode==insert_relativelink && srcpath!="") {
+      string fullpath = FullPath(srcpath);
+      vector<string> fv = SplitInSomething("/", false, fullpath);
+      vector<string> ov = SplitInSomething("/", false, opath);
+      size_t cd = 0;
+      while (cd<fv.size() && cd<ov.size() && fv[cd]==ov[cd])
+	cd++;
+      string relpath = "";
+      for (size_t i=cd; i<ov.size()-1; i++)
+	relpath += "../";
+      for (size_t i=cd; i<fv.size(); i++)
+	relpath += fv[i]+(i<fv.size()-1?"/":"");
+      ok = Symlink(relpath, opath);
+      // obs! should check that existing and aimed links are identical
+      if (!ok && ignore_symlink_errors)
+	ok = true;
+
     } else if (insertmode==insert_hardlink && srcpath!="") 
       ok = Link(FullPath(srcpath), opath);
 
@@ -21506,6 +22447,7 @@ bool DataBase::ReWriteChangedDivisionFiles(bool cwd, bool zipped) {
     }
 
     WriteLog(string(insertmode==insert_move?"Moved":
+		    insertmode==insert_relativelink?"Relative-linked":
 		    insertmode==insert_softlink?"Soft-linked":
 		    insertmode==insert_hardlink?"Hard-linked":
 		    "Inserted somehow")+
@@ -22021,7 +22963,7 @@ bool DataBase::FixUnknownOrigins(size_t i) {
 
     if (UseSql()||do_pipe) {
       int width = 0, height = 0, frames = 1;
-      sscanf(dim.c_str(), "%dx%dx%d", &width, &height, &frames);
+      sscanf(dim.c_str(), "%dx%dx%d@%f", &width, &height, &frames, &framerate);
       map<string,string> m;
       m["indexz"]    = ToStr(idx);
       m["label"]     = label;
@@ -23451,6 +24393,10 @@ void DataBase::InitializeDefaultAspects() {
 				     bool angry) {
     string hdr = "DataBase::FeatureData("+fin+","+ToStr(idx)+") : ";
 
+    auto p = feature_txt_files.find(fin);
+    if (p!=feature_txt_files.end() && p->second.size())
+      return FeatureDataCombined(fin, idx, angry);
+
     if (UseBinFeaturesRead()) {
       VectorIndex *vidx = dynamic_cast<VectorIndex*>(FindIndex(fin, "", true));
       if (!vidx) {
@@ -23459,17 +24405,157 @@ void DataBase::InitializeDefaultAspects() {
 	else
 	  return NULL;
       }
-      if (!vidx->BinDataOpen(OpenReadWriteFea(), Size(), false)) {
+      const string augm;
+      if (!vidx->BinDataOpen(OpenReadWriteFea(), Size(), false, augm)) {
 	ShowError(hdr, "opening binary features data file failed");
 	return NULL;
       }
-      return vidx->BinDataFloatVector(idx);
+      FloatVector *v = vidx->BinDataFloatVector(idx);
+      if (v)
+	return v;
+
+      v = FeatureDataNumPy(fin, idx, angry);
+      if (v)
+	return v;
+
+      if (FeatureDataCombinedPrepare(fin, true))
+	return FeatureDataCombined(fin, idx, angry);
     }
 
     if (SqlFeatures())
       return SqlFeatureData(fin, idx, angry);
 
     return NULL;
+  }
+    
+  /////////////////////////////////////////////////////////////////////////////
+
+  FloatVector *DataBase::FeatureDataCombined(const string& fin, size_t idx,
+					     bool angry) {
+    string hdr = "DataBase::FeatureDataCombined("+fin+","+ToStr(idx)+") : ";
+
+    if (feature_txt_files.find(fin)==feature_txt_files.end()) {
+      ShowError(hdr+"called but doesn't exist");
+      return NULL;
+    }
+
+    const vector<string>& vl = feature_txt_files.at(fin);
+    if (vl.size()==0)
+      return NULL;
+
+    FloatVector *v_all = NULL;
+    for (size_t i=0; i<vl.size(); i++) {
+      FloatVector *v_one = FeatureData(vl[i], idx, angry);
+      if (!v_one) {
+	if (angry)
+	  ShowError(hdr+"i="+ToStr(i)+" returned NULL");
+	delete v_all;
+	return NULL;
+      }
+      if (i==0)
+	v_all = new FloatVector(*v_one);
+      else
+	v_all->Append(*v_one);
+
+      delete  v_one;
+    }
+
+    return v_all;
+  }
+    
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::FeatureDataCombinedPrepare(const string& fin, bool angry) {
+    string hdr = "DataBase::FeatureDataCombinedPrepare("+fin+") : ";
+
+    if (feature_txt_files.find(fin)!=feature_txt_files.end())
+      return false;
+
+    string fn = ExpandPath("features")+"/"+fin+".txt";
+    if (!FileExists(fn)) {
+      if (DebugFeatures())
+	WriteLog(hdr+"file <"+fn+"> doesn't exist");
+      feature_txt_files[fin] = vector<string>();
+      return false;
+    }
+      
+    string st = FileToString(fn);
+    vector<string> l = SplitInSomething("\n", true, st);
+    vector<string> a;
+    for (auto i=l.begin(); i!=l.end(); i++)
+      if (i->substr(0, 1)!="#" && i->find_first_not_of(" \t")!=string::npos) {
+	string f = *i, ext;
+	auto p = f.rfind('/');
+	if (p!=string::npos)
+	  f.erase(0, p+1);
+	p = f.rfind('.');
+	if (p!=string::npos) {
+	  ext = f.substr(p+1);
+	  if (ext=="bin" || ext=="npy" || ext=="txt")
+	    a.push_back(f.substr(0, p));
+	  else
+	    a.push_back(f);
+	} else
+	    a.push_back(f);
+      }
+    feature_txt_files[fin] = a;
+
+    if (a.size()==0 && angry)
+      ShowError(hdr+"empty file <"+fn+">");
+
+    if (DebugFeatures())
+      WriteLog(hdr+"expands to ["+JoinWithString(a, "][")+"]");
+
+    return a.size();
+  }
+    
+  /////////////////////////////////////////////////////////////////////////////
+
+  FloatVector *DataBase::FeatureDataNumPy(const string& fin, size_t idx,
+					  bool /*angry*/) {
+    string hdr = "DataBase::FeatureDataNumPy("+fin+","+ToStr(idx)+") : ";
+
+    auto info = numpy_feature_info.find(fin);
+    if (info!=numpy_feature_info.end() && info->second.first.first==NULL)
+      return NULL;
+
+    if (info==numpy_feature_info.end()) {
+      string fn = ExpandPath("features")+"/"+fin+".npy";
+      if (!FileExists(fn)) {
+	numpy_feature_info[fin] = make_pair(make_pair((ifstream*)NULL, 0),
+					    make_pair(0, 0));
+	if (DebugFeatures())
+	  WriteLog(hdr+"file <"+fn+"> doesn't exist");
+	return NULL;
+      }
+
+      ifstream *in = new ifstream(fn);
+      size_t o = 0, s = 0, r = 0, c = 0;
+      if (!ReadNumPyHeader(*in, o, s, r, c)) {
+	ShowError(hdr+"failed reading header <"+fn+">");
+	return NULL;
+      }
+
+      numpy_feature_info[fin] = make_pair(make_pair(in, o), make_pair(r, c));
+      info = numpy_feature_info.find(fin);
+    }
+
+    size_t o = info->second.first.second;
+    size_t r = info->second.second.first;
+    size_t c = info->second.second.second;
+    size_t d = c;
+    vector<float> nv = ReadNumPyVector(*info->second.first.first, o, 16, r, c,
+				       idx, true);
+    if (nv.size()!=d) {
+      ShowError(hdr+"failed reading nympy vector");
+      return NULL;
+    }
+
+    FloatVector *v = new FloatVector(d);
+    for (size_t i=0; i<d; i++)
+      v->Set(i, nv[i]);
+
+    return v;
   }
     
   /////////////////////////////////////////////////////////////////////////////
@@ -25344,13 +26430,13 @@ void DataBase::InitializeDefaultAspects() {
     float maxf = numeric_limits<float>::max()/10;
     float mindist=maxf,maxdist=0;
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
     cv::Mat visval,gtmask;
-    if(do_visualise){
+    if (do_visualise) {
       visval=cv::Mat(z+1,z+1, cv::DataType<float>::type,cv::Scalar::all(0));
       gtmask=cv::Mat(z+1,z+1, CV_8UC1,cv::Scalar::all(0));
     }
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
     for (size_t x=0; x<z; x++)
       for (size_t y=x+1; y<=z; y++) {
@@ -25360,10 +26446,10 @@ void DataBase::InitializeDefaultAspects() {
 	video_frange unio = zrr.get_union(brr);
 	double m = double(ints.nframes())/unio.nframes();
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
-	if(do_visualise && m>= 0.5)
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
+	if (do_visualise && m>=0.5)
 	  gtmask.at<uchar>(y,x)=255;
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
 	size_t minlen=fmax(5,0.4*l);
 	size_t maxlen=1.3*l;
@@ -25388,13 +26474,13 @@ void DataBase::InitializeDefaultAspects() {
 	
 	double d = DTWdistance(arr, zrr, dtw, cachep)*lenweight;
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
-	if(do_visualise){
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
+	if (do_visualise) {
 	  mindist=fmin(mindist,d);
 	  maxdist=fmax(maxdist,d);
 	  visval.at<float>(y,x)=d;
 	}
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
 	video_frange_match match(arr, zrr);
 	match.set_gt_b(brr);
@@ -25412,7 +26498,7 @@ void DataBase::InitializeDefaultAspects() {
 	res.insert(make_pair(d, match));
       }
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
     if(do_visualise){
 
       cv::Mat vismat(z,z,CV_8UC3,cv::Scalar::all(50));
@@ -25878,7 +26964,7 @@ void DataBase::InitializeDefaultAspects() {
       return 0;
     }
     
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
     cv::Mat sig1(nc, 3, CV_32FC1), sig2(nc, 3, CV_32FC1);
     double fcsum = 0, frsum = 0;
     int vi = 0;
@@ -26146,6 +27232,14 @@ void DataBase::InitializeDefaultAspects() {
   
   /////////////////////////////////////////////////////////////////////////////
 
+  bool DataBase::SetFeatureAugmentation(const xmlNodePtr &n) {
+    return SetFeatureAugmentation(GetProperty(n, "name"),
+				  GetProperty(n, "options"), 
+				  GetProperty(n, "text"));
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
   bool DataBase::SetGroundTruth(const xmlNodePtr &n) {
     return SetGroundTruth(GetProperty(n, "name"), GetProperty(n, "value"), 
 			  GetProperty(n, "text"));
@@ -26173,23 +27267,24 @@ void DataBase::InitializeDefaultAspects() {
     if (m.find("det")!=string::npos)
       OpenReadWriteDet(true);
 
+    if (m.find("txt")!=string::npos)
+      OpenReadWriteTxt(true);
+
     return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
 
-#ifdef HAVE_CAFFE_CAFFE_HPP
-    ///
+#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
+  ///
   bool DataBase::CreateLevelDB(const string& /*dir*/, const string& /*fea*/,
 			       const ground_truth& /*gt*/) {
 
     return true;
   }
-#endif // HAVE_CAFFE_CAFFE_HPP
 
   /////////////////////////////////////////////////////////////////////////////
 
-#ifdef HAVE_CAFFE_CAFFE_HPP
   ///
   list<vector<float> > DataBase::RunCaffe(const DataBase *db,
 					  const string& name,
@@ -26262,8 +27357,6 @@ void DataBase::InitializeDefaultAspects() {
     } else
       Caffe::set_mode(Caffe::CPU);
 
-    Caffe::set_phase(Caffe::TEST);
-
     // caffe/python/caffe/pycaffe.cpp
 
     string namewdb = name;
@@ -26308,9 +27401,16 @@ void DataBase::InitializeDefaultAspects() {
       if (debug3)
 	FLAGS_logtostderr = 1;
 
+#ifdef HAS_CAFFE_COLORCONVERT
+      Caffe::set_phase(Caffe::TEST);
+      Net<float> *netp = new Net<float>(prototxt);
+#else
+      Net<float> *netp = new Net<float>(prototxt, caffe::TEST);
+#endif
+
       imagedata mimg = imagefile(mean).frame(0);
       caffe_t caffe(namewdb, prototxt, model, mean,
-		    new Net<float>(prototxt), mimg, caffe2dbmap, fusion);
+      		    netp, mimg, caffe2dbmap, fusion);
       caffemap[namewdb] = caffe;
       cmi = caffemap.find(namewdb);
       Net<float>& cnet = *cmi->second.net;
@@ -26323,7 +27423,7 @@ void DataBase::InitializeDefaultAspects() {
     list<vector<float> > emptyres, res;
 
     for (auto ilp = ilist.begin(); ilp!=ilist.end(); ) {
-      vector<Blob<float>*>& input_blobs = cnet.input_blobs();
+      const vector<Blob<float>*>& input_blobs = cnet.input_blobs();
       if (debug4)
 	cout << "input_blobs.size()=" << input_blobs.size() << endl;
       if (input_blobs.size()!=1) {
@@ -26592,19 +27692,25 @@ void DataBase::InitializeDefaultAspects() {
 
     return res;
   }
-#endif // HAVE_CAFFE_CAFFE_HPP
+#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
 
   /////////////////////////////////////////////////////////////////////////////
 
   list<vector<string> > DataBase::LinkedDataQuery(const string& t,
-						  const string& s,
+						  const string& sin,
 						  const vector<string>& a) {
-    string msg = "DataBase::LinkedDataQuery("+t+","+s+","+ToStr(a)+") : ";
+    string msg = "DataBase::LinkedDataQuery("+t+","+sin+","+ToStr(a)+") : ";
+    if (Query::DebugInfo())
+      WriteLog(msg+"starting");
+
+    string s = sin;
 
     list<vector<string> > ret;
     
     if (t=="sparql") {
       string k = t+"/"+s;
+      if (Query::DebugInfo())
+	WriteLog(msg+"sparql k=\""+k+"\"");
       auto l = linked_data_queries.find(k);
       if (l==linked_data_queries.end()) {
 	string ss = ExpandPath("sparql")+"/"+s+".rq";
@@ -26613,10 +27719,17 @@ void DataBase::InitializeDefaultAspects() {
       }
 
       const linked_data_query_t& q = l->second;
+
+      if (Query::DebugInfo()) {
+	WriteLog(msg+q.str());
+	WriteLog(msg+"before q.expand(a) : ["+JoinWithString(a, "][")+"]");
+      }
       string query = q.expand(a);
+      if (Query::DebugInfo())
+	WriteLog(msg+"after  q.expand(a) : ["+JoinWithString(a, "][")+"]");
 
       Connection c(Picsom());
-      ret = c.SparqlQuery(q.url, query, false);
+      ret = c.SparqlQuery(q.url, query, true);
 
       return ret;
     }
@@ -26648,6 +27761,10 @@ void DataBase::InitializeDefaultAspects() {
 						     const string& k,
 						     const string& s) :
     type(t), key(k), queryfile(s),  nargs(0) {
+
+    string msg = "linked_data_query_t("+t+","+k+","+s+") : ";
+    if (Query::DebugInfo())
+      cout << msg+"starting" << endl;
     
     if (type=="rdf")
       url = s;
@@ -26661,6 +27778,9 @@ void DataBase::InitializeDefaultAspects() {
 	p = url.find_first_of(" \t\n\r");
 	if (p!=string::npos)
 	  url.erase(p);
+
+	 if (Query::DebugInfo())
+	   cout << msg+"url=["+url+"]" << endl;
       }
     }
   }
@@ -26696,10 +27816,10 @@ void DataBase::InitializeDefaultAspects() {
 
   /////////////////////////////////////////////////////////////////////////////
   
-  vector<pair<size_t,double> > DataBase::TrecvidSIN(const vector<size_t>& idxs,
-				      const vector<pair<string,double> >& dw,
-				      size_t nres, bool tolerate_missing,
-				      bool to_parent) {
+  vector<pair<size_t,double> > 
+  DataBase::TrecvidSIN(const vector<size_t>& idxs,
+		       const vector<pair<string,double> >& dw,
+		       size_t nres, bool tolerate_missing, bool to_parent) {
     string msg = "DataBase::TrecvidSIN() : ";
     
     // size_t nres = 2000;
@@ -26803,6 +27923,10 @@ void DataBase::InitializeDefaultAspects() {
 			       bool to_parent) {
     string msg = "DataBase::TrecvidSINbottomUp() : ";
     
+    bool use_max = false;
+
+    bool debug = false;
+
     map<size_t,double> val;
     for (size_t i=0; i<idxs.size(); i++) {
       size_t idxo = idxs[i];
@@ -26825,7 +27949,7 @@ void DataBase::InitializeDefaultAspects() {
 	dest = p;
       }
       
-      double sum = 0, wsum = 0;
+      double sum = 0, wsum = 0, max = 0;
       for (auto d=dpw.begin(); d!=dpw.end(); d++) {
 	vector<float> v = d->first->get_float(idxo);
 	if (v.size()!=1) {
@@ -26840,15 +27964,34 @@ void DataBase::InitializeDefaultAspects() {
 	}
 	sum  += d->second * v[0];
 	wsum += d->second;
+	if (v[0]>max)
+	  max = v[0];
+
+	if (debug)
+	  cout << "image : #" << dest << " #" << idxo << " " << v[0] << " * "
+	       << d->second << " = " << d->second * v[0] << endl;
       }
       if (wsum)
 	sum /= wsum;
 
-      if (val.find(dest)==val.end())
-	val[dest] = sum;
+      if (val.find(dest)==val.end()) {
+	if (debug)
+	  cout << "shot : #" << dest << " #" << idxo << " avg = " << sum
+	       << " max = " << max << endl;
+	val[dest] = use_max ? max : sum;
 
-      else if (sum>val[dest])
-	val[dest] = sum;
+      } else if ((use_max ? max : sum)>val[dest]) {
+	if (debug)
+	  cout << "shot : #" << dest << " #" << idxo << " avg = " << sum
+	       << " max = " << max << " > " << val[dest] << endl;
+
+	val[dest] = use_max ? max : sum;
+
+      } else {
+	if (debug)
+	  cout << "shot : #" << dest << " #" << idxo << " avg = " << sum
+	       << " max = " << max << " < " << val[dest] << endl;
+      }
     }
 
     multimap<double,size_t> res;
@@ -27104,11 +28247,11 @@ void DataBase::InitializeDefaultAspects() {
 #if defined(HAVE_JSON_JSON_H)
     return ReadCOCOjsoncpp(ti->second, tc->second, vi->second, vc->second,
 			   xc->second, s->second);
-#elif defined(USE_JAULA) 
+#elif defined(PICSOM_USE_JAULA) 
     return ReadCOCOjaula(ti->second, tc->second, vi->second, vc->second,
 			 xc->second, s->second);
 #else
-    return ShowError(msg+"neither HAVE_JSON_JSON_H nor USE_JAULA");
+    return ShowError(msg+"neither HAVE_JSON_JSON_H nor PICSOM_USE_JAULA");
 #endif
   }
 
@@ -27121,6 +28264,8 @@ void DataBase::InitializeDefaultAspects() {
 			    const string& test_capt, const string& splits) {
     const string msg = "ReadCOCOjsoncpp() : ";
 
+    bool keep_coco_json = true;
+
     size_t show_every = 1000, show_samples = 0;
 
     bool lucene_exists = false;
@@ -27131,7 +28276,7 @@ void DataBase::InitializeDefaultAspects() {
       lucene_exists = true;
     }
 
-    vector<string> infiles {
+    vector<string> infilesx {
       val_capt, val_inst, train_capt, train_inst, test_capt, splits };
     //   0         1           2           3          4        5
 
@@ -27144,212 +28289,243 @@ void DataBase::InitializeDefaultAspects() {
     map<string,set<size_t> > cls;
     set<string> all_classes;
     for (size_t ss=0; ss<6; ss++) {
-      string indatax = infiles[ss], indata = indatax, file_path = indatax;
-      if (indata[0]!='/')
-	indata.insert(0, Path()+"/");
-      if (!FileExists(indata))
-	return ShowError(msg+"file <"+indatax+"> => <"+indata+
-			 "> doesn't exist");
-      
-      if (ss<5) {
-	size_t p = file_path.rfind('.');
-	if (p==string::npos)
-	  return ShowError(msg+"dot not found in <"+file_path+">");
-	file_path.erase(p);
-	p = file_path.rfind('_');
-	if (p==string::npos)
-	  return ShowError(msg+"underscore not found in <"+file_path+">");
-	file_path.erase(0, p+1);
+      vector<string> infilevec;
+      if (ss==4) {
+	infilevec = SplitInCommas(infilesx[ss]);
+	for (size_t ifv=0; ifv<infilevec.size(); ifv++) {
+	  size_t p = infilevec[ifv].find_first_not_of(" \t\n");
+	  infilevec[ifv].erase(0, p);
+	  p = infilevec[ifv].find_last_not_of(" \t\n");
+	  if (p!=string::npos)
+	    infilevec[ifv].erase(p+1);
+	}
       } else
-	file_path = "splits";
+	infilevec.push_back(infilesx[ss]);
 
-      WriteLog("Starting to read <"+ShortFileName(indata)+">");
-      ifstream istr(indata);
-      Json::Value doc;
-      istr >> doc;
+      for (size_t ifv=0; ifv<infilevec.size(); ifv++) {
+	size_t ndup = 0;
+	string indatax = infilevec[ifv], indata = indatax, file_path = indatax;
+	if (indata[0]!='/')
+	  indata.insert(0, Path()+"/");
+	if (!FileExists(indata))
+	  return ShowError(msg+"file <"+indatax+"> => <"+indata+
+			   "> doesn't exist");
+      
+	if (ss<5) {
+	  size_t p = file_path.rfind('.');
+	  if (p==string::npos)
+	    return ShowError(msg+"dot not found in <"+file_path+">");
+	  file_path.erase(p);
+	  p = file_path.rfind('_');
+	  if (p==string::npos)
+	    return ShowError(msg+"underscore not found in <"+file_path+">");
+	  file_path.erase(0, p+1);
+	} else
+	  file_path = "splits";
 
-      WriteLog("Read for <"+file_path+"> -- starting to parse.");
+	WriteLog("Starting to read <"+ShortFileName(indata)+">");
+	ifstream istr(indata);
+	Json::Value  doctmp;
+	Json::Value& doc = keep_coco_json ? coco_json[ss] : doctmp;
+	istr >> doc;
 
-      string type = ss<4 ? doc.get("type", "").asString() : "";
+	WriteLog("Read for <"+file_path+"> -- starting to parse.");
 
-      if (ss==0 || ss==2 || ss==4) {
-	if (ss!=4 && type!="captions")
-	  return ShowError(msg+"type=\""+type+"\" should be \"captions\"");
+	string type = ss<4 ? doc.get("type", "").asString() : "";
 
-	int nold = Size();
+	if (ss==0 || ss==2 || ss==4) {
+	  if (false && ss!=4 && type!="captions")
+	    return ShowError(msg+"type=\""+type+"\" should be \"captions\"");
 
-	const Json::Value px = doc["images"];
-	size_t tot = px.size(), nadd = 0;
-	for (size_t k=0; k<px.size(); k++) {
-	  const Json::Value img = px[(int)k];
-	  int id = img.get("id", "-1").asInt();
-	  if (id>999999 || id<0)
-	    return ShowError(msg+"2");
-	  char tmp[20];
-	  sprintf(tmp, "%06d", id);
-	  string label = tmp;
-	  int idx = AddOneLabel(label, target_image, false, true);
+	  int nold = Size();
+
+	  const Json::Value& px = doc["images"];
+	  size_t tot = px.size(), nadd = 0;
+	  for (size_t k=0; k<px.size(); k++) {
+	    const Json::Value& img = px[(int)k];
+	    int id = img.get("id", "-1").asInt();
+	    if (id>999999 || id<0)
+	      return ShowError(msg+"2");
+	    char tmp[20];
+	    sprintf(tmp, "%06d", id);
+	    string label = tmp;
+	    int idx = LabelIndexGentle(label, false);
+	    bool added = false;
+	    if (idx!=-1 && (ss!=4 || ifv==0))
+	      return ShowError(msg+"label <"+label+"> exists already");
+	    if (idx==-1) {
+	      idx = AddOneLabel(label, target_image, false, true);
+	      added = true;
+	    } else
+	      ndup++;
+
+	    string file_name = img.get("file_name", "").asString();
 	    
-	  string file_name = img.get("file_name", "").asString();
-	    
-	  if (!Picsom()->Quiet() && nadd<show_samples)
-	    cout << "  " << label << " " << id << " "
-		 << file_path << " " << file_name << endl;
+	    if (!Picsom()->Quiet() && nadd<show_samples)
+	      cout << "  " << label << " " << id << " "
+		   << file_path << " " << file_name << endl;
 
-	  map<string,string> hash;
-	  hash["url"]  = file_path+".tar["+file_name+"]";
-	  hash["file"] = label+".jpeg";
-	  hash["auxid"] = ToStr(id);
-	  origins_entry_cache_map[Size()-1] = hash;
+	    if (added) {
+	      map<string,string> hash;
+	      hash["url"]    = file_path+".tar["+file_name+"]";
+	      hash["file"]   = label+".jpeg";
+	      hash["auxid"]  = ToStr(id);
+	      hash["width"]  = img.get("width",  "0").asString();
+	      hash["height"] = img.get("height", "0").asString();
+	      origins_entry_cache_map[Size()-1] = hash;
+	    }
 
-	  cls[file_path].insert(idx);
+	    cls[file_path].insert(idx);
 
-	  (ss==0 ? nimag_val : ss==2 ? nimag_train : nimag_test)++;
+	    (ss==0 ? nimag_val : ss==2 ? nimag_train : nimag_test)++;
 
-	  if (!Picsom()->Quiet() && show_every && ++nadd%show_every==0)
-	    cout << " ... added " << nadd << "/" << tot << "\r" << flush;
-	}
-	WriteLog("Read metadata for "+ToStr(Size()-nold)+" images from <"+
-		 ShortFileName(indata)+">");
-      }
-
-      if (ss==1 || ss==3) {
-	if (type!="instances")
-	  return ShowError(msg+"type=\""+type+"\" should be \"instances\"");
-
-	map<size_t,string> category_id_to_name;
-	const Json::Value pxc = doc["categories"];
-	for (size_t k=0; k<pxc.size(); k++) {
-	  const Json::Value img = pxc[(int)k];
-	  size_t id   = img.get("id", "-1").asInt();
-	  string name = img.get("name", "").asString();
-	  for (;;) {
-	    size_t p = name.find(' ');
-	    if (p==string::npos)
-	      break;
-	    name.replace(p, 1, "_");
+	    if (!Picsom()->Quiet() && show_every && ++nadd%show_every==0)
+	      cout << " ... added " << nadd << "/" << tot << "\r" << flush;
 	  }
-	  if (!Picsom()->Quiet() && category_id_to_name.size()<show_samples)
-	    cout << id << " " << name << endl;
-	  category_id_to_name[id] = name;
+	  WriteLog("Read metadata for "+ToStr(Size()-nold)+" images from <"+
+		   ShortFileName(indata)+"> + "+ToStr(ndup)+" duplicates");
 	}
 
-	map<size_t,vector<size_t> > class_member;
-	size_t ntot = 0;
-	const Json::Value pxa = doc["annotations"];
-	for (size_t k=0; k<pxa.size(); k++) {
-	  const Json::Value img = pxa[(int)k];
-	  size_t image_id    = img.get("image_id",    "-1").asInt();
-	  size_t category_id = img.get("category_id", "-1").asInt();
-	  if (!Picsom()->Quiet() && ntot<show_samples)
-	    cout << image_id << " " << category_id << endl;
-	  class_member[category_id].push_back(image_id);
-	  ntot++;
-	  string label = "00000"+ToStr(image_id);
-	  label.erase(0, label.size()-6);
-	  size_t idx = LabelIndex(label);
-	  string cname = category_id_to_name[category_id];
-	  cls[cname].insert(idx);
-	  all_classes.insert(cname);
-	}
-	WriteLog("Read category data for <"+file_path+"> in "
-		 +ToStr(category_id_to_name.size())
-		 +" classes, "+ToStr(ntot)+" total members in "
-		 +ToStr(class_member.size())+" classes");
-      }
+	if (ss==1 || ss==3) {
+	  if (false && type!="instances")
+	    return ShowError(msg+"type=\""+type+"\" should be \"instances\"");
 
-      if (ss==0 || ss==2) {
-	if (type!="captions")
-	  return ShowError(msg+"type=\""+type+"\" should be \"captions\"");
-
-	if (lucene_exists)
-	  continue;
-
-	map<size_t,string> concat;
-
-	const Json::Value px = doc["annotations"];
-	for (size_t k=0; k<px.size(); k++) {
-	  const Json::Value ann = px[(int)k];
-	  size_t id       = ann.get("id",       "-1").asInt();
-	  size_t image_id = ann.get("image_id", "-1").asInt();
-	  string caption  = ann.get("caption",    "").asString();
-	  string captionorig = caption;
-
-	  caption = LowerCase(caption);
-	  if (remove_chars!="")
+	  map<size_t,string> category_id_to_name;
+	  const Json::Value& pxc = doc["categories"];
+	  for (size_t k=0; k<pxc.size(); k++) {
+	    const Json::Value& img = pxc[(int)k];
+	    size_t id   = img.get("id", "-1").asInt();
+	    string name = img.get("name", "").asString();
 	    for (;;) {
-	      size_t p = caption.find_first_of(remove_chars);
+	      size_t p = name.find(' ');
+	      if (p==string::npos)
+		break;
+	      name.replace(p, 1, "_");
+	    }
+	    if (!Picsom()->Quiet() && category_id_to_name.size()<show_samples)
+	      cout << id << " " << name << endl;
+	    category_id_to_name[id] = name;
+	    if (keep_coco_json)
+	      coco_category[id] = name;
+	  }
+
+	  map<size_t,vector<size_t> > class_member;
+	  size_t ntot = 0;
+	  const Json::Value& pxa = doc["annotations"];
+	  for (size_t k=0; k<pxa.size(); k++) {
+	    const Json::Value& img = pxa[(int)k];
+	    size_t image_id    = img.get("image_id",    "-1").asInt();
+	    size_t category_id = img.get("category_id", "-1").asInt();
+	    if (!Picsom()->Quiet() && ntot<show_samples)
+	      cout << image_id << " " << category_id << endl;
+	    class_member[category_id].push_back(image_id);
+	    ntot++;
+	    string label = "00000"+ToStr(image_id);
+	    label.erase(0, label.size()-6);
+	    size_t idx = LabelIndex(label);
+	    string cname = category_id_to_name[category_id];
+	    cls[cname].insert(idx);
+	    all_classes.insert(cname);
+	  }
+	  WriteLog("Read category data for <"+file_path+"> in "
+		   +ToStr(category_id_to_name.size())
+		   +" classes, "+ToStr(ntot)+" total members in "
+		   +ToStr(class_member.size())+" classes");
+	}
+
+	if (ss==0 || ss==2) {
+	  if (false && type!="captions")
+	    return ShowError(msg+"type=\""+type+"\" should be \"captions\"");
+
+	  if (lucene_exists)
+	    continue;
+
+	  map<size_t,string> concat;
+
+	  const Json::Value& px = doc["annotations"];
+	  for (size_t k=0; k<px.size(); k++) {
+	    const Json::Value& ann = px[(int)k];
+	    size_t id       = ann.get("id",       "-1").asInt();
+	    size_t image_id = ann.get("image_id", "-1").asInt();
+	    string caption  = ann.get("caption",    "").asString();
+	    string captionorig = caption;
+
+	    caption = LowerCase(caption);
+	    if (remove_chars!="")
+	      for (;;) {
+		size_t p = caption.find_first_of(remove_chars);
+		if (p==string::npos)
+		  break;
+		caption.erase(p, 1);
+	      }
+	    if (spacify_chars!="")
+	      for (;;) {
+		size_t p = caption.find_first_of(spacify_chars);
+		if (p==string::npos)
+		  break;
+		caption[p] = ' ';
+	      }
+	    for (;;) {
+	      size_t p = caption.find("  ");
 	      if (p==string::npos)
 		break;
 	      caption.erase(p, 1);
 	    }
-	  if (spacify_chars!="")
-	    for (;;) {
-	      size_t p = caption.find_first_of(spacify_chars);
-	      if (p==string::npos)
-		break;
-	      caption[p] = ' ';
-	    }
-	  for (;;) {
-	    size_t p = caption.find("  ");
-	    if (p==string::npos)
-	      break;
-	    caption.erase(p, 1);
+	    while (caption[0]==' ')
+	      caption.erase(0, 1);
+	    while (caption[caption.size()-1]==' ')
+	      caption.erase(caption.size()-1);
+
+	    char tmp[20];
+	    sprintf(tmp, "%06d", (int)image_id);
+	    string label = tmp;
+	    size_t idx = LabelIndex(label);
+
+	    if (!Picsom()->Quiet())
+	      cout << "[" << id << "][" << image_id << "] <" << label
+		   << "> #" << idx << " ["
+		   << captionorig << "] -> [" << caption << "]"
+		   << endl;
+
+	    if (concat.find(idx)!=concat.end())
+	      concat[idx] += " # ";
+	    concat[idx] += caption;
+
+	    (ss==0 ? ncapt_val : ncapt_train)++;
 	  }
-	  while (caption[0]==' ')
-	    caption.erase(0, 1);
-	  while (caption[caption.size()-1]==' ')
-	    caption.erase(caption.size()-1);
 
-	  char tmp[20];
-	  sprintf(tmp, "%06d", (int)image_id);
-	  string label = tmp;
-	  size_t idx = LabelIndex(label);
+	  for (auto i=concat.begin(); i!=concat.end(); i++) {
+	    vector<string> pp = SplitOnWord(" # ", i->second);
+	    if (pp.size()<5)
+	      /*return*/ ShowError(msg+"#"+ToStr(i->first)+" n of parts "
+				   +ToStr(pp.size())+"<5");
 
-	  if (!Picsom()->Quiet())
-	    cout << "[" << id << "][" << image_id << "] <" << label
-		 << "> #" << idx << " ["
-		 << captionorig << "] -> [" << caption << "]"
-		 << endl;
+	    if (!Picsom()->Quiet())
+	      cout << i->first << " : " << i->second << endl;
 
-	  if (concat.find(idx)!=concat.end())
-	    concat[idx] += " # ";
-	  concat[idx] += caption;
-
-	  (ss==0 ? ncapt_val : ncapt_train)++;
+	    TextIndexStoreLine("captions add-attribute text "+i->second);
+	    TextIndexStoreLine("captions add-document "+Label(i->first));
+	  }
 	}
 
-	for (auto i=concat.begin(); i!=concat.end(); i++) {
-	  vector<string> pp = SplitOnWord(" # ", i->second);
-	  if (pp.size()<5)
-	    /*return*/ ShowError(msg+"#"+ToStr(i->first)+" n of parts "
-				 +ToStr(pp.size())+"<5");
+	if (ss==5) { // splits
+	  const Json::Value& px = doc["images"];
+	  for (size_t k=0; k<px.size(); k++) {
+	    const Json::Value& img = px[(int)k];
+	    string filename = img.get("filename", "").asString();
+	    string split    = img.get("split",    "").asString();
+	    string label    = filename;
 
-	  if (!Picsom()->Quiet())
-	    cout << i->first << " : " << i->second << endl;
-
-	  TextIndexStoreLine("captions add-attribute text "+i->second);
-	  TextIndexStoreLine("captions add-document "+Label(i->first));
-	}
-      }
-
-      if (ss==5) { // splits
-	const Json::Value px = doc["images"];
-	for (size_t k=0; k<px.size(); k++) {
-	  const Json::Value img = px[(int)k];
-	  string filename = img.get("filename", "").asString();
-	  string split    = img.get("split",    "").asString();
-	  string label    = filename;
-
-	  size_t p = label.rfind('.');
-	  if (p==string::npos)
-	    return ShowError(msg+"<"+label+"> no dot");
-	  label.erase(p);
-	  if (label.size()<6)
-	    return ShowError(msg+"<"+label+"> too short");
-	  label.erase(0, label.size()-6);
-	  size_t idx = LabelIndex(label);
-	  cls[split+"split"].insert(idx);
+	    size_t p = label.rfind('.');
+	    if (p==string::npos)
+	      return ShowError(msg+"<"+label+"> no dot");
+	    label.erase(p);
+	    if (label.size()<6)
+	      return ShowError(msg+"<"+label+"> too short");
+	    label.erase(0, label.size()-6);
+	    size_t idx = LabelIndex(label);
+	    cls[split+"split"].insert(idx);
+	  }
 	}
       }
     }
@@ -27383,11 +28559,85 @@ void DataBase::InitializeDefaultAspects() {
     
     return true;
   }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<pair<string,list<vector<pair<float,float> > > > >
+  DataBase::COCOmasks(size_t idx) {
+    list<pair<string,list<vector<pair<float,float> > > > > ret;
+
+    bool debug = false;
+
+    if (coco_json.empty())
+      return ret;
+
+    if (debug)
+      cout << "#" << idx << " <" << Label(idx) << ">" << endl;
+
+    const string& label = Label(idx);
+    size_t lint = atoi(label.c_str());
+
+    for (size_t s=0; s<2; s++) {
+      if (debug)
+	cout << "s=" << s << endl;
+      const Json::Value& doc = coco_json[s==0?1:3];
+      const Json::Value& annolist = doc["annotations"];
+      if (debug)
+	cout << "annolist.size()=" << annolist.size() << endl;
+      for (size_t k=0; k<annolist.size(); k++) {
+	if (debug)
+	  cout << "k=" << k << endl;
+	const Json::Value& anno = annolist[(int)k];
+	size_t image_id    = anno.get("image_id", "-1").asUInt64();;
+	size_t id = anno.get("id", "0").asUInt64();;
+	if (debug)
+	  cout << "id=" << id << " image_id=" << image_id << endl;
+	if (image_id==lint) {
+	  size_t category_id = anno.get("category_id", "-1").asUInt64();;
+	  string category = coco_category[category_id];
+	  const Json::Value& segm = anno["segmentation"];
+	  bool isarray = segm.isArray();
+	  if (debug)
+	    cout << "annotation id=" << id
+		 << " isarray=" << (isarray?1:0)
+		 << " segm.size()=" << segm.size() << endl;
+	  if (isarray) {
+	    list<vector<pair<float,float> > > sl;
+	    for (size_t j=0; j<segm.size(); j++) {
+	      if (debug)
+		cout << "j=" << j << endl;
+	      const Json::Value& segmin = segm[(int)j];
+	      if (debug)
+		cout << "segmin.size()=" << segmin.size() << endl;
+	      vector<pair<float,float> > sv;
+	      for (size_t i=0; i<segmin.size(); i+=2) {
+		float x = segmin[(int)i  ].asFloat();
+		float y = segmin[(int)i+1].asFloat();
+		if (debug)
+		  cout << x << "," << y << " ";
+		sv.push_back(make_pair(x, y));
+	      }
+	      if (debug && j+1<segm.size())
+		cout << " --- ";
+	      sl.push_back(sv);
+	    }
+	    if (debug)
+	      cout << endl;
+	    ret.push_back(make_pair(category, sl));
+
+	  } else if (debug)
+	    cout << "segmentation is not an array" << endl;
+	}
+      }
+    }
+
+    return ret;
+  }
 #endif // HAVE_JSON_JSON_H
 
   /////////////////////////////////////////////////////////////////////////////
 
-#ifdef USE_JAULA
+#ifdef PICSOM_USE_JAULA
   bool 
   DataBase::ReadCOCOjaula(const string& train_inst, const string& train_capt,
 			  const string& val_inst,   const string& val_capt,
@@ -27691,7 +28941,65 @@ void DataBase::InitializeDefaultAspects() {
     
     return true;
   }
-#endif // USE_JAULA
+#endif // PICSOM_USE_JAULA
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<pair<string,imagedata> > DataBase::ObjectMasksCombined(size_t idx) {
+    list<pair<string,imagedata> > ret, sep = ObjectMasks(idx);
+
+    for (auto i=sep.begin(); i!=sep.end(); i++) {
+      imagedata *img = NULL;
+      for (auto j=ret.begin(); !img && j!=ret.end(); j++)
+	if (j->first==i->first)
+	  img = &j->second;
+      if (!img) {
+	ret.push_back(*i);
+	continue;
+      }
+      for (size_t x=0; x<img->width(); x++)
+	for (size_t y=0; y<img->height(); y++)
+	  if (i->second.get_one_uchar(x, y))
+	    img->set(x, y, (unsigned char)255);
+    }
+
+    return ret;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<pair<string,imagedata> > DataBase::ObjectMasks(size_t idx) {
+    list<pair<string,imagedata> > ret;
+
+#if defined(HAVE_JSON_JSON_H) && defined(PICSOM_USE_OPENCV)
+    map<string,string> info = ReadOriginsInfo(idx, false, true);
+    size_t w = atoi(info["width"].c_str()), h = atoi(info["height"].c_str());
+    imagedata empty(w, h, 1, imagedata::pixeldata_uchar);
+    
+    auto r = COCOmasks(idx);
+    for (auto i=r.begin(); i!=r.end(); i++) {
+      for (auto j=i->second.begin(); j!=i->second.end(); j++) {
+	//for (auto k=j->begin(); k!=j->end(); k++) {
+	  vector<cv::Point> contour;
+	  for (auto l=j->begin(); l!=j->end(); l++)
+	    contour.push_back(cv::Point((int)floor(l->first+ 0.5),
+					(int)floor(l->second+0.5)));
+	  imagedata img = empty;
+	  for (size_t x=0; x<w; x++)
+	    for (size_t y=0; y<h; y++)
+	      if (cv::pointPolygonTest(contour, cv::Point2f(x, y), false)>=0)
+		img.set(x, y, (unsigned char)255);
+	  ret.push_back(make_pair(i->first, img));
+	}
+    }
+
+#else
+    idx = idx+1;
+    ShowError("DataBase::ObjectMasks() : HAVE_JSON_JSON_H undef");
+#endif // HAVE_JSON_JSON_H && PICSOM_USE_OPENCV
+
+    return ret;
+  }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -27708,8 +29016,8 @@ void DataBase::InitializeDefaultAspects() {
     bool show_segm_id = true, show_prob = false;
     bool use_sec = false; // obs!
     float fps = VideoFrameRate(idx);
-    if (!fps)
-      return ShowError(err+"zero frame rate");
+    //if (!fps)
+    //  return ShowError(err+"zero frame rate");
 
     string vlab = Label(idx);
 
@@ -27754,6 +29062,7 @@ void DataBase::InitializeDefaultAspects() {
     // WriteLog("Object <"+vlab+"> has "+
     // 	     ToStr(oi->children.size())+" children (after)");
 
+    float fontsize = 80;
     ofstream ox(file.c_str());
     if (type=="ass") {
     ox << "[Script Info]" << endl
@@ -27775,7 +29084,7 @@ void DataBase::InitializeDefaultAspects() {
        << " ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow,"
        << " Alignment, MarginL, MarginR, MarginV, Encoding" << endl;
 
-    string s1 = ",DejaVu Sans,70,";
+    string s1 = ",DejaVu Sans,"+ToStr(fontsize)+",";
     string s2 = ",&H00B4FCFC,&H00000000,&H00000000,"
       "0,0,0,0,100,100,0.00,0.00,1,2.50,0.00,";
     string s4 = ",&H00B4FCFC,&H000000FF,&H00000000,"
@@ -28022,8 +29331,11 @@ void DataBase::InitializeDefaultAspects() {
 	list<textline_t> txtlines;
 
 	if (HasTextIndex(textindex)) {	
+	  string asegm = segm;
+	  if (asegm[0]=='*')
+	    asegm.erase(0, 1);
 	  // obs! this is replicated some lines up...
-	  string re = "$re(^"+segm+":"+vlab+":)";
+	  string re = "$re(^"+asegm+":"+vlab+":)";
 	  ground_truth gt = GroundTruthFunction(re, target_videosegment);
 	  vector<size_t> idxs = gt.indices(1);
 	  for (size_t i=0; i<idxs.size(); i++) {
@@ -28033,14 +29345,21 @@ void DataBase::InitializeDefaultAspects() {
 	    double tp = psd.second.first, dur = psd.second.second;
 	    //idxtpdur.push_back(make_pair(idxs[i], make_pair(tp, dur)));
 
-	    list<pair<string,string> > td = TextIndexRetrieve(idxs[i],
+	    size_t sidx = idxs[i];
+	    if (segm[0]=='*')
+	      sidx = VideoOrSegmentMiddleFrame(sidx).first;
+	    list<pair<string,string> > td = TextIndexRetrieve(sidx,
 							      textindex);
 	    for (auto ti=td.begin(); ti!=td.end(); ti++)
 	      if (ti->first==field) {
+		string txt = ti->second;
+		size_t p = txt.find(" (");
+		if (p!=string::npos)
+		  txt.erase(p);
 		textline_t aline;
 		aline.start = tp;
 		aline.end   = tp+dur;
-		aline.set(ti->second, 0);
+		aline.set(txt, 0);
 		txtlines.push_back(aline);
 	      }
 	  }
@@ -28084,14 +29403,17 @@ void DataBase::InitializeDefaultAspects() {
 	    }
 	  }
 
+	  float aistart = ai->start, aiend = ai->end;
+	  if (aistart==0 && aiend==0)
+	    aiend = VideoDuration(idx);
+
 	  if (type=="ass")
-	    ox << "Dialogue: 0," << DataBase::ASStimeStr(ai->start) << ","
-	       << DataBase::ASStimeStr(ai->end)
+	    ox << "Dialogue: 0," << DataBase::ASStimeStr(aistart) << ","
+	       << DataBase::ASStimeStr(aiend)
 	       << ","+txtposition+",foo,000,000,000,," << text << endl;
 	      
 	  if (type=="vtt")
-	    ox << VTTtimeStr(ai->start) << " --> "
-	       << VTTtimeStr(ai->end) << endl
+	    ox << VTTtimeStr(aistart) << " --> " << VTTtimeStr(aiend) << endl
 	       << text << endl << endl;
 	}
 	
@@ -28351,15 +29673,14 @@ void DataBase::InitializeDefaultAspects() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  vector<pair<size_t,size_t> >
-  DataBase::VideoOrSegmentFramesOrdered(size_t idx) {
+  const vector<pair<size_t,size_t> >&
+  DataBase::VideoOrSegmentFramesOrdered(size_t idx, bool only_exist) {
     string msg = "DataBase::VideoOrSegmentFramesOrdered("+ToStr(idx)+") ["
       +Label(idx)+"] : ";
 
     if (segment_frames.find(idx)!=segment_frames.end())
-      return segment_frames[idx];
-
-    vector<pair<size_t,size_t> > r;
+      return only_exist ? segment_frames[idx].first :
+	segment_frames[idx].second;
 
     size_t pidx = idx;
     double tp = 0, dur = 10.0*365*24*3600, fps = 1;
@@ -28372,8 +29693,9 @@ void DataBase::InitializeDefaultAspects() {
 
       fps = VideoFrameRate(pidx);
       if (!fps) {
+	static const vector<pair<size_t,size_t> > empty;
 	ShowError(msg+"zero frame rate");
-	return r;
+	return empty;
       }
     }
 
@@ -28397,10 +29719,70 @@ void DataBase::InitializeDefaultAspects() {
 	f2idx[f] = c[i];
     }
 
+    vector<pair<size_t,size_t> > r, v;
+
+    size_t ff = floor(tp*fps), lf = ceil((tp+dur)*fps);
+    for (size_t fno=ff; fno<lf; fno++) {
+      size_t idx = -1;
+      if (f2idx.find(fno)!=f2idx.end())
+	idx = f2idx.at(fno);
+      v.push_back(make_pair(idx, fno));
+    }
+
     for (auto i=f2idx.begin(); i!=f2idx.end(); i++)
       r.push_back(make_pair(i->second, i->first));
 
-    segment_frames[idx] = r;
+    segment_frames[idx] = make_pair(r, v);
+
+    return only_exist ? segment_frames[idx].first :
+      segment_frames[idx].second;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  pair<pair<size_t,size_t>,pair<size_t,size_t> >
+  DataBase::VideoOrSegmentFirstAndLastFrame(size_t idx, bool only_exist) {
+    string msg = "DataBase::VideoOrSegmentFirstAndLastFrame("+ToStr(idx)+") ["
+      +Label(idx)+"] : ";
+
+    const auto& v = VideoOrSegmentFramesOrdered(idx, only_exist);
+    if (v.size()==0)
+      return make_pair(make_pair(-1, -1), make_pair(-1, -1));
+
+    return make_pair(v.front(), v.back());
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  pair<size_t,size_t>
+  DataBase::VideoOrSegmentMiddleFrame(size_t idx, bool only_exist) {
+    string msg = "DataBase::VideoOrSegmentFirstAndLastFrame("+ToStr(idx)+") ["
+      +Label(idx)+"] : ";
+
+    pair<size_t,size_t> r = make_pair(-1, -1);
+
+    const auto& v = VideoOrSegmentFramesOrdered(idx, false);
+    if (v.size()==0)
+      return r;
+
+    size_t m = (v.front().second+v.back().second)/2;
+
+    if (!only_exist) {
+      for (size_t i=0; i<v.size(); i++)
+	if (v[i].second==m)
+	  return v[i];
+      ShowError(msg+"failed 1");
+    }
+
+    size_t dmin = -1;
+    const auto& a = VideoOrSegmentFramesOrdered(idx, true);
+    for (size_t i=0; i<a.size(); i++) {
+      size_t d = abs(int(a[i].second)-int(m));
+      if (d<dmin) {
+	dmin = d;
+	r = a[i];
+      }
+    }
 
     return r;
   }
@@ -28437,107 +29819,470 @@ void DataBase::InitializeDefaultAspects() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  map<size_t,textline_t>
-  DataBase::GenerateSentencesNeuralTalk(const list<string>& /*args*/) {
-    string msg = "DataBase::GenerateSentencesNeuralTalk(list) : ";
+  bool DataBase::DoAllCaptionings(const vector<size_t>& idxs,
+				  const vector<string>& caps, XmlDom& xml) {
+    string msg = "DataBase::DoAllCaptionings() : ";
 
-    map<size_t,textline_t> ret;
+    if (DebugCaptionings())
+      WriteLog(msg+"starting with idxs.size()="+ToStr(idxs.size())+
+	       " caps.size()="+ToStr(caps.size()));
+
+    for (auto i=caps.begin(); i!=caps.end(); i++)
+      if (!DoOneCaptioning(idxs, *i, xml))
+	return ShowError(msg+"failed with <"+*i+">");
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::DoOneCaptioning(const vector<size_t>& idxsin,
+				 const string& cap, XmlDom& xml) {
+    string msg = "DataBase::DoOneCaptioning("+cap+") : ";
+
+    if (DebugCaptionings())
+      WriteLog(msg+"starting");
+
+    bool found = false;
+    string textindex;
+    map<size_t,textline_t> res;
+    for (auto i=described_captionings.begin();
+	 i!=described_captionings.end(); i++) {
+      if (DebugCaptionings())
+	WriteLog(msg+"is it "+i->first+" ?");
+
+      if (i->first==cap) {
+	map<string,string> spec(i->second.begin(), i->second.end());
+	const string& type = spec["type"];
+	auto ti = spec.find("textindex");
+	if (ti!=spec.end()) {
+	  textindex = ti->second;
+	  if ((!Picsom()->IsSlave() || !Picsom()->IsSlavePiping("captions"))
+	      && !OpenReadWriteTxt())
+	    return ShowError(msg+"textindices opened read-only, try -rw=...txt...");
+	}
+
+	vector<size_t> idxs;
+	if (textindex=="" || Picsom()->IsSlavePiping("captions"))
+	  idxs = idxsin;
+	else 
+	  for (auto j=idxsin.begin(); j!=idxsin.end(); j++) {
+	    if (TextIndexRetrieve(*j, textindex).empty()) {
+	      idxs.push_back(*j);
+	      WriteLog(msg+"caption <"+textindex+"> for #"+ToStr(*j)+
+		       " will be generated");
+	    } else if (DebugCaptionings())
+	      WriteLog(msg+"caption <"+textindex+"> for #"+ToStr(*j)+
+		       " already exists");
+	  }
+	
+	// obs! we should test which captions already exist...
+	// idxs = idxsin;
+
+	if (type=="neuraltalk") {
+	  found = true;
+	  res = GenerateSentencesNeuralTalk(idxs, spec);
+	} else
+	  ShowError(msg+"type="+type+" unknown");
+	break;
+      }
+    }
+
+    if (!found)
+      return ShowError(msg+"name="+cap+" not found");
+
+    if (res.empty())
+      return ShowError(msg+"no results");
+
+    WriteLog(msg+cap+" returned "+ToStr(res.size())+" results");
+    for (auto i=res.begin(); i!=res.end(); i++) {
+      if (DebugCaptionings())
+	WriteLog("     #"+ToStr(i->first)+" "+i->second.str(true, true));
+
+      if (!StoreCaptioningResult(i->first, cap, i->second, xml))
+	return ShowError(msg+"StoreCaptioningResult() failed");
+    }
+
+    return true;
+
+    // list<string> f = TextIndexFields(textindex);
+    // if (f.size()!=1)
+    //   return ShowError(msg+"TextIndexFields() returned != 1");
+    // const string& field = *f.begin();
+
+    // list<string> ti_input;
+    // WriteLog(msg+cap+" returned "+ToStr(res.size())+" results");
+    // for (auto i=res.begin(); i!=res.end(); i++) {
+    //   if (DebugCaptionings())
+    // 	WriteLog("     #"+ToStr(i->first)+" "+i->second.str(true, true));
+
+    //   if (textindex!="") {
+    // 	string txt1 = textindex+" add-attribute "+field+" "+i->second.str(false, true);
+    // 	ti_input.push_back(txt1);
+    // 	string txt2 = textindex+" add-document "+Label(i->first);
+    // 	ti_input.push_back(txt2);
+    //   }
+    // }
+
+    // if (ti_input.size()) {
+    //   if (!TextIndexInput(ti_input))
+    // 	return ShowError(msg+"TextIndexInput() failed");
+    //   else
+    // 	WriteLog(msg+cap+" stored in <"+textindex+"> results");
+    // }
+
+    // return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::StoreCaptioningResult(size_t idx, const string& capname,
+				       const textline_t& val, XmlDom& xml) {
+    string msg = "DataBase::StoreCaptioningResult() : ";
+
+    bool use_textindex = false;
+
+    Tic("StoreCaptioningResult");
+
+    if (Picsom()->IsSlave() &&
+	Picsom()->SlavePipe().find("captions")!=string::npos) {
+      if (!xml)
+	return ShowError(msg+"slave/pipe/xml mismatch");
+      
+      string str = val.str(false, true);
+      XmlDom fe = xml.Element("caption", str);
+      fe.Prop("database", Name());
+      fe.Prop("name", capname);
+      fe.Prop("label", Label(idx));
+
+      Tac("StoreCaptioningResult");
+
+      return true;
+    }
+
+    string textindex;
+    auto i = described_captionings.find(capname);
+    if (i!=described_captionings.end()) {
+      map<string,string> spec(i->second.begin(), i->second.end());
+      if (spec.find("textindex")!=spec.end())
+	textindex = spec.at("textindex");
+    }
+
+    if (textindex!="" && use_textindex) {
+      list<string> f = TextIndexFields(textindex);
+      if (f.size()!=1)
+	return ShowError(msg+"TextIndexFields() returned != 1");
+      const string& field = *f.begin();
+    
+      if (DebugCaptionings())
+	WriteLog("     #"+ToStr(idx)+" "+val.str(true, true));
+    
+      list<string> ti_input;
+      string txt1 = textindex+" add-attribute "+field+" "+val.str(false, true);
+      ti_input.push_back(txt1);
+      string txt2 = textindex+" add-document "+Label(idx);
+      ti_input.push_back(txt2);
+
+      if (!TextIndexInput(ti_input))
+	return ShowError(msg+"TextIndexInput() failed");
+      else
+	WriteLog(msg+capname+" stored in <"+textindex+"> results");
+    
+      Tac("StoreCaptioningResult");
+
+      return true;
+    }
+
+    if (textindex=="")
+      textindex = "text";
+
+    cout << "**textentry** " << Label(idx) << " " << textindex << " " 
+	 << val.str(false, true) << endl;
+ 
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
 
 #ifdef PICSOM_USE_PYTHON
+  PyObject *DataBase::PythonFeatureVector(const string& fname, size_t idx) {
+    string msg = "DataBase::PythonFeatureVector() : ";
 
-    PyObject *path = PySys_GetObject((char*)"path");
-    //PyObject *dir = PyString_FromString("/home/jormal/picsom/neuraltalkTheano");
-    PyObject *dir = PyString_FromString("/home/jormal/picsom/python");
-    if (PyList_Insert(path, 0, dir)) {
-      ShowError(msg+"PyList_Insert() failed");
-      return ret;
+    FloatVector *fv = FeatureData(fname, idx, true);
+    if (!fv) {
+      ShowError(msg+"FeatureData() returned NULL");
+      return NULL;
     }
 
-    // string predict_on_images =
-    //   "/home/jormal/picsom/neuraltalkTheano/predict_on_images.py";
-    //string predict_on_images = "predict_on_images";
-    string predict_on_images = "picsom_bin_data";
+    size_t l = fv->Length();
+    PyObject *v = PyList_New(l);
+    for (size_t i=0; i<l; i++)
+      PyList_SetItem(v, i, PyFloat_FromDouble(fv->Get(i)));
 
-    string main = "__init__";
+    delete fv;
 
-    PyObject *pName = PyString_FromString(predict_on_images.c_str());
-    // error checking?
+    return v;
+  }
+#endif // PICSOM_USE_PYTHON
 
-    PyObject *pModule = PyImport_Import(pName);
-    Py_DECREF(pName);
-    if (!pModule) {
-      if (PyErr_Occurred())
+  /////////////////////////////////////////////////////////////////////////////
+
+  map<size_t,textline_t>
+  DataBase::GenerateSentencesNeuralTalk(const vector<size_t>& idxs,
+					const map<string,string>& spec) {
+    string msg = "DataBase::GenerateSentencesNeuralTalk() : ";
+
+    map<size_t,textline_t> empty, ret;
+
+    if (DebugCaptionings())
+      WriteLog(msg+"starting with idxs.size()="+ToStr(idxs.size())+
+	       " spec.size()="+ToStr(spec.size()));
+
+#ifdef PICSOM_USE_PYTHON
+    bool exp_feat = true;
+
+    const string& name = spec.at("name");
+    if (spec.find("model")==spec.end()) {
+      ShowError(msg+"model undefined for neuraltalk <"+name+"> in settings.xml");
+      return empty;
+    }
+    const string& model = spec.at("model");
+
+    if (spec.find("init")==spec.end() || spec.find("persist")==spec.end()) {
+      ShowError(msg+"init or persist undefined for neuraltalk <"+name+"> in settings.xml");
+      return empty;
+    }
+    const string& init    = spec.at("init");
+    const string& persist = spec.at("persist");
+
+    size_t beam_size = 1;
+    if (spec.find("beam_size")!=spec.end())
+      beam_size = atoi(spec.at("beam_size").c_str());
+
+    if (DebugCaptionings())
+      WriteLog(msg+"model=<"+model+"> init=<"+init+"> persist=<"+persist+
+	       "> beam_size="+ToStr(beam_size));
+
+    // setenv("HDF5_DISABLE_VERSION_CHECK", "2", 1);
+
+    PyGILState_STATE gstate = PyGILState_Ensure();
+
+    static bool path_set = false;
+    if (!path_set) {
+      string addpath = "/home/jormal/picsom/python/neuraltalkTheano";
+      if (DebugCaptionings())
+	WriteLog(msg+"addind <"+addpath+"> in python path");
+      PyObject *path = PySys_GetObject((char*)"path"); // borrowed
+      PyObject *dir = PyString_FromString(addpath.c_str());
+      if (PyList_Insert(path, 0, dir)) {
+	ShowError(msg+"PyList_Insert() failed");
+	return empty;  // obs!
+      }
+      Py_DECREF(dir);
+      path_set = true;
+    }
+
+    PyObject *caption_generator = NULL;
+    auto mp = neuraltalk_models.find(model);
+    if (mp!=neuraltalk_models.end())
+      caption_generator = mp->second;
+
+    if (!caption_generator) {
+      if (DebugCaptionings())
+	WriteLog(msg+"constructing model <"+model+">");
+
+      PyObject *pName   = PyString_FromString("caption_generator");
+      PyObject *pModule = PyImport_Import(pName);
+      Py_DECREF(pName);
+      if (!pModule) {
 	PyErr_Print();
-
-      ShowError(msg+"PyImport_Import() failed");
-      return ret;
-    }
-
-    PyObject *pFunc =  PyObject_GetAttrString(pModule, main.c_str());
-    if (!pFunc || !PyCallable_Check(pFunc)) {
-      Py_XDECREF(pFunc);
+	ShowError(msg+"PyImport_Import() failed");
+	return empty;  // obs!
+      }
+      PyObject *pDict   = PyModule_GetDict(pModule); // borrowed
       Py_DECREF(pModule);
-      if (PyErr_Occurred())
-	PyErr_Print();
-
-      ShowError(msg+"PyObject_GetAttrString() 1 failed");
-      return ret;
-    }
-
-    PyObject *pArgs = PyTuple_New(1);
-    // PyObject *pValue = PyInt_FromLong(7);
-    PyObject *pValue = PyString_FromString("/triton/ics/project/imagedb/picsom/databases/v/features/c_in12_z_fc6_a_ca3.bin");
-    if (!pValue) {
-      Py_DECREF(pArgs);
-      Py_DECREF(pModule);
-      if (PyErr_Occurred())
-	PyErr_Print();
-
-      ShowError(msg+"PyInt_FromLong() failed");
-      return ret;
-    }
+      PyObject *pClass  = PyDict_GetItemString(pDict, "caption_generator"); // borrowed
     
-    PyTuple_SetItem(pArgs, 0, pValue);
-    PyObject *self = PyObject_CallObject(pFunc, pArgs);
-    Py_DECREF(pArgs);
+      if (!PyCallable_Check(pClass)) {
+	PyErr_Print();
+	return empty; // obs!
+      }
+ 
+      string mpath = Path()+"/neuraltalk/models/"+model;
 
-    if (self) {
-      pFunc =  PyObject_GetAttrString(pModule, "str");
-      // pFunc =  PyObject_GetAttrString(pModule, "vdim");
-
-      PyObject *meth = PyMethod_New(pFunc, self, pModule);      
-
-      if (!meth || !PyCallable_Check(meth)) {
-	Py_XDECREF(meth);
-	Py_DECREF(pModule);
-	if (PyErr_Occurred())
-	  PyErr_Print();
-
-	ShowError(msg+"PyObject_GetAttrString() 2 failed");
-	return ret;
+      PyObject *pParams = PyDict_New(), *p = NULL;
+      PyDict_SetItemString(pParams, "multi_model",    	     p=PyInt_FromLong(0));
+      Py_DECREF(p);
+      PyDict_SetItemString(pParams, "use_label_file", 	     p=PyInt_FromLong(0));
+      Py_DECREF(p);
+      PyDict_SetItemString(pParams, "softmax_propogate",     p=PyInt_FromLong(0)); //obs! spelling
+      Py_DECREF(p);
+      PyDict_SetItemString(pParams, "beam_size",             p=PyInt_FromLong(beam_size));
+      Py_DECREF(p);
+      PyDict_SetItemString(pParams, "checkpoint_path",       p=PyString_FromString(mpath.c_str()));
+      Py_DECREF(p);
+      PyDict_SetItemString(pParams, "softmax_smooth_factor", p=PyFloat_FromDouble(1.0));
+      Py_DECREF(p);
+      if (!exp_feat) {
+	PyDict_SetItemString(pParams, "en_aux_inp",          p=PyInt_FromLong(1));
+	Py_DECREF(p);
       }
 
-      PyObject *result = PyObject_CallMethodObjArgs(self, meth, NULL);
+      PyObject *pArgs = PyTuple_New(1);
+      PyTuple_SetItem(pArgs, 0, pParams); // steals
 
-      int v = PyInt_AsLong(result); 
-      Py_DECREF(result);
-      cout << "**************************** " << v << endl;
+      caption_generator = PyObject_CallObject(pClass, pArgs);
+      PyErr_Print();
+      Py_DECREF(pArgs);
+
+      neuraltalk_models[model] = caption_generator;
+
+      if (DebugCaptionings())
+	WriteLog(msg+"successfully constructed model <"+model+">");
 
     } else {
-      
-      Py_DECREF(pFunc);
-      Py_DECREF(pModule);
-      if (PyErr_Occurred())
-	PyErr_Print();
-
-      ShowError(msg+"PyObject_CallObject() failed");
-      return ret;
+      if (DebugCaptionings())
+	WriteLog(msg+"reusing stored model <"+model+">");
     }
+
+    string ilist = Path()+"/neuraltalk/ilist.txt";
+    string feat1 = Path()+"/features/frcnn80detP3+3SpatGaussScaleP6grRBFsun397.txt";
+    string feat2 = Path()+"/features/c_in14_gr_pool5_d_aA3_ca3.txt";
+
+    PyObject *pParams = PyDict_New(), *p = NULL;
+    PyDict_SetItemString(pParams, "multi_model",  p=PyInt_FromLong(0));
+    Py_DECREF(p);
+    PyDict_SetItemString(pParams, "rescoreByLen", p=PyInt_FromLong(0));
+    Py_DECREF(p);
+    PyDict_SetItemString(pParams, "root_path", 	  p=PyString_FromString("rp"));
+    Py_DECREF(p);
+    PyDict_SetItemString(pParams, "fname_append", p=PyString_FromString("fna"));
+    Py_DECREF(p);
+
+    if (exp_feat) {
+      PyObject *expfeat = PyList_New(idxs.size());
+      size_t j = 0;
+      for (auto i=idxs.begin(); i!=idxs.end(); i++, j++) {
+      	PyObject *f1 = PythonFeatureVector(init,    *i);
+      	PyObject *f2 = PythonFeatureVector(persist, *i);
+      	PyObject *ff = PyList_New(2);
+      	PyList_SetItem(ff, 0, f1); // steals
+      	PyList_SetItem(ff, 1, f2); // steals
+      	PyList_SetItem(expfeat, j, ff); // steals
+      }
+      PyDict_SetItemString(pParams, "explicit_feat", expfeat);
+      Py_DECREF(expfeat);
+
+    } else {
+      PyDict_SetItemString(pParams, "feat_file",    p=PyString_FromString(feat1.c_str()));
+      Py_DECREF(p);
+      PyDict_SetItemString(pParams, "aux_inp_file", p=PyString_FromString(feat2.c_str()));
+      Py_DECREF(p);
+      PyDict_SetItemString(pParams, "imgList",      p=PyString_FromString(ilist.c_str()));
+      Py_DECREF(p);
+    }
+
+    PyObject *generate = PyString_FromString("generate");
+    PyObject *pValue = PyObject_CallMethodObjArgs(caption_generator, generate, pParams, NULL);
+    Py_DECREF(generate);
+    Py_DECREF(pParams);
+    if (!pValue || !PyDict_Check(pValue)) {
+      PyErr_Print();
+      ShowError(msg+"Z");
+      return empty; // obs!
+    }
+
+    PyObject *blobs = PyDict_GetItemString(pValue, "imgblobs"); // borrowed
+    if (!PyList_Check(blobs)) {
+      PyErr_Print();
+      ShowError(msg+"X");
+      return empty; // obs!
+    }
+
+    size_t ls = PyList_Size(blobs);
+    if (ls!=idxs.size()) {
+      ShowError(msg+"input and output sizes differ: "+ToStr(idxs.size())+
+		"!="+ToStr(ls));
+      return empty;  // obs!
+    }
+
+    for (size_t li=0; li<ls; li++) {
+      size_t idx = idxs[li];
+
+      PyObject *blob = PyList_GetItem(blobs, li); // borrowed
+      if (!PyDict_Check(blob)) {
+	PyErr_Print();
+	ShowError(msg+"W");
+	return empty; // obs!
+      }
+
+      textline_t textl(this, idx);
+
+      PyObject *candidate = PyDict_GetItemString(blob, "candidate"); // borrowed
+      NeuralTalkAddCandidate(textl, candidate);
+ 
+      PyObject *clist = PyDict_GetItemString(blob, "candidatelist"); // borrowed
+      if (clist && PyList_Check(clist)) {
+	size_t cs = PyList_Size(clist);
+	for (size_t ci=0; ci<cs; ci++) {
+	  PyObject *c = PyList_GetItem(clist, ci); // borrowed
+	  NeuralTalkAddCandidate(textl, c);
+	}
+      }
+ 
+      ret[idx] = textl;
+    }
+
+    Py_DECREF(pValue);
+
+    PyGILState_Release(gstate);
 
 #endif // PICSOM_USE_PYTHON
 
     return ret;
   }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+#ifdef PICSOM_USE_PYTHON
+  bool DataBase::NeuralTalkAddCandidate(textline_t& textl, PyObject *cand) {
+    string msg = "DataBase::NeuralTalkAddCandidate() : ";
+
+    if (!cand) {
+      PyErr_Print();
+      return ShowError(msg+"NULL pointer");
+    }
+      
+    if (!PyDict_Check(cand)) {
+      PyErr_Print();
+      return ShowError(msg+"PyDict_Check() failed");
+    }
+
+    PyObject *text = PyDict_GetItemString(cand, "text");
+    if (!PyUnicode_Check(text)) {
+      PyErr_Print();
+      return ShowError(msg+"XX1");
+    }
+
+    PyObject *logprob = PyDict_GetItemString(cand, "logprob");
+    if (!PyFloat_Check(logprob)) {
+      PyErr_Print();
+      return ShowError(msg+"XX2");
+    }
+
+    PyObject *utf8 = PyUnicode_AsUTF8String(text);
+    string caption_utf8 = PyString_AsString(utf8);
+    Py_DECREF(utf8);
+    double logp = PyFloat_AsDouble(logprob);
+    if (DebugCaptionings())
+      WriteLog("#"+ToStr(textl.idx)+" text: <"+caption_utf8+
+	       "> logprob: "+ToStr(logp));
+
+    textl.add(caption_utf8, logp);
+
+    return true;
+  }
+#endif // PICSOM_USE_PYTHON
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -28560,7 +30305,7 @@ void DataBase::InitializeDefaultAspects() {
      
       size_t nsent = 0;
       for (size_t k=0; k<doc.size(); k++) {
-	const Json::Value img_cap = doc[(int)k];
+	const Json::Value& img_cap = doc[(int)k];
 	int    id  = img_cap.get("image_id", "-1").asInt();
 	string cap = img_cap.get("caption", "").asString();
 
@@ -28588,7 +30333,7 @@ void DataBase::InitializeDefaultAspects() {
     }
 
 #else // HAVE_JSON_JSON_H
-    ShowError(msg+"HAVE_JSON_JSON_H undef");
+    ShowError(msg+"HAVE_JSON_JSON_H undef "+ToStr(args.size()));
 #endif 
 
     return ret;
@@ -28624,7 +30369,7 @@ void DataBase::InitializeDefaultAspects() {
 
     map<size_t,textline_t> ret;
 
-#ifdef USE_JAULA
+#ifdef PICSOM_USE_JAULA
     JAULA::Value_Complex *doc = NULL;
     try {
       ifstream istr(f);
@@ -28695,7 +30440,7 @@ void DataBase::InitializeDefaultAspects() {
 
 #else
     ShowError(msg+"no JAULA");
-#endif // USE_JAULA
+#endif // PICSOM_USE_JAULA
 
     return ret;
   }
@@ -28709,7 +30454,10 @@ void DataBase::InitializeDefaultAspects() {
 			   const string& odir) {
     string msg = "DataBase::StoreSentences("+sspec+","+type+") : ";
 
-    string typesspec = type+"-"+sspec, videolabel;
+    string typesspec = sspec, videolabel;
+    if (type!="")
+      typesspec = type+"-"+typesspec;
+
     bool is_video = false;
     vector<size_t> idxs = idxsin, missing;
     if (idxs.size() && ObjectsTargetTypeContains(idxs[0], target_video)) { 
@@ -28718,6 +30466,13 @@ void DataBase::InitializeDefaultAspects() {
       for (auto i=idxs.begin(); i!=idxs.end(); i++) {
 	if (!ObjectsTargetTypeContains(*i, target_video))
 	  return ShowError(msg+"videos and non-videos mixed");
+
+	auto p = ssin.find(*i);
+	if (p!=ssin.end() && !p->second.has_time_set()) {
+	  idxs_new.push_back(*i);
+	  continue;
+	}
+
 	if (videolabel!="")
 	  return ShowError(msg+"videolabel already set");
 	videolabel = Label(*i);
@@ -28746,7 +30501,7 @@ void DataBase::InitializeDefaultAspects() {
 	     " objects will get sentence(s)");    
 
     ofstream os;
-    if (is_video) {
+    if (is_video && videolabel!="") {
       string lab = videolabel;  // obs! what if there are more?
       string ofile = lab+"-"+typesspec+".txt";
       if (odir!="")
@@ -28763,12 +30518,12 @@ void DataBase::InitializeDefaultAspects() {
       // too slow...
       // auto psd = ParentStartDuration(i->idx, target_video);
       const string& label = Label(i->first);
-      if (is_video) {
-	size_t p = label.rfind(':');
-	if (p==string::npos)
-	  return ShowError(msg+"\""+label+"\" has no ':'");
+      size_t p = label.rfind(':');
+      if (is_video && p!=string::npos) {
 	size_t f = atol(label.substr(p+1).c_str());
-	float dur = 1.0/25; // obs! hard-coded
+	float fps = 25;  // obs! hard-coded
+	WarnOnce("Hard-coded fps=25");
+	float dur = 1.0/fps;
 	double tp = dur*f;
 	// obs! since 2015-05-15 this probably doesn't work anymore
 	textline_t tl(this, i->first);
@@ -28789,6 +30544,11 @@ void DataBase::InitializeDefaultAspects() {
 	os.open(ofile);
 	os << i->second.str() << endl;
 	os.close();
+
+	if (debug_text)
+	  WriteLog("  stored "+ToStr(i->second.txt_val.size())+
+		   " text entries of type \""+typesspec+"\" for <"+
+		   Label(i->first)+"> in ["+ShortFileName(ofile)+"]");
       }
     }	
 

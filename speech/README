@@ -1,0 +1,58 @@
+Aalto University Department of Information and Computer Science
+speech recognition system.
+
+To get the necessary speech and language models, do:
+
+wget http://www.cis.hut.fi/jorma/pinview/speech/models.tar.gz
+tar xzf models.tar.gz
+
+To test the system, run:
+
+%> play -r 16000 -2 -s tags_short.raw
+
+You should hear it.
+
+%> make osrs-wrap
+%> ./osrs-wrap tags_short.raw | ./pinview_rec.sh eng xxx | strings
+rec: reading HMM model
+rec: configuring feature generator
+rec: running
+going in create_decoder_process()
+came out of create_decoder_process()
+waiting..
+running decoder ./online-demo/decoder --binlm ./models/tags.bin --lexicon ./models/tags.lex --ph ./models/wsj0_ml_pronaligned_tied1_gain3500_occ200_20.2.2010_22.ph --lm-scale 20 --token-limit 30000 --beam 150 --words
+English recognition
+done waiting
+[0 0 <s>]
+[168 205 Boat]
+[423 469 Boat]
+[485 512 Truck]
+[677 697 Building]
+[901 940 Bus]
+[1157 1180 Car]
+[1373 -1 Celebration]
+[1643 -1 Ceremony]
+[1911 1968 City]
+[2162 -1 Congratulation]
+[2434 -1 Construction]
+...
+rec: eof in input
+finished
+
+%> picsom -Dosrs -osrs=eng/xxx -osrsfile=tags_short.raw -exit
+[01/Oct/2010 14:35:49.218] [PIPE <>] Created PIPE connection ...
+[01/Oct/2010 14:35:50.219] PicSOM::TestSpeechRecognizer() : ...
+[01/Oct/2010 14:36:00.231] PicSOM::FeedSpeechRecognizer() : write() processed partial input: 65536<2688012
+...
+[01/Oct/2010 14:36:05.335] PicSOM::ProcessSpeechRecognizerOutput() : entered
+[01/Oct/2010 14:36:05.335] PicSOM::ProcessSpeechRecognizerOutput() : ready processing input
+SPEECH: <tags_short.raw-0> 0 0 1285932960.228880990 1285932960.228880990 [<s>]
+[01/Oct/2010 14:36:05.335] PicSOM::ProcessSpeechRecognizerOutput() : exiting
+...
+[01/Oct/2010 14:36:15.440] PicSOM::ProcessSpeechRecognizerOutput() : entered
+[01/Oct/2010 14:36:15.443] PicSOM::ProcessSpeechRecognizerOutput() : ready processing input
+SPEECH: <tags_short.raw-0> 168 205 1285932961.572881091 1285932961.868881094 [Boat]
+SPEECH: <tags_short.raw-0> 423 469 1285932963.612881052 1285932963.972881186 [Boat]
+SPEECH: <tags_short.raw-0> 485 513 1285932964.108881104 1285932964.332881081 [Truck]
+SPEECH: <tags_short.raw-0> 677 697 1285932965.644881356 1285932965.804881203 [Building]
+...

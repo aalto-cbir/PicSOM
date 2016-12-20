@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: VectorIndex.h,v 2.47 2015/05/07 07:33:07 jorma Exp $
+// -*- C++ -*-  $Id: VectorIndex.h,v 2.49 2016/01/20 09:01:50 jorma Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -91,13 +91,16 @@ namespace picsom {
     bool ReadDataFileBin(bool);
 
     ///
-    bool BinDataFullTest(size_t i) const { return _bin_data.fulltest(i); }
+    bool BinDataFullTest(size_t i) const {
+      return _bin_data_m.begin()->second.fulltest(i); }
 
     ///
-    bool BinDataExists(size_t i) const { return _bin_data.exists(i); }
+    bool BinDataExists(size_t i) const {
+      return _bin_data_m.begin()->second.exists(i); }
 
     ///
-    bool BinDataErase(size_t i) const { return _bin_data.erase(i); }
+    bool BinDataErase(size_t i) const {
+      return _bin_data_m.begin()->second.erase(i); }
 
     ///
     FloatVector *BinDataFloatVector(size_t);
@@ -170,6 +173,9 @@ namespace picsom {
     /// Access to full datfilelist.
     const list<string>& DataFileNameList() const { return datfilelist; }
 
+    /// Feature augmentation alternatives.
+    vector<string> SolveFeatureAugmentation(const string&, const string&);
+
     /// Table name and column prefix of SQL data.
     pair<string,string> SqlNames() const;
 
@@ -203,7 +209,11 @@ namespace picsom {
     FloatVectorSet DataByIndices(IntVector&);
 
     /// Returns data (feature) vectors pointed by indices.
-    FloatVectorSet DataByIndices(const vector<size_t>&);
+    FloatVectorSet DataByIndices(const vector<size_t>&, bool);
+
+    /// Returns data (feature) vectors pointed by indices.
+    FloatVectorSet DataByIndicesAugmented(const vector<size_t>&, const string&,
+					  bool);
 
     /// Returns data (feature) vectors pointed by indices.
     FloatVectorSet DataByIndicesClassical(const vector<size_t>&);
@@ -212,13 +222,13 @@ namespace picsom {
     FloatVectorSet DataByIndicesSql(const vector<size_t>&);
 
     /// Returns data (feature) vectors pointed by indices.
-    FloatVectorSet DataByIndicesBin(const vector<size_t>&);
+    FloatVectorSet DataByIndicesBin(const vector<size_t>&, const string&, bool);
 
     /// Returns data (feature) vectors pointed by indices.
     FloatVectorSet DataByIndicesBinOld(const vector<size_t>&);
 
     ///
-    bool BinDataOpen(bool, size_t, bool);
+    bool BinDataOpen(bool, size_t, bool, const string&);
 
     ///
     bool BinDataOpenVirtual(const string&);
@@ -233,13 +243,13 @@ namespace picsom {
     bool BinDataOpenVirtualConcatenate(const string&);
 
     ///
-    bool BinDataOpenFile(bool, bool);
+    bool BinDataOpenFile(bool, bool, const string&);
 
     ///
     bool BinDataExpand(size_t);
 
     ///
-    bool BinDataFlush() { return _bin_data.flush(); }
+    bool BinDataFlush() { return _bin_data_m.begin()->second.flush(); }
 
     ///
     bool BinDataUnmap();
@@ -263,18 +273,29 @@ namespace picsom {
     bool BinInfoSet() const { return BinInfoVectorLength(); }
 
     ///
-    const string& BinInfoFileName() const { return _bin_data.filename(); }
-
-    ///
-    size_t BinInfoVectorLength() const {
-      return _bin_data.is_ok() ? _bin_data.get_header_copy().vdim : 0;
+    const string& BinInfoFileName() const {
+      static const string empty;
+      return _bin_data_m.size() ?
+	_bin_data_m.begin()->second.filename() : empty;
     }
 
     ///
-    size_t BinInfoRawDataLength() const { return _bin_data.rawsize(); }
+    size_t BinInfoVectorLength() const {
+      return _bin_data_m.begin()->second.is_ok() ?
+	_bin_data_m.begin()->second.get_header_copy().vdim : 0;
+    }
 
     ///
-    size_t BinInfoRawDataLength(size_t n) const { return _bin_data.rawsize(n); }
+    size_t BinInfoRawDataLength(const string& augm) /*const*/ {
+      string key = augm==FeatureFileName() ? "" : augm;
+      return _bin_data_m[key].rawsize();
+    }
+
+    ///
+    size_t BinInfoRawDataLength(size_t n, const string& augm) /*const*/ {
+      string key = augm==FeatureFileName() ? "" : augm;
+      return _bin_data_m[key].rawsize(n);
+    }
 
     /// This is needed to reset numbers in data vectors.
     bool SetDataSetNumbers(bool force, bool may_add);
@@ -375,7 +396,7 @@ namespace picsom {
     bool data_numbers_set;
 
     ///
-    bin_data _bin_data;
+    map<string,bin_data> _bin_data_m;
 
     ///
     static bool bin_data_full_test, fast_bin_check, nan_inf_check;

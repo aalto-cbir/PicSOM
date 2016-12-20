@@ -1,3 +1,8 @@
+2016-10-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Simple.C 1.21, Vector.h 1.21, Matrix.h 1.11:
+	Summary: Minor changes to mage gcc 6.2.0 happy.
+
 2015-04-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
 
 	* VectorSet.C 1.16: Added some progress tracing in KMeans().

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.19 2015/10/09 12:04:18 jorma Exp $
+// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.21 2016/01/13 09:33:49 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -34,7 +34,7 @@ namespace picsom {
 
   const string& imagefile::impl_version() {
     static string v =
-      "$Id: imagefile-opencv.C,v 1.19 2015/10/09 12:04:18 jorma Exp $";
+      "$Id: imagefile-opencv.C,v 1.21 2016/01/13 09:33:49 jorma Exp $";
     return v;
   }
 
@@ -197,6 +197,17 @@ namespace picsom {
 	if (system(cmd.c_str()))
 	  cerr << msg << "system(gunzip ...) failed" << endl;
 	fname = tmpfile;
+	// obs! this should be unlinked...
+      }
+
+      if (fmt=="image/gif") {
+	string tmpfile = make_tmpfile();
+	Unlink(tmpfile);
+	string cmd = "convert "+fname+" "+tmpfile+".png";
+	cout << "[" << cmd << "]" << endl;
+	if (system(cmd.c_str()))
+	  cerr << msg << "system(convert ...) failed" << endl;
+	fname = tmpfile+".png";
 	// obs! this should be unlinked...
       }
 
@@ -670,7 +681,11 @@ namespace picsom {
 
   ///--------------------------------------------------------------------------
 
-  void imagefile::display_impl(const imagedata&, const displaysettings&) {}
+  void imagefile::display_impl(const imagedata& d, const displaysettings&) {
+    string fmt = "image/png";
+    string cmd = "eog %s";
+    display_tmpfile(d, fmt, cmd);
+  }
 
   ///--------------------------------------------------------------------------
 
@@ -687,8 +702,11 @@ namespace picsom {
     int baseline = 0;
     cv::Size textSize = cv::getTextSize(text, fontFace,
 					fontScale, thickness, &baseline);
-    cv::Point org(0, textSize.height);
-    cv::Mat mat(textSize.height+1, textSize.width, CV_8UC3, cv::Scalar::all(0));
+    if (baseline>0) // ???
+      baseline--;
+    cv::Point org(0, textSize.height+1);
+    cv::Mat mat(textSize.height+baseline+2, textSize.width,
+		CV_8UC3, cv::Scalar::all(0));
     cv::putText(mat, text, org, fontFace, fontScale,
 		cv::Scalar::all(255), thickness, 8);
 

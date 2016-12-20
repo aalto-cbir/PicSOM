@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: videofile.h,v 1.28 2015/10/02 10:09:29 jorma Exp $
+// -*- C++ -*-  $Id: videofile.h,v 1.29 2016/05/03 10:55:58 jorma Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -15,8 +15,8 @@
   (http://ffmpeg.mplayerhq.hu/).
 
   \author Mats Sjoberg <mats.sjoberg@tkk.fi>
-  $Revision: 1.28 $
-  $Date: 2015/10/02 10:09:29 $
+  $Revision: 1.29 $
+  $Date: 2016/05/03 10:55:58 $
   \bug May be some out there hiding.
   \warning Be warned against all odds!
   \todo So many things, so little time...
@@ -58,7 +58,7 @@ namespace picsom {
     /// Returns version of videofile class ie. version of videofile.h.
     static const string& version() {
       static string v =
-	"$Id: videofile.h,v 1.28 2015/10/02 10:09:29 jorma Exp $";
+	"$Id: videofile.h,v 1.29 2016/05/03 10:55:58 jorma Exp $";
       return v;
     }
 
@@ -154,6 +154,12 @@ namespace picsom {
     */
     bool has_video() { return _has_video; }
 
+    ///
+    static void local_bin(const string& p) { _local_bin = p; }
+
+    ///
+    static const string& local_bin() { return _local_bin; }
+
     /// Returns current debug mode.
     static int debug() { return _debug; }
 
@@ -244,6 +250,9 @@ namespace picsom {
     
     ///
     FILE *mplayer;
+
+    ///
+    static string _local_bin;
 
     /// debug flag
     static int _debug;

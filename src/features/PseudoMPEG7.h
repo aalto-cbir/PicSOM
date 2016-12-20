@@ -1,4 +1,4 @@
-// -*- C++ -*- 	$Id: PseudoMPEG7.h,v 1.7 2008/10/31 09:44:27 jorma Exp $
+// -*- C++ -*- 	$Id: PseudoMPEG7.h,v 1.8 2016/10/25 08:13:10 jorma Exp $
 /**
    \file PseudoMPEG7.h
 
@@ -10,8 +10,8 @@
    visual descriptors
   
    \author Ville Viitanemi <Ville.Viitaniemi@hut.fi>
-   $Revision: 1.7 $
-   $Date: 2008/10/31 09:44:27 $
+   $Revision: 1.8 $
+   $Date: 2016/10/25 08:13:10 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -103,13 +103,14 @@ class PseudoMPEG7 : public Feature {
 	cout << "  " << i->first << " : \"" << i->second << "\"" << endl;
     }
 
-    if (!UseBackground())
+    if (!UseBackground()) {
       for (i=labs.begin(); i<labs.end(); )
 	if (i->second=="background")
 	  labs.erase(i);
 	else
 	  i++;
-
+    }
+    
     vector<string> ret;
     for (i=labs.begin(); i<labs.end(); i++) {
       char tmp[100];

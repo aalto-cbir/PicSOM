@@ -1,16 +1,16 @@
-## -*- C++ -*-  $Id: configure.ac,v 2.109 2015/12/07 11:22:08 jorma Exp $
+## -*- C++ -*-  $Id: configure.ac,v 2.112 2016/12/19 21:11:40 jorma Exp $
 ## 
-## Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+## Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
 ## PO Box 15400, FI-00076 Aalto, FINLAND
 ## 
 
-AC_INIT(PicSOM, 0.33, picsom@ics.aalto.fi)
-AM_INIT_AUTOMAKE
+AC_INIT(PicSOM, 0.34, picsom@ics.aalto.fi)
+AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_PREREQ(2.59)
 AC_COPYRIGHT(PicSOM Development Group)
-AC_REVISION($Revision: 2.109 $)
+AC_REVISION($Revision: 2.112 $)
 
 AC_CONFIG_SRCDIR([PicSOM.C])
 AC_CONFIG_HEADER([config.h])
@@ -110,10 +110,13 @@ AC_CHECK_HEADERS([flandmark_detector.h],[],
 AC_CHECK_HEADERS([vl/generic.h],[],
         [warnings="$warnings|vlfeat use disabled due to missing header."])
 
-AC_CHECK_HEADERS([DenseTrack.h],[],
+AC_CHECK_HEADERS([dense_trajectory_release_v1.2/DenseTrack.h],[],
         [warnings="$warnings|trajectory use disabled due to missing header."])
 
-AC_CHECK_HEADERS([caffe/caffe.hpp caffe/data_layers.hpp],[],
+AC_CHECK_HEADERS([improved_trajectory_release/DenseTrackStab.h],[],
+        [warnings="$warnings|improvedtrajectory use disabled due to missing header."])
+
+AC_CHECK_HEADERS([caffe/caffe.hpp caffe/data_transformer.hpp],[],
         [warnings="$warnings|Caffe use disabled due to missing header."])
 
 AC_CHECK_HEADERS([libavcodec/avcodec.h libavdevice/avdevice.h   \

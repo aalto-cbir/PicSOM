@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: XMLutil.h,v 2.51 2012/10/22 12:35:17 jorma Exp $
+// -*- C++ -*-  $Id: XMLutil.h,v 2.52 2016/10/25 11:45:20 jorma Exp $
 // 
-// Copyright 1998-2012 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -22,7 +22,7 @@ using namespace std;
 
 namespace picsom {
   static const string XMLutil_h_vcid =
-    "@(#)$Id: XMLutil.h,v 2.51 2012/10/22 12:35:17 jorma Exp $";
+    "@(#)$Id: XMLutil.h,v 2.52 2016/10/25 11:45:20 jorma Exp $";
 
   /**
      DOCUMENTATION MISSING
@@ -341,8 +341,8 @@ namespace picsom {
     }
 
     ///
-    list<pair<string,string>> Properties() const {
-      list<pair<string,string>> res;
+    list<pair<string,string> > Properties() const {
+      list<pair<string,string> > res;
       for (_xmlAttr *p = node->properties; p; p=p->next) {
 	string name = (char*)p->name, val;
 	if (p->children && p->children->content)
@@ -356,7 +356,7 @@ namespace picsom {
 
     ///
     map<string,string> PropertyMap() const {
-      list<pair<string,string>> res = Properties();
+      list<pair<string,string> > res = Properties();
       return map<string,string>(res.begin(), res.end());
     }
 

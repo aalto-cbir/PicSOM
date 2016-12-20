@@ -18,8 +18,8 @@
 /* Define to 1 if you have the <caffe/caffe.hpp> header file. */
 #undef HAVE_CAFFE_CAFFE_HPP
 
-/* Define to 1 if you have the <caffe/data_layers.hpp> header file. */
-#undef HAVE_CAFFE_DATA_LAYERS_HPP
+/* Define to 1 if you have the <caffe/data_transformer.hpp> header file. */
+#undef HAVE_CAFFE_DATA_TRANSFORMER_HPP
 
 /* Define to 1 if you have the `chmod' function. */
 #undef HAVE_CHMOD
@@ -58,8 +58,9 @@
    */
 #undef HAVE_DECL_W_OK
 
-/* Define to 1 if you have the <DenseTrack.h> header file. */
-#undef HAVE_DENSETRACK_H
+/* Define to 1 if you have the <dense_trajectory_release_v1.2/DenseTrack.h>
+   header file. */
+#undef HAVE_DENSE_TRAJECTORY_RELEASE_V1_2_DENSETRACK_H
 
 /* Define to 1 if you have the <detdb.h> header file. */
 #undef HAVE_DETDB_H
@@ -142,6 +143,10 @@
 
 /* Define to 1 if you have the `ilaenv_' function. */
 #undef HAVE_ILAENV_
+
+/* Define to 1 if you have the <improved_trajectory_release/DenseTrackStab.h>
+   header file. */
+#undef HAVE_IMPROVED_TRAJECTORY_RELEASE_DENSETRACKSTAB_H
 
 /* Define to 1 if you have the `inet_aton' function. */
 #undef HAVE_INET_ATON

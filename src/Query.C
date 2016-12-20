@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Query.C,v 2.630 2015/04/20 14:52:49 jorma Exp $
+// -*- C++ -*-  $Id: Query.C,v 2.634 2016/11/02 14:53:44 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -22,12 +22,13 @@ namespace picsom {
   using namespace std;
 
   static const string Query_C_vcid =
-    "@(#)$Id: Query.C,v 2.630 2015/04/20 14:52:49 jorma Exp $";
+    "@(#)$Id: Query.C,v 2.634 2016/11/02 14:53:44 jorma Exp $";
 
   static string splitchars = " \t\r\n/";
 
   /////////////////////////////////////////////////////////////////////////////
 
+  bool Query::debug_info           = false;
   bool Query::debug_all_keys       = false;
   bool Query::debug_restriction    = false;
   bool Query::debug_featsel        = false;
@@ -2854,10 +2855,15 @@ namespace picsom {
 
     AddToXMLerfdata(info);
 
-    XmlDom link = info.Element("image");
-    link.Prop("src", "image/erf-detections/hut-rectors");
+    list<string> edi = GetDataBase()->ErfDetectionImages();
+    if (edi.size()) {
+      XmlDom link = info.Element("image");
+      for (auto i=edi.begin();
+	   i!=edi.end(); i++)
+	link.Prop("src", "image/erf-detections/"+*i);
+    }
 
-    if (full) {// don't want to save these in file...
+    if (seen_objects.size() || full) {
       AddToXMLinfolinklist(info, "", "");
       AddToXMLvisitedlinklist(info, "", "");
     }
@@ -2870,25 +2876,27 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool Query::AddToXMLinfolinklist(XmlDom& dom, const string&,
-				   const string&) const {
+  bool Query::AddToXMLinfolinklist(XmlDom& dom, const string& aa,
+				   const string& ab) const {
+    string msg = "AddToXMLinfolinklist(,"+aa+","+ab+") : ";
+    if (DebugInfo())
+      WriteLog(msg+"starting, seen_objects.size()="+
+	       ToStr(seen_objects.size()));
+
     XmlDom ill = dom.Element("infolinklist");
 
     // XmlDom link = ill.Element("infolink");
     // link.Prop("href", "?refresh=1");
     // link.Prop("linktext", "refresh every second");
 
-    // AddToXMLinfolinklist_detectedobject(ill, "hut-rectors/names-links.xml",
-    // 					"small-15-Uronen.jpg");
-
-    // AddToXMLinfolinklist_detectedobject(ill, "hut-rectors/names-links.xml",
-    // 					"poster.jpeg");
-
-    multimap<float,string> objrel;
+    multimap<float,pair<string,string> > objrel;
 
     if (seen_objects.size()) {
       timespec_t last = TimeZero(), gaze_first = last, gaze_last = last;
       for (auto i=seen_objects.begin(); i!=seen_objects.end(); i++) {
+	if (DebugInfo())
+	  WriteLog(msg+"    SEEN : \""+i->first+"\" : "+i->second.str());
+
 	if (MoreRecent(i->second.end, last))
 	  last = i->second.end;
 	if (MoreRecent(i->second.gaze_last, gaze_last))
@@ -2906,24 +2914,44 @@ namespace picsom {
 	  else
 	    r += TimeDiff(i->second.gaze_last, gaze_last);
 	}
-	objrel.insert(make_pair(r, i->first));
+	string toc = i->first, image;
+	size_t p = toc.find('/');
+	if (p==string::npos)
+	  return ShowError(msg+"/ not found in <"+toc+">");
+	image = toc.substr(p+1);
+	toc.erase(p);
+	objrel.insert(make_pair(r, make_pair(toc, image)));
       }
     }
 
-    if (objrel.empty()) {
-      objrel.insert(make_pair(0.9, "small-15-Uronen.jpg"));
-      objrel.insert(make_pair(0.8, "poster.jpeg"));
-    }
+    // if (objrel.empty()) {
+    //   objrel.insert(make_pair(0.9, "small-15-Uronen.jpg"));
+    //   objrel.insert(make_pair(0.8, "poster.jpeg"));
+    // }
+
+    if (DebugInfo())
+      WriteLog(msg+"  objrel.size()="+ToStr(objrel.size()));
 
     size_t n = 0, nmax = 3;
-    for (auto i=objrel.rbegin(); i!=objrel.rend() && n<nmax; i++, n++)
-      AddToXMLinfolinklist_detectedobject(ill, "hut-rectors/names-links.xml",
-					  i->second);
+    for (auto i=objrel.rbegin(); i!=objrel.rend() && n<nmax; i++, n++) {
+      if (DebugInfo())
+	WriteLog(msg+"    OBJREL : \""+ToStr(i->first)+"\" : "+
+		 i->second.first+" / "+i->second.second);
 
-    if (seen_words.size()) {
+      AddToXMLinfolinklist_detectedobject(ill,
+					  i->second.first, i->second.second);
+    }
+
+    if (DebugInfo())
+      WriteLog(msg+"   seen_words.size()="+ToStr(seen_words.size()));
+
+     if (seen_words.size()) {
       string sw;
       for (auto i=seen_words.begin(); i!=seen_words.end(); i++)
 	sw += (sw!=""?" ":"")+i->word;
+
+      if (DebugInfo())
+	WriteLog(msg+"SEEN WORDS : \""+sw+"\"");
 
       XmlDom link = ill.Element("infolink");
       link.Prop("href", "http://dummy.com/");
@@ -2969,67 +2997,133 @@ namespace picsom {
   Query::AddToXMLinfolinklist_detectedobject_sparql(XmlDom& dom,
 						    const string& s,
 						    const string& o) const {
-    string sx;
-    if (s.find("hut-rectors")!=string::npos)
-      sx = "hut-rectors";
-    if (o.find("poster")!=string::npos)
-      sx = "sab2014-posters";
+    string msg = "Query::AddToXMLinfolinklist_detectedobject_sparql("+
+      s+","+o+") : ";
 
     auto i = sparql_query_cache.find(o);
     if (i==sparql_query_cache.end()) {
       vector<string> xargs { o };
       list<vector<string> > res
-	= GetDataBase()->LinkedDataQuery("sparql", sx,
-					 xargs);
+	= GetDataBase()->LinkedDataQuery("sparql", s, xargs);
       ((Query*)this)->sparql_query_cache[o] = res;
       i = sparql_query_cache.find(o);
     }
 
     const list<vector<string> >& res = i->second;
+    if (res.size()<2)
+      return true;  // or ShowError()?
 
-    if (sx=="hut-rectors")
-      for (auto i=res.begin(); i!=res.end(); i++) {
+    auto jj = res.begin();
+    vector<string> f = *jj++;
+    
+    if (DebugInfo())
+      for (auto j=jj; j!=res.end(); j++)
+	for (size_t k=0; k<j->size(); k++)
+	  cout << msg << f[k] << " = " << (*j)[k] << endl;
+      
+    list<map<string,string> > ldmaps
+      = GetDataBase()->LinkedDataMappings("sparq/"+s);
+
+    set<string> unique;
+    for (auto l=ldmaps.begin(); l!=ldmaps.end();
+	 l++) {
+      if (l->find("*unique*")==l->end())
+	return ShowError(msg+"*unique* not found in infolink rules");
+      const string& u = l->at("*unique*");
+
+      for (auto j=jj; j!=res.end(); j++) {
+	map<string,string> kv;
+	for (size_t k=0; k<j->size(); k++)
+	  kv[f[k]] = (*j)[k];
+      
+	// if (kv.find(u)==kv.end() || kv[u]=="")
+	//   return ShowError(msg+"*unique* field <"+u+"> not found");
+
+	if (DebugInfo())
+	  WriteLog(msg+"  <infolink>");
+
+	string ustr = AddToXMLinfolinklist_macro(kv, u);
+	bool exists = unique.find(ustr)!=unique.end();
+	if (DebugInfo()) {
+	  if (exists)
+	    WriteLog(msg+"    *unique* field <"+u+"> exists as <"+ustr+">");
+	  else
+	    WriteLog(msg+"    *unique* field <"+u+"> is set as <"+ustr+">");
+	}
+	if (exists)
+	  continue;
+	
 	XmlDom il = dom.Element("infolink");
-	il.Prop("linktext", (*i)[0]);
-	il.Prop("text",     (*i)[1]);
-	il.Prop("href",     (*i)[2]);
-	il.Prop("imgsrc",   (*i)[3]);
-      }
+	unique.insert(ustr);
 
-    else if (sx=="sab2014-posters") {
-      set<string> txt;
-      for (auto i=res.begin(); i!=res.end(); i++)
-	if (txt.find((*i)[0])==txt.end()) {
-	  txt.insert((*i)[0]);
-	  XmlDom il = dom.Element("infolink");
-	  il.Prop("linktext", (*i)[0]);
-	  il.Prop("text",     (*i)[1]);
-	  il.Prop("href",     (*i)[2]);
-	  il.Prop("imgsrc",   (*i)[2]);
-	}
-      for (auto i=res.begin(); i!=res.end(); i++)
-	if (txt.find((*i)[3])==txt.end()) {
-	  txt.insert((*i)[3]);
-	  XmlDom il = dom.Element("infolink");
-	  il.Prop("linktext", (*i)[3]);
-	  il.Prop("text",     (*i)[3]);
-	  il.Prop("href",     (*i)[4]);
-	  // il.Prop("imgsrc",   (*i)[]);
-	}
-      for (auto i=res.begin(); i!=res.end(); i++) {
-	string n = (*i)[5]+" "+(*i)[6];
-	if (txt.find(n)==txt.end()) {
-	  txt.insert(n);
-	  XmlDom il = dom.Element("infolink");
-	  il.Prop("linktext", n);
-	  il.Prop("text",     n+"'s Aalto People homepage");
-	  il.Prop("href",     (*i)[7]);
-	  il.Prop("imgsrc",   (*i)[8]);
-	}
+	for (auto k=l->begin(); k!=l->end(); k++)
+	  if (k->first!="*unique*") {
+	    string str = AddToXMLinfolinklist_macro(kv, k->second);
+	    il.Prop(k->first, str);
+	    if (DebugInfo())
+	      WriteLog(msg+"    "+k->first+"=\""+str+"\"");
+	  }
       }
     }
+
+    // else if (sx=="sab2014-posters") {
+    //   set<string> txt;
+    //   for (auto i=res.begin(); i!=res.end(); i++)
+    // 	if (txt.find((*i)[0])==txt.end()) {
+    // 	  txt.insert((*i)[0]);
+    // 	  XmlDom il = dom.Element("infolink");
+    // 	  il.Prop("linktext", (*i)[0]);
+    // 	  il.Prop("text",     (*i)[1]);
+    // 	  il.Prop("href",     (*i)[2]);
+    // 	  il.Prop("imgsrc",   (*i)[2]);
+    // 	}
+    //   for (auto i=res.begin(); i!=res.end(); i++)
+    // 	if (txt.find((*i)[3])==txt.end()) {
+    // 	  txt.insert((*i)[3]);
+    // 	  XmlDom il = dom.Element("infolink");
+    // 	  il.Prop("linktext", (*i)[3]);
+    // 	  il.Prop("text",     (*i)[3]);
+    // 	  il.Prop("href",     (*i)[4]);
+    // 	  // il.Prop("imgsrc",   (*i)[]);
+    // 	}
+    //   for (auto i=res.begin(); i!=res.end(); i++) {
+    // 	string n = (*i)[5]+" "+(*i)[6];
+    // 	if (txt.find(n)==txt.end()) {
+    // 	  txt.insert(n);
+    // 	  XmlDom il = dom.Element("infolink");
+    // 	  il.Prop("linktext", n);
+    // 	  il.Prop("text",     n+"'s Aalto People homepage");
+    // 	  il.Prop("href",     (*i)[7]);
+    // 	  il.Prop("imgsrc",   (*i)[8]);
+    // 	}
+    //   }
+    // }
     
     return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string Query::AddToXMLinfolinklist_macro(const map<string,string>& kv,
+					   const string& sin) {
+    string s = sin;
+    for (size_t p = 0; p<s.size();) {
+      size_t q = s.find('{', p);
+      if (q==string::npos)
+	break;
+      string k = s.substr(q+1);
+      size_t r = k.find('}');
+      if (r==string::npos)
+	break;
+      k.erase(r);
+      if (kv.find(k)!=kv.end()) {
+	s.replace(q, k.size()+2, kv.at(k));
+	p = q+k.size();
+      } else
+	p = r+1;
+    }
+
+    return s;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -3586,23 +3680,37 @@ namespace picsom {
   /////////////////////////////////////////////////////////////////////////////
 
   imagedata Query::ErfDetectionsImage(const string& name,
-				      const string& /*spec*/) {
- 
+				      const string& spec) {
+    string msg = "Query::ErfDetectionsImage("+name+","+spec+") : ";
+    if (Connection::DebugHTTP())
+      WriteLog(msg+"called");
+
     erf_image_data& aid = ErfImageData(name);
     const list<map<string,string>>& detections = aid.detections;
 
     if (detections.size()==0) {
+      if (Connection::DebugHTTP())
+	WriteLog(msg+"no detections, returning blue");
+
       imagedata img(400, 300);
       vector<float> blue { 0, 0, 1 }, bluewh;
       for (size_t i=0; i<img.width()*img.height(); i++)
 	bluewh.insert(bluewh.end(), blue.begin(), blue.end());;
       img.set(bluewh);
+
       return img;
     }
 
     map<string,string> f = detections.front();
     int w = atoi(f["width"].c_str());
     int h = atoi(f["height"].c_str());
+
+    if (Connection::DebugHTTP()) {
+      stringstream ss;
+      for (auto i=f.begin(); i!=f.end(); i++)
+	ss << " " << i->first << "=" << i->second;
+      WriteLog(msg+ToStr(f.size())+" detections, front:"+ss.str());
+    }
 
     if (!w || !h)  {
       imagedata img(400, 300);
@@ -3628,19 +3736,25 @@ namespace picsom {
     map<string,list<pair<vector<float>,string> > > & word_box
     = GetDataBase()->OdWordBox(name);    
 
-    for (auto i=detections.begin(); i!=detections.end(); i++) {
+    size_t ii = 0;
+    for (auto i=detections.begin(); i!=detections.end(); i++, ii++) {
       map<string,string> m = *i;
+      stringstream ss;
+      for (auto di=m.begin(); di!=m.end(); di++)
+	ss << " " << di->first << "=" << di->second;
+
       string toc = m["toc"];
       string dir = toc;
       size_t q = dir.find("/");
       if (q!=string::npos)
 	dir.erase(q);
 
-      string imagelab = m["image"], imagelaborig = imagelab;
-      if (imagelab=="small-16-Pursula.jpg")
-	imagelab = "poster.jpeg";
+      string imagelab = m["image"];
 
       string imgname = GetDataBase()->ExpandPath("ods")+"/"+dir+"/"+imagelab;
+      if (Connection::DebugHTTP())
+	WriteLog(msg+ToStr(ii)+ss.str()+" imgname="+imgname);
+
       if (icache.find(imgname)==icache.end()) {
 	imagedata idata = imagefile(imgname).frame(0);
 	idata.convert(imagedata::pixeldata_uchar);
@@ -3683,6 +3797,8 @@ namespace picsom {
 	if (q!=string::npos) {
 	  htmlname.erase(q);
 	  htmlname += ".html";
+	  if (Connection::DebugHTTP())
+	    WriteLog(msg+" htmlname="+htmlname);
 	  XmlDom xml = XmlDom::ReadDoc(htmlname);
 	  XmlDom html = xml.Root();
 	  if (html.NodeName()=="html") {
@@ -3716,9 +3832,19 @@ namespace picsom {
 
       float x0f = -1, y0f = -1; 
 
-      erf_image_data& imageid = ErfImageData(imagelaborig);
+      erf_image_data& imageid = ErfImageData(imagelab);
+      if (Connection::DebugHTTP())
+	WriteLog(msg+imagelab+" has "+ToStr(imageid.detections.size())+
+		 " detections");
+      size_t aa = 0;
       for (auto a=imageid.detections.begin();
-	   a!=imageid.detections.end(); a++) {
+	   a!=imageid.detections.end(); a++, aa++) {
+	stringstream ss;
+	for (auto ai=a->begin(); ai!=a->end(); ai++)
+	  ss << " " << ai->first << "=" << ai->second;
+	if (Connection::DebugHTTP())
+	  WriteLog(msg+ToStr(aa)+ss.str());
+
 	if (a->find("gazex")!=a->end()) {
 	  x0f = atof((*a)["gazex"].c_str());
 	  y0f = atof((*a)["gazey"].c_str());
@@ -16743,6 +16869,8 @@ double Query::HannVectorValue(double i, double len, double) {
       string gazex    = pm["gazex"];
       string gazey    = pm["gazey"];
     
+      string toc_image = toc+"/"+image;
+
       if (debug_ajax)
 	cout << msg+"timestamp=["+timestamp+"] toc=["+toc+
 	  "] name=["+name+"] image=["+image+"] polygon=["+polygon+
@@ -16753,8 +16881,8 @@ double Query::HannVectorValue(double i, double len, double) {
       uiart::TimeSpec uats = AjaxTimeSpec(timestamp);
       timespec_t ts = uats.Ts();
 
-      erf_image_data& eid_image = ErfImageData(image);
-      eid_image.label = image;
+      erf_image_data& eid_image = ErfImageData(toc_image);
+      eid_image.label = toc_image;
       eid_image.detections.push_back(pmcopy);
 
       erf_image_data& eid_toc = ErfImageData(toc);
@@ -16764,14 +16892,11 @@ double Query::HannVectorValue(double i, double len, double) {
       eid_toc.detections.push_back(pmcopy);
       first = false;
 
-      if (image=="small-16-Pursula.jpg")
-	image = "poster.jpeg";
-
-      if (seen_objects.find(image)==seen_objects.end()) {
-	seen_object_t so(image, ts, ts);
-	seen_objects[image] = so;
+      if (seen_objects.find(toc_image)==seen_objects.end()) {
+	seen_object_t so(toc_image, ts, ts);
+	seen_objects[toc_image] = so;
       }
-      seen_object_t& so = seen_objects.find(image)->second;
+      seen_object_t& so = seen_objects.find(toc_image)->second;
       so.end = ts;
 
       map<string,list<pair<vector<float>,string> > > & word_box
@@ -16791,12 +16916,12 @@ double Query::HannVectorValue(double i, double len, double) {
 	}
       }
 
-      if (gx>=0 && word_box.find(image)!=word_box.end()) {
-	const list<pair<vector<float>,string > >& l = word_box[image];
+      if (gx>=0 && word_box.find(toc_image)!=word_box.end()) {
+	const list<pair<vector<float>,string > >& l = word_box[toc_image];
 	for (auto a=l.begin(); a!=l.end(); a++)
 	  if (gx>=a->first[0] && gx<=a->first[2] &&
 	      gy>=a->first[1] && gy<=a->first[3]) {
-	    seen_word_t sw(a->second, ts, ts, image, gx, gy);
+	    seen_word_t sw(a->second, ts, ts, toc_image, gx, gy);
 	    seen_words.push_back(sw);
 	    cout << endl << endl << endl
 		 << ">>>>>>>>>>>>>>>>>>>> " << sw.str() << " <<<<<<<<<<<"
@@ -19048,9 +19173,9 @@ double Query::HannVectorValue(double i, double len, double) {
           img.y-dy>=0 && img.y-dy<img.height)
         ProcessXMLimgData(img, ft, pup, 0.0, false, 2, false,
                           show, dx, dy);
-        if (debug_ajax>2)
-          cout << "CENTER EYE MATCH due to right eye" << img.src << endl
-               << endl;
+      if (debug_ajax>2)
+	cout << "CENTER EYE MATCH due to right eye" << img.src << endl
+	     << endl;
     }
 
     return true;

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Analysis.h,v 2.462 2015/11/10 13:47:16 jorma Exp $
+// -*- C++ -*-  $Id: Analysis.h,v 2.483 2016/12/19 08:11:23 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -39,7 +39,7 @@ namespace picsom {
   using simple::DataSet;
 
   static const string Analysis_h_vcid =
-    "@(#)$Id: Analysis.h,v 2.462 2015/11/10 13:47:16 jorma Exp $";
+    "@(#)$Id: Analysis.h,v 2.483 2016/12/19 08:11:23 jorma Exp $";
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -577,6 +577,12 @@ namespace picsom {
     bool InsertObjectsOperation(const string&, const vector<string>&);
 
     ///
+    bool AddTextLineData(const string&, size_t, const string&);
+
+    ///
+    bool WriteOutTextLineData();
+
+    ///
     bool FetchImageNet(const string&, const string&, vector<string>&);
 
     ///
@@ -921,6 +927,13 @@ namespace picsom {
     bool ProcessSlaveXmlResultDetectionVector(const XmlDom&, bool, string&);
 
     ///
+    bool ProcessSlaveXmlResultCaptionList(const XmlDom&, bool,
+					  string&, size_t&);
+
+    ///
+    bool ProcessSlaveXmlResultCaption(const XmlDom&, bool, string&);
+
+    ///
     bool ProcessSlaveXmlResultObjectInfoHashList(const XmlDom&, size_t&);
 
     ///
@@ -1048,6 +1061,9 @@ namespace picsom {
     analyse_result AnalyseTfIdfTest(const vector<string>&);
     
     ///
+    analyse_result AnalyseWord2VecTest(const vector<string>&);
+    
+    ///
     analyse_result AnalyseWordNetTest(const vector<string>&);
     
     ///
@@ -1057,7 +1073,16 @@ namespace picsom {
     analyse_result AnalyseRdfTest(const vector<string>&);
     
     ///
+    analyse_result AnalyseOpenCvTest(const vector<string>&);
+    
+    ///
     analyse_result AnalyseCudaTest(const vector<string>&);
+    
+    ///
+    analyse_result AnalysePythonTest(const vector<string>&);
+    
+    ///
+    analyse_result AnalyseTensorFlowTest(const vector<string>&);
     
     ///
     analyse_result AnalyseJaulaTest(const vector<string>&);
@@ -1195,6 +1220,15 @@ namespace picsom {
     ///
     analyse_result AnalyseDetectionsToFeatures(const vector<string>&);
 
+    ///
+    analyse_result AnalyseDetectorDifference(const vector<string>&);
+
+    ///
+    analyse_result AnalyseDetectorPerformance(const vector<string>&);
+
+    ///
+    bool WriteHistogramImage(const vector<size_t>&, size_t, bool,
+			     const string&);
     ///
     analyse_result AnalyseNearest(const vector<string>&);
 
@@ -1616,6 +1650,9 @@ public:
     analyse_result AnalyseObsProbPerClass(int, const vector<string>&);
 
     ///
+    analyse_result AnalyseRetrieve(const vector<string>&);
+
+    ///
     analyse_result AnalyseBest(const vector<string>&);
 
     ///
@@ -1794,10 +1831,19 @@ public:
     analyse_result AnalyseVocOutput(const vector<string>&);
 
     ///
+    analyse_result AnalyseYleJsonOutput(const vector<string>&);
+
+    ///
+    analyse_result AnalyseYleJsonOutputV1(const vector<string>&);
+
+    ///
     analyse_result AnalyseEvaluateDetections(const vector<string>&);
 
     ///
     analyse_result AnalyseEvaluateDetectionsWithThresholds(const vector<string>&);
+
+    ///
+    analyse_result AnalyseShowTopDetections(const vector<string>&);
 
     ///
     analyse_result AnalyseDumpDetections(const vector<string>&);
@@ -1995,6 +2041,9 @@ public:
     /// Extracts a key frame
     analyse_result AnalyseExtractKeyFrames(const vector<string>&);
 
+    /// Inserts all videoframes as objects
+    analyse_result AnalyseInsertFrames(const vector<string>&);
+
     /// Used in for video segments.
     //string SolveSegmentfilePath(const string&) const;
 
@@ -2122,6 +2171,9 @@ public:
     analyse_result AnalyseUpdateVideoInfo(const vector<string>&);
 
     ///
+    analyse_result AnalyseTestBinData(const vector<string>&);
+
+    ///
     analyse_result AnalyseBinData(const vector<string>&);
 
     /// Dumps features in raw binary files.
@@ -2129,6 +2181,15 @@ public:
 
     ///
     analyse_result AnalyseBinDumpTest(const vector<string>&);
+
+    ///
+    analyse_result AnalyseCOCOmasks(const vector<string>&);
+
+    ///
+    analyse_result AnalyseMaskedDetection(const vector<string>&);
+
+    ///
+    analyse_result AnalyseFeatureTest(const vector<string>&);
 
     ///
     analyse_result AnalyseEraseFeatures(const vector<string>&);
@@ -2198,6 +2259,9 @@ public:
 
     ///
     analyse_result AnalysePDF(const vector<string>&);
+
+    ///
+    analyse_result AnalyseCaptioning(const vector<string>&);
 
     ///
     analyse_result AnalyseSentenceCandidates(const vector<string>&);
@@ -2866,18 +2930,27 @@ public:
     ///
     float Threshold() const { return threshold; }
 
-#ifdef HAVE_CAFFE_CAFFE_HPP
+#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
     ///
     analyse_result AnalyseCreateLevelDB(const vector<string>&);
 
     ///
     analyse_result AnalyseCaffeTest(const vector<string>&);
-#endif // HAVE_CAFFE_CAFFE_HPP
+#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
 
     ///
     const PicSOM::detection_stat_t& DetectionStat() const {
       return detection_stat;
     }
+
+    ///
+    vector<string> ExpandDetectionsWithClasses(const vector<string>&,
+					       const list<string>&,
+					       bool = true);
+
+    ///
+    vector<string> ExpandDetectionsWithClasses(const vector<string>&,
+					       const string&);
 
   protected:
     /// Link to the outside universe.
@@ -3082,6 +3155,9 @@ public:
 
     /// Description of the cross validation scheme.
     string crossval;
+
+    /// For SVM::Create()
+    string featureaugmentation;
 
     /// The level of maps to be analyzed, -1 for all.
     int level;
@@ -3484,6 +3560,9 @@ public:
     vector<string> detections;
 
     ///
+    vector<string> captionings;
+
+    ///
     // vector<string> evaluations;
 
     ///
@@ -3511,6 +3590,9 @@ public:
     size_t slave_detections_stored;
 
     ///
+    size_t slave_captions_stored;
+
+    ///
     size_t slave_features_stored;
 
     ///
@@ -3530,6 +3612,15 @@ public:
 
     ///
     bool keeptmp;
+
+    ///
+    bool tolerate_missing_features;
+
+    ///
+    string mapgrid;
+
+    ///
+    map<string,map<size_t,textline_t> > insert_objects_textline;
 
   };  // class Analysis
 

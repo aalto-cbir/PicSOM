@@ -1,18 +1,15 @@
-// -*- C++ -*-  $Id: AudioFreq.C,v 1.4 2013/02/25 11:04:35 jorma Exp $
+// -*- C++ -*-  $Id: AudioFreq.C,v 1.5 2016/06/23 10:49:25 jorma Exp $
 // 
 // Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
 
-// compile only if we want to include audio libraries
-//#ifdef USE_AUDIO
-
 #include <AudioFreq.h>
 
 namespace picsom {
   static const char *vcid =
-    "$Id: AudioFreq.C,v 1.4 2013/02/25 11:04:35 jorma Exp $";
+    "$Id: AudioFreq.C,v 1.5 2016/06/23 10:49:25 jorma Exp $";
 
 static AudioFreq list_entry(true);
 
@@ -42,8 +39,6 @@ bool AudioFreq::ProcessOptionsAndRemove(list<string> &l) {
 } // namespace picsom
 
 //=============================================================================
-
-//#endif //USE_AUDIO
 
 // Local Variables:
 // mode: font-lock

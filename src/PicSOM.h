@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: PicSOM.h,v 2.291 2015/10/01 14:52:09 jorma Exp $
+// -*- C++ -*-  $Id: PicSOM.h,v 2.296 2016/12/19 08:09:29 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -57,8 +57,6 @@
 #include <readline/history.h>
 #endif // PICSOM_USE_READLINE
 
-// #define PICSOM_USE_PYTHON
-
 #ifdef SIMPLE_USE_PTHREADS
 #define PICSOM_USE_PTHREADS
 
@@ -105,7 +103,7 @@ namespace picsom {
   using simple::ListOf;
 
   static string PicSOM_h_vcid =
-    "@(#)$Id: PicSOM.h,v 2.291 2015/10/01 14:52:09 jorma Exp $";
+    "@(#)$Id: PicSOM.h,v 2.296 2016/12/19 08:09:29 jorma Exp $";
 
   extern const string PicSOM_C_vcid, picsom_C_vcid;
 
@@ -260,11 +258,12 @@ namespace picsom {
 
   /// Used when adding/inserting/uploading new objects ina DataBase.
   enum insertmode_t {
-    insert_undef,     //<!
-    insert_copy,      //<!
-    insert_move,      //<!
-    insert_softlink,  //<!
-    insert_hardlink   //<!
+    insert_undef,        //<!
+    insert_copy,         //<!
+    insert_move,         //<!
+    insert_relativelink, //<!
+    insert_softlink,     //<!
+    insert_hardlink      //<!
   };
 
   /** documentation missing
@@ -552,11 +551,12 @@ namespace picsom {
     if (m.first=="") {
       m.first = "insertmode_enum_info";
       typedef pair<string,string> p;
-      m.second[insert_undef]    = p("undef",    "?");
-      m.second[insert_copy]     = p("copy",     "c");
-      m.second[insert_move]     = p("move",     "m");
-      m.second[insert_softlink] = p("softlink", "s");
-      m.second[insert_hardlink] = p("hardlink", "h");
+      m.second[insert_undef]        = p("undef",    	"?");
+      m.second[insert_copy]         = p("copy",     	"c");
+      m.second[insert_move]         = p("move",     	"m");
+      m.second[insert_relativelink] = p("relativelink", "r");
+      m.second[insert_softlink]     = p("softlink",     "s");
+      m.second[insert_hardlink]     = p("hardlink",     "h");
     }
     return m;
   }
@@ -708,7 +708,7 @@ namespace picsom {
      @verbinclude cmdline-io.dox
    
      @short A class implementing the PicSOM engine. 
-     @version $Id: PicSOM.h,v 2.291 2015/10/01 14:52:09 jorma Exp $
+     @version $Id: PicSOM.h,v 2.296 2016/12/19 08:09:29 jorma Exp $
   */
   class PicSOM : public Simple {
   public:
@@ -754,7 +754,7 @@ namespace picsom {
     static string ExtractVersion(const string&);
 
     /// Filled in by release/build script.
-    static string Release() { return "" "picsom-0.33" ; }
+    static string Release() { return "" "picsom-0.34" ; }
 
     ///
     static bool HasFeaturesInternal() { return has_features_internal; }
@@ -1322,6 +1322,11 @@ namespace picsom {
 
     ///
     const string& SlavePipe() const { return slavepipe; }
+
+    ///
+    bool IsSlavePiping(const string& s) const {
+      return IsSlave() && slavepipe.find(s)!=string::npos;
+    }
 
     ///
     list<string> SbatchExclude() const;
@@ -2462,19 +2467,7 @@ namespace picsom {
     void CmdLineArgs(const vector<string>& v) { cmdline_args = v;  }
 
     /// Calls system().
-    int ExecuteSystem(const string& cmd, bool pre, bool ok, bool err) {
-      if (pre)
-	WriteLog("Executing system("+cmd+")");
-
-      int r = system(cmd.c_str());
-
-      if (ok && !r)
-	WriteLog("Successfully executed system("+cmd+")");
-      if (err && r)
-	ShowError("Failed to execute system("+cmd+") status=", ToStr(r));
-    
-      return r;
-    }
+    int ExecuteSystem(const string& cmd, bool pre, bool ok, bool err);
 
     /// Calls system().
     int ExecuteSystem(const vector<string>& args, bool pre, bool ok, bool err) {
@@ -3312,7 +3305,7 @@ namespace picsom {
       db(_db), idx(_idx), start(-1), end(-1) {}
 
     //
-    string str(bool = false) const;
+    string str(bool = false, bool = true) const;
 
     //
     bool parse(const string&);
@@ -3333,8 +3326,14 @@ namespace picsom {
       add(make_pair(s, v));
     }
 
+    //
     string get_text() const {
       return empty() ? "" : txt_val[0].first;
+    }
+
+    //
+    bool has_time_set() const {
+      return start!=-1 || end!=-1;
     }
 
     //
@@ -3357,9 +3356,6 @@ namespace picsom {
 
     //
     string evaluator;
-
-    //
-    // string txt;  // should be deprecated?
 
     //
     vector<pair<string,double> > txt_val;

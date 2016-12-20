@@ -9,12 +9,13 @@
 # Short-Description: Start the picsom demo server.
 ### END INIT INFO
 
-# $Id: picsomd,v 1.4 2014/09/21 22:13:37 jorma Exp $	
+# $Id: picsomd,v 1.6 2015/11/27 16:09:53 jorma Exp $	
 
-DIR=/home/ubuntu/picsom/build/c++
-DEMONUSER=ubuntu
-DEMONGROUP=ubuntu
+DEMONUSER=cloud-user
+DIR=/home/$DEMONUSER/picsom/c++
+DEMONGROUP=$DEMONUSER
 OPERATION=-forge
+FORCEDHOSTNAME=picsom.duckdns.org
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 EXE=picsom.linux64.fast
@@ -28,7 +29,9 @@ DEBUGOPTS=
 #DEBUGOPTS=-Ddetections
 #DEBUGOPTS="-Dhttp -Ddetections=2"
 
-DAEMON_OPTS="$DEBUGOPTS -pidfile $PIDFILE $OPERATION"
+HOSTOPT=-host=$FORCEDHOSTNAME
+
+DAEMON_OPTS="$DEBUGOPTS -pidfile $PIDFILE $HOSTOPT $OPERATION"
 
 test -x $DAEMON || exit 0
 

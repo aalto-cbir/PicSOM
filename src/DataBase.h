@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: DataBase.h,v 2.487 2015/11/10 13:47:33 jorma Exp $
+// -*- C++ -*-  $Id: DataBase.h,v 2.509 2016/12/19 09:03:48 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -28,24 +28,40 @@
 #include <ContextState.h>
 #endif // PICSOM_USE_CONTEXTSTATE
 
-#ifdef USE_OD
+#ifdef PICSOM_USE_OD
 #include <ObjectDetection.h>
-#endif // USE_OD
+#endif // PICSOM_USE_OD
 
-#ifdef USE_CUDA
-#endif // USE_CUDA
-
-#ifdef HAVE_CAFFE_CAFFE_HPP
+#ifdef HAVE_CUDA_RUNTIME_H
 #include <cuda_runtime.h>
+#endif // HAVE_CUDA_RUNTIME_H
+
+#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
 #include <cstring>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include <caffe/caffe.hpp>
-#endif // HAVE_CAFFE_CAFFE_HPP
+#pragma GCC diagnostic pop
+#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
+
+#ifdef HAVE_JSON_JSON_H
+#include <json/json.h>
+#endif // HAVE_JSON_JSON_H
+
+#ifdef PICSOM_USE_PYTHON
+#undef _POSIX_C_SOURCE
+#undef _XOPEN_SOURCE
+#include <Python.h>
+#include <marshal.h>
+#endif // PICSOM_USE_PYTHON
 
 #include <ontology.h>
 
 namespace picsom {
   static string DataBase_h_vcid =
-    "@(#)$Id: DataBase.h,v 2.487 2015/11/10 13:47:33 jorma Exp $";
+    "@(#)$Id: DataBase.h,v 2.509 2016/12/19 09:03:48 jorma Exp $";
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -792,7 +808,15 @@ namespace picsom {
     }
     
     ///
-    vector<pair<size_t,size_t> > VideoOrSegmentFramesOrdered(size_t);
+    const vector<pair<size_t,size_t> >& 
+    VideoOrSegmentFramesOrdered(size_t, bool = true);
+
+    ///
+    pair<pair<size_t,size_t>,pair<size_t,size_t> > 
+    VideoOrSegmentFirstAndLastFrame(size_t, bool = true);
+
+    ///
+    pair<size_t,size_t> VideoOrSegmentMiddleFrame(size_t, bool = true);
 
     ///
     string ParentObjectStringByPruning(const string& l) const;
@@ -1131,12 +1155,25 @@ namespace picsom {
     ///
     typedef map<string,pair<string,list<string> > > featurealias_t;
 
+    ///
+    typedef map<string,pair<string,list<string> > > featureaugmentation_t;
+
     /// Interprets, expands and saves the given feature alias expression
     bool SetFeatureAlias(const string &n, const string &e, 
 			 const string &t = "");
 
     /// Extracts the feature alias info from the node and calls SetFeatureAlias
     bool SetFeatureAlias(const xmlNodePtr &n);
+
+    /// Interprets, expands and saves the given feature augmentation expression
+    bool SetFeatureAugmentation(const string &n, const string &e, 
+			 const string &t = "");
+
+    /// Extracts the feature augmentation info from the node and calls SetFeatureAugmentation
+    bool SetFeatureAugmentation(const xmlNodePtr &n);
+
+    ///
+    bool PossiblyImplementFeatureAugmentation(const string&);
 
     ///
     const list<string>& FeatureRegExpList(const string&);
@@ -1154,14 +1191,7 @@ namespace picsom {
     const string& TextQueryLog() { return textquerylog; }
 
     /// Expands if the argument is featurealias.
-    list<string> ExpandFeatureAlias(const string& n) {
-      featurealias_t::iterator i = featurealias.find(n);
-      if (i==featurealias.end() && n[0]=='*') {
-	CreateDefaultFeatureAliases(true, true);
-	i = featurealias.find(n);
-      }
-      return i==featurealias.end() ? list<string>(1, n) : i->second.second;
-    }
+    list<string> ExpandFeatureAlias(const string& n);
 
     /// Dumps the feature aliases
     void DumpFeatureAlias() const {
@@ -1333,6 +1363,10 @@ namespace picsom {
     ground_truth GroundTruthLscom2Trecvid(target_type, const string&,
 					  const string&, const string&,
 					  const string&, const vector<string>&);
+
+    /// Returns indices oof video (segment) middle frames.
+    ground_truth GroundTruthMiddleFrame(target_type, const string&,
+					const string&, const vector<string>&);
 
     /// Performs some straightforward expansions, etc.
     ground_truth GroundTruthApplyOperations(target_type, const ground_truth&,
@@ -1510,11 +1544,20 @@ namespace picsom {
     bool CloseTextIndices();
 
     /// Performs one query operation with picsom-lucene text index.
-    list<string> LuceneOperation(const string&, const list<string>&,
-				 bool = true);
+    pair<bool,list<string> > LuceneOperation(const string&, const list<string>&,
+					     bool = true);
+
+    /// given "3" returns ["--lucene" "3.6.1" "--root" "..."] or something
+    vector<string> SolvePicSOMLuceneArguments(const string&);
 
     /// Performs one query operation with picsom-lucene text index.
     string LuceneVersion(const string&);
+
+    ///
+    static bool ForceLuceneUnlock() { return force_lucene_unlock; }
+
+    ///
+    static void ForceLuceneUnlock(bool f) { force_lucene_unlock = f; }
 
     /// Finds features which don't have maps but are specified in settings.xml.
     bool SolveExtractions();
@@ -1555,6 +1598,13 @@ namespace picsom {
     ///
     bool ExpandAndStoreDescribedDetections(const string&,
 					   const list<pair<string,string> >&);
+
+    /// Creates captioning method.
+    bool DescribedCaptioning(const XmlDom&);
+
+    ///
+    bool ExpandAndStoreDescribedCaptionings(const string&,
+					    const list<pair<string,string> >&);
 
     /// Creates media extraction method.
     bool DescribedMedia(const XmlDom&);
@@ -1896,6 +1946,12 @@ namespace picsom {
     ///
     static bool OpenReadWriteDet() { return open_read_write_det; }
 
+    ///
+    static void OpenReadWriteTxt(bool m) { open_read_write_txt = m; }
+
+    ///
+    static bool OpenReadWriteTxt() { return open_read_write_txt; }
+
     /// Sets debugging of the use of mutex locks.
     static void DebugLocks(bool d) { debug_locks = d; }
 
@@ -1952,6 +2008,12 @@ namespace picsom {
 
     /// Sets debugging in *Detection*().
     static void DebugDetections(size_t d) { debug_detections = d; }
+
+    /// Sets debugging in *Detect*().
+    static size_t DebugCaptionings() { return debug_captionings; }
+
+    /// Sets debugging in *Captioning*().
+    static void DebugCaptionings(size_t d) { debug_captionings = d; }
 
     /// Sets debugging of read/write of class files.
     static void DebugClassFiles(bool d) { debug_classfiles = d; }
@@ -2241,6 +2303,15 @@ namespace picsom {
 
     ///
     FloatVector *FeatureData(const string&, size_t, bool);
+
+    ///
+    FloatVector *FeatureDataCombined(const string&, size_t, bool);
+
+    ///
+    bool FeatureDataCombinedPrepare(const string&, bool);
+
+    ///
+    FloatVector *FeatureDataNumPy(const string&, size_t, bool);
 
     ///
     FloatVector *SqlFeatureData(const string&, size_t, bool) const;
@@ -2611,6 +2682,12 @@ namespace picsom {
 
     ///
     bool ExtractImageFromTar(size_t);
+
+    ///
+    bool ExtractImagesFromTar(const vector<size_t>&);
+
+    ///
+    bool ExtractFromTarCommon(size_t, string&, string&, string&, string&);
 
     ///
     bool ExtractMediaClip(size_t idx, const target_type tt, bool);
@@ -3037,9 +3114,9 @@ namespace picsom {
     }
 
     /// Returns the description from settings.xml as a list.
-    const list<pair<string,string>>&
+    const list<pair<string,string> >&
     TextIndexDescription(const string& n) const {
-      static list<pair<string,string>> empty;
+      static list<pair<string,string> > empty;
       auto p = described_textindices.find(n);
       return p==described_textindices.end() ? empty : p->second;
     }
@@ -3058,10 +3135,10 @@ namespace picsom {
 			 const list<pair<string,string> >&);
 
     ///
-    list<pair<string,string>> TextIndexRetrieve(size_t, const string&);
+    list<pair<string,string> > TextIndexRetrieve(size_t, const string&);
 
     ///
-    list<pair<string,string>> TextIndexRetrieveFake(size_t, const string&);
+    list<pair<string,string> > TextIndexRetrieveFake(size_t, const string&);
 
     ///
     string TextIndexSearchByLabel(size_t, const string&, const string&);
@@ -3073,7 +3150,7 @@ namespace picsom {
 
     ///
     list<string> TextIndexApplyRules(const string&,
-				     const list<pair<string,string>>&);
+				     const list<pair<string,string> >&);
 
     ///
     list<string> TextIndexRules(const string&);
@@ -3129,7 +3206,7 @@ namespace picsom {
     ///
     string DetectionName(const list<pair<string,string> >&,
 			 const list<string>&, const string&, const string&,
-			 bool) const;
+			 const string&, bool) const;
 
     ///
     bool OpenBinDetection(const string&, const string&, size_t);
@@ -3143,31 +3220,32 @@ namespace picsom {
     /// Executes all <extraction><detection> instructions.
     bool DoAllDetections(bool, const vector<size_t>&, const vector<string>&,
 			 const string&, const string&, const list<string>&,
+			 const string&, bool,
 			 Segmentation*, XmlDom&, PicSOM::detection_stat_t&);
 
     /// Executes all <extraction><detection> instructions.
     bool DoAllDetections(bool, const list<upload_object_data>& objs,
 			 const list<string>&, const list<string>&,
-			 Segmentation*);
+			 bool, Segmentation*);
 
     /// Executes one <extraction><detection> instruction.
     bool DoOneDetectionForAll(bool, const vector<size_t>&, const string&,
 			      const string&, const string&, const list<string>&,
-			      Segmentation*, XmlDom&,
+			      const string&, bool, Segmentation*, XmlDom&,
 			      PicSOM::detection_stat_t&);
 
     /// Executes one <extraction><detection> instruction.
     bool DoOneDetectionForAll(bool, const vector<size_t>&,
 			      const pair<string,list<pair<string,string> > >&,
 			      const string&, const string&, const list<string>&,
-			      Segmentation*, XmlDom&,
+			      const string&, bool, Segmentation*, XmlDom&,
 			      PicSOM::detection_stat_t&);
 
     /// Executes one <extraction><detection> instruction.
     bool DoOneDetection(bool, size_t,
 			const pair<string,list<pair<string,string> > >&,
 			const string&, const string&, const list<string>&,
-			Segmentation*, bool&, XmlDom&);
+			const string&, Segmentation*, bool, bool&, XmlDom&);
 
     /// Calls RunCaffe().
     bool DoOneCaffeDetection(size_t, const list<pair<string,string> >&);
@@ -3182,20 +3260,20 @@ namespace picsom {
     /// Executes one <extraction><detection> instruction if svmpred.
     bool SvmPredDetectionSingle(size_t, const map<string,string>&,
 				const list<pair<string,string> >&,
-				DataBase*, const list<string>&,
-				Segmentation*, double*, string*, bool&);
+				DataBase*, const list<string>&, const string&,
+				Segmentation*, double*, string*, bool, bool&);
 
      /// Executes one <extraction><detection> instruction if svmpred.
     bool SvmPredDetectionSingleBatch(size_t, const map<string,string>&, 
 				     const list<pair<string,string> >&,
-				     DataBase*, const list<string>&,
-				     Segmentation*, double*, string*, bool&);
+				     DataBase*, const list<string>&, const string&,
+				     Segmentation*, double*, string*, bool, bool&);
 
     /// Executes one <extraction><detection> instruction if svmpred.
     bool SvmPredDetectionSingleSelf(size_t, const map<string,string>&,
 				    const list<pair<string,string> >&,
-				    DataBase*, const list<string>&,
-				    Segmentation*, double*, string*, bool&);
+				    DataBase*, const list<string>&, const string&,
+				    Segmentation*, double*, string*, bool, bool&);
 
     /// A helper for the above method.
     bool SvmCommon(const list<pair<string,string> >&);
@@ -3203,19 +3281,19 @@ namespace picsom {
     /// Executes one <extraction><detection> instruction if lsc.
     bool LscDetectionSingle(size_t, const map<string,string>&,
 			    const list<pair<string,string> >&,
-			    DataBase*, const list<string>&,
+			    DataBase*, const list<string>&, const string&,
 			    Segmentation*, double*, string*);
 
     /// Executes one <extraction><detection> instruction if random.
     bool RandomDetectionSingle(size_t, const map<string,string>&,
 			       const list<pair<string,string> >&,
-			       DataBase*, const list<string>&,
+			       DataBase*, const list<string>&, const string&,
 			       Segmentation*, double*, string*);
 
     /// Executes one <extraction><detection> instruction if caffe.
     bool CaffeDetectionSingle(size_t, const map<string,string>&,
 			      const list<pair<string,string> >&,
-			      DataBase*, const list<string>&,
+			      DataBase*, const list<string>&, const string&,
 			      Segmentation*, double*, string*,
 			      XmlDom&);
 
@@ -3236,35 +3314,44 @@ namespace picsom {
     ///
     bool FusionDetectionSingle(size_t, const map<string,string>&,
 			       const list<pair<string,string> >&,
-			       DataBase*, const list<string>&, Segmentation*);
+			       DataBase*, const list<string>&, const string&,
+			       Segmentation*);
 
     ///
     bool ChildrenDetectionSingle(size_t, const map<string,string>&,
 				 const list<pair<string,string> >&,
-				 DataBase*, const list<string>&, Segmentation*);
+				 DataBase*, const list<string>&, const string&,
+				 Segmentation*);
+
+    ///
+    bool SuperClassDetectionSingle(size_t, const map<string,string>&,
+				   const list<pair<string,string> >&,
+				   DataBase*, const list<string>&, const string&,
+				   Segmentation*);
 
     ///
     bool TimeFusionDetectionSingle(size_t, const map<string,string>&,
 				   const list<pair<string,string> >&,
-				   DataBase*, const list<string>&, 
+				   DataBase*, const list<string>&, const string&,
 				   Segmentation*);
 
     ///
     bool TimeThresholdDetectionSingle(size_t, const map<string,string>&,
 				      const list<pair<string,string> >&,
-				      DataBase*, const list<string>&, 
+				      DataBase*, const list<string>&, const string&,
 				      Segmentation*);
 
     ///
     bool SentenceSelectionDetectionSingle(size_t, const map<string,string>&,
 					  const list<pair<string,string> >&,
-					  DataBase*, const list<string>&, 
+					  DataBase*, const list<string>&, const string&,
 					  Segmentation*);
 
     ///
     bool CombineDetectionSingle(size_t, const map<string,string>&,
 				const list<pair<string,string> >&,
-				DataBase*, const list<string>&, Segmentation*);
+				DataBase*, const list<string>&, const string&,
+				Segmentation*);
 
     ///
     bool StoreDetectionResult(size_t, const string&, float);
@@ -3292,27 +3379,38 @@ namespace picsom {
     map<string,vector<float> > RetrieveOrProduceDetectionData(size_t,
 							      const string&,
 							      const string&,
-							      bool, bool&);
+							      bool, bool&,
+							      bool);
 
     ///
     map<string,vector<float> > ProduceDetectionData(size_t, const string&,
-						    const string&);
+						    const string&, bool);
 
     ///
     bool CommonDetection(const string&, size_t, bool,
 			 const list<pair<string,string> >&,
-			 const string&, const list<string>&, Segmentation*,
-			 bool&, XmlDom&);
+			 const string&, const list<string>&, const string&,
+			 Segmentation*, bool, bool&, XmlDom&);
 
     ///
     bool CommonDetectionSingle(const string&, size_t,
 			       const list<pair<string,string> >&,
-			       const list<string>&,
-			       Segmentation*, double*, string*, bool&,
+			       const list<string>&, const string&,
+			       Segmentation*, double*, string*, bool, bool&,
 			       XmlDom&);
     ///
     float ThresholdValue(const string&);
     
+    ///
+    bool DoAllCaptionings(const vector<size_t>&, const vector<string>&,
+			  XmlDom&);
+
+    ///
+    bool DoOneCaptioning(const vector<size_t>&, const string&, XmlDom&);
+
+    ///
+    bool StoreCaptioningResult(size_t, const string&, const textline_t&,
+			       XmlDom&);
 
     /// OSRS speech recognition.
     bool OSRSspeechRecognition(size_t, const list<pair<string,string> >&);
@@ -3696,6 +3794,16 @@ namespace picsom {
     string LscomNameToTrecvidId(const string&, bool = true);
 
     ///
+    string PossiblyDeLscom(const string& str) {
+      if (str.find("lscom")!=0)
+	return str;
+      
+      string l_str = LscomName(str, true, "lscom/trecvid2011");
+      pair<string, string> l_pair = SplitLscomName(l_str);
+      return l_pair.first;
+    }
+
+    ///
     static const string& ImageNetName(const PicSOM*, const string&, bool);
 
     ///
@@ -3710,7 +3818,14 @@ namespace picsom {
     const ontology& LscomOntology() const { return lscom_ontology; }
 
     ///
-    map<size_t,textline_t> GenerateSentencesNeuralTalk(const list<string>&);
+    map<size_t,textline_t> 
+    GenerateSentencesNeuralTalk(const vector<size_t>&,
+				const map<string,string>&);
+
+#ifdef PICSOM_USE_PYTHON
+    /// helper
+    bool NeuralTalkAddCandidate(textline_t&, PyObject*);
+#endif // PICSOM_USE_PYTHON
 
     ///
     map<size_t,textline_t> ReadSentencesNeuralTalk(const string&);
@@ -3789,7 +3904,7 @@ namespace picsom {
 						    const vector<pair<bin_data*,double> >&,
 						    size_t, bool, bool);
     
-#ifdef USE_OD
+#ifdef PICSOM_USE_OD
     ///
     void OdSetDebug(int v) { odone.SetDebug(v); }
 
@@ -3801,7 +3916,7 @@ namespace picsom {
       return odone.ProcessImage(f, s, b);
     }
 
-#endif // USE_OD
+#endif // PICSOM_USE_OD
 
     ///
     static void UsePthreadsFeatures(bool v) { use_pthreads_features = v; }
@@ -3908,7 +4023,7 @@ namespace picsom {
       data_vector_cache.clear();
     }
 
-#ifdef HAVE_CAFFE_CAFFE_HPP
+#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
     ///
     bool CreateLevelDB(const string&, const string&, const ground_truth&);
 
@@ -3929,7 +4044,7 @@ namespace picsom {
     ///
     list<vector<float> > RunCaffeOld(const DataBase *db, const string& name,
 				     const list<imagedata>& img);
-#endif // HAVE_CAFFE_CAFFE_HPP
+#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
 
     ///
     bool ReadExternalMetaData(const string&, const map<string,string>&);
@@ -3937,17 +4052,32 @@ namespace picsom {
     ///
     bool ReadCOCO(const map<string,string>&);
 
-#ifdef USE_JAULA
+#ifdef PICSOM_USE_JAULA
     ///
     bool ReadCOCOjaula(const string&, const string&, const string&,
 		       const string&, const string&, const string&);
-#endif // USE_JAULA
+#endif // PICSOM_USE_JAULA
 
 #ifdef HAVE_JSON_JSON_H
     ///
     bool ReadCOCOjsoncpp(const string&, const string&, const string&,
 			 const string&, const string&, const string&);
+
+    ///
+    list<pair<string,list<vector<pair<float,float> > > > > COCOmasks(size_t);
 #endif // HAVE_JSON_JSON_H
+
+    ///
+    list<pair<string,imagedata> > ObjectMasks(size_t);
+
+    ///
+    list<pair<string,imagedata> > ObjectMasksCombined(size_t);
+
+    ///
+    list<imagedata> ObjectMasks(size_t, const string&);
+
+    ///
+    imagedata ObjectMasksCombined(size_t, const string&);
 
     ///
     map<string,list<pair<vector<float>,string> > > &
@@ -3961,6 +4091,21 @@ namespace picsom {
 			   const string& spec, const string& file);
 
     ///
+    const list<string>& ErfDetectionImages() const {
+      return erf_detection_images;
+    }
+    
+    ///
+    const list<map<string,string> >&
+    LinkedDataMappings(const string& s) const {
+      static const list<map<string,string> > empty;
+      if (linked_data_mappings.find(s)==linked_data_mappings.end())
+	return empty;
+      else
+	return linked_data_mappings.at(s);
+    }
+
+    ///
     class linked_data_query_t {
     public:
       /// is this really needed?
@@ -3971,6 +4116,12 @@ namespace picsom {
 
       ///
       string expand(const vector<string>&) const;
+
+      ///
+      string str() const {
+	return string("type=")+type+" key="+key+" url="+url+
+	  " queryfile="+queryfile+" query="+query;
+      }
 
       ///
       string type;
@@ -3998,6 +4149,17 @@ namespace picsom {
 					  = vector<string>());
     ///
     vector<pair<size_t,float> > FeatureFrameDifference(size_t, const string&, size_t, size_t);
+
+    ///
+    bool ExtractFullTars() const { return extractfulltars; }
+
+    ///
+    void ExtractFullTars(bool v) { extractfulltars = v; }
+
+#ifdef PICSOM_USE_PYTHON
+    ///
+    PyObject *PythonFeatureVector(const string&, size_t);
+#endif // PICSOM_USE_PYTHON
 
   protected:
     /// This points back to the system.
@@ -4100,7 +4262,7 @@ namespace picsom {
     string virtualimagesize;
 
     /// Size "WxH,WxH,..." of virtual thubnails to be generated.
-    list<pair<string,string>> virtualthumbnailsize;
+    list<pair<string,string> > virtualthumbnailsize;
 
     /// Type of thumbnails.
     string tn_type;
@@ -4199,6 +4361,9 @@ namespace picsom {
     /// True if *Detetion*() are traced.
     static size_t debug_detections;
 
+    /// True if *Captioning*() are traced.
+    static size_t debug_captionings;
+
     /// True to force call to DumpObjects() in ReadLabels/MakeSubObjectIndex().
     static bool debug_dumpobjs;
 
@@ -4222,6 +4387,12 @@ namespace picsom {
 
     /// Whether to allow writing in binary detection files.
     static bool open_read_write_det;
+
+    /// Whether to allow writing in (lucene) text files.
+    static bool open_read_write_txt;
+
+    ///
+    static bool force_lucene_unlock; 
 
     /// Whether to use mplayer.
     static bool insert_mplayer;
@@ -4273,6 +4444,9 @@ namespace picsom {
 
     /// List of detection names found in settings.xml.
     map<string,list<pair<string,string> > > described_detections;
+
+    /// List of captioning names found in settings.xml.
+    map<string,list<pair<string,string> > > described_captionings;
 
     /// List of media extraction names found in settings.xml.
     map<string,list<pair<string,string> > >  described_medias;
@@ -4421,6 +4595,8 @@ namespace picsom {
      */
     featurealias_t featurealias;
 
+    featureaugmentation_t featureaugmentation;
+
     /** The named command lines. The map key is the name of the rule, the
      *  first string of the pair is the description, and the list contains
      *  the parameters of the rule.
@@ -4479,13 +4655,13 @@ namespace picsom {
     ContextState context;
 #endif // PICSOM_USE_CONTEXTSTATE
 
-#ifdef USE_OD
+#ifdef PICSOM_USE_OD
     ///
     ObjectDetection odone;
 
     ///
     map<string,ObjectDetection> odset;
-#endif // USE_OD
+#endif // PICSOM_USE_OD
 
     ///
     map<string,map<string,list<pair<vector<float>,string> > > > odset_word_box;
@@ -4586,10 +4762,10 @@ namespace picsom {
     static bool mysql_library_initialized;
 
     ///
-    map<string,map<string,FloatVector>> interpolated_vectors;
+    map<string,map<string,FloatVector> > interpolated_vectors;
 
     ///
-    map<string,list<pair<string,string>>> textindex_fields;
+    map<string,list<pair<string,string> > > textindex_fields;
 
     ///
     map<string,string> macro;
@@ -4614,6 +4790,9 @@ namespace picsom {
     bool alwaysusetarfiles;
 
     ///
+    bool extractfulltars;
+
+    ///
     map<string,bin_data> bindetections;
 
     ///
@@ -4628,7 +4807,10 @@ namespace picsom {
     ///
     bool overwritedetections;
 
-#ifdef HAVE_CAFFE_CAFFE_HPP
+    ///
+    list<string> erf_detection_images;
+
+#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
     ///
     class caffe_t {
     public:
@@ -4669,7 +4851,7 @@ namespace picsom {
     ///
     string caffefusion;
 
-#endif // HAVE_CAFFE_CAFFE_HPP
+#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
 
     ///
     map<string,XmlDom> detected_object_info;
@@ -4690,10 +4872,34 @@ namespace picsom {
     RwLock feature_re_list_lock;
 
     ///
-    map<size_t,vector<pair<size_t,size_t> > > segment_frames;
+    map<size_t,pair<vector<pair<size_t,size_t> >,
+		    vector<pair<size_t,size_t> > > > segment_frames;
 
     ///
     map<size_t,map<string,pair<size_t,double> > > idf;
+
+    ///
+    map<string,vector<string> > feature_txt_files;
+
+    ///
+    map<string,pair<pair<istream*,size_t>,pair<size_t,size_t> > >
+        numpy_feature_info;
+
+#ifdef HAVE_JSON_JSON_H
+    ///
+    map<size_t,Json::Value> coco_json;
+
+    ///
+    map<size_t,string> coco_category;
+#endif // HAVE_JSON_JSON_H
+
+    ///
+    map<string,list<map<string,string> > > linked_data_mappings;
+
+#ifdef PICSOM_USE_PYTHON
+    ///
+    map<string,PyObject*> neuraltalk_models;
+#endif // PICSOM_USE_PYTHON
 
   };  // class DataBase
 

@@ -1,11 +1,11 @@
-// -*- C++ -*-  $Id: matrix,v 1.6 2015/10/26 13:02:10 jorma Exp $
+// -*- C++ -*-  $Id: matrix,v 1.9 2016/04/27 07:08:27 jorma Exp $
 // 
-// Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
 
-// $Id: matrix,v 1.6 2015/10/26 13:02:10 jorma Exp $	
+// $Id: matrix,v 1.9 2016/04/27 07:08:27 jorma Exp $	
 
 #ifndef _cox_matrix_
 #define _cox_matrix_
@@ -17,9 +17,11 @@
 #include <list>
 #include <map>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <cmath>
 #include <cstring>
+#include <limits>
 
 #ifdef HAVE_MKL_H
 #include <mkl_lapack.h>
@@ -46,12 +48,16 @@ namespace cox {
   using std::plus;
   using std::minus;
   using std::ostream;
+  using std::ofstream;
   using std::stringstream;
+  using std::numeric_limits;
   using std::cout;
   using std::endl;
 
   ///
   template <class T> class matrix {
+    static T _nan; // numeric_limits<T>::quiet_NaN();
+
   public:
     ///
     enum type_t {
@@ -62,13 +68,15 @@ namespace cox {
       
     ///
     matrix(size_t r = 0, size_t c = 0,
-	   type_t t = dense) : _type(t), _r(r), _c(c) {
+	   type_t t = dense) : _type(t), _r(r), _c(c),
+			       _determinant(_nan) {
       if (_type==dense)
 	_d.resize(_r*_c);
     }
       
     ///
-    matrix(int r, int c, type_t t = dense) : _type(t), _r(r), _c(c) {
+    matrix(int r, int c, type_t t = dense) : _type(t), _r(r), _c(c),
+					     _determinant(_nan) {
       if (_type==dense)
 	_d.resize(_r*_c);
     }
@@ -78,7 +86,8 @@ namespace cox {
     // matrix(typename C::const_iterator i, typename C::const_iterator e,
     matrix(C i, C e,
 	   bool horiz = false) :
-      _type(dense), _r(0), _c(0) {
+      _type(dense), _r(0), _c(0),
+      _determinant(_nan) {
       while (i!=e)
 	if (horiz)
 	  append_row(*(i++));
@@ -88,14 +97,16 @@ namespace cox {
 
     ///
     template <class C>
-    matrix(const vector<C>& v, bool horiz = false) : _type(dense) {
+    matrix(const vector<C>& v, bool horiz = false) : _type(dense),
+						     _determinant(_nan) {
       _r = !horiz ? v.size() : 1;
       _c =  horiz ? v.size() : 1;
       _d = dense_t(v.begin(), v.end());
     }
 
     template <class C>
-    matrix(const vector<C>& v, size_t h, size_t w) : _type(dense) {
+    matrix(const vector<C>& v, size_t h, size_t w) : _type(dense),
+						     _determinant(_nan) {
       _r = h;
       _c = w;
       _d = dense_t(v.begin(), v.end());
@@ -636,8 +647,8 @@ namespace cox {
 
       matrix ret(*this);
 
-      ofstream out("matrix.m");
-      ret.show(out);
+      //ofstream out("matrix.m");
+      //ret.show(out);
 
       int c = columns(), info = -1;
       vector<int> ipiv(c);
@@ -650,6 +661,12 @@ namespace cox {
 	throw _h()+"inverse() sgetrf_() failed with info="+ss.str();
       }
 
+      double det = 1;
+      for (size_t i=0; i<size_t(c*c); i+=c+1)
+	det *= ret._d[i];
+      if (det<0)
+	det = -det;
+
       info = -1;
       int lw = c*c;
       vector<float> w(lw);
@@ -661,6 +678,8 @@ namespace cox {
 	ss << info;
 	throw _h()+"inverse() sgetri_() failed with info="+ss.str();
       }
+
+      ret._determinant = 1/det;
 
       return ret;
     }
@@ -676,6 +695,11 @@ namespace cox {
 	return h.transpose()*(h*h.transpose()).inverse();
       else
 	return (h.transpose()*h).inverse()*h.transpose();
+    }
+
+    ///
+    double determinant() const {
+      return _determinant;
     }
 
     /// 
@@ -879,7 +903,13 @@ namespace cox {
     ///
     sparse_t _s;
 
+    ///
+    double _determinant;
+
   }; // class matrix
+
+  ///
+  template <typename T> T matrix<T>::_nan = numeric_limits<T>::quiet_NaN();
 
 } // namespace cox
 

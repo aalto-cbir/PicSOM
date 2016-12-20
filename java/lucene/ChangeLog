@@ -1,0 +1,166 @@
+2016-12-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.27: flushIndex() now adds a dummy document.
+
+2016-03-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.26:
+	Added missing initialization of analyzeFields.
+
+2016-01-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.25: Clezned isAnalyzed().
+
+	* PicSOMLucene.java 1.24:
+	Added analyzefields, setAnalyzeFields() and isAnalyzed().
+
+2016-01-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.23:
+	getWriter() now uses "* ERROR" to report write.lock and other problems.
+
+	* PicSOMLucene.java 1.22:
+	interpret(foo) failed is now "* ERROR" and followed by System.exit(2).
+
+	* PicSOMLucene.java 1.21:
+	createReader() now reports "* ERROR" before exiting.
+
+	* test-write 1.2:
+	Added checks for $status (but they don't check if interpreter fails...).
+
+	* PicSOMLucene.java 1.20:
+	Started to use TextField and StringField instead of deprecated Field.
+
+	* PicSOMLucene3.java 1.3: Renamed AnalyzerFactory => AnalyzerFactory3 .
+
+	* test-read 1.1, test-read-3 1.1, test-write 1.1: Initial versions.
+
+	* picsom-lucene 1.14: Changed to 5.4.0 and improved.
+
+	* PicSOMLucene.java 1.19:
+	Out-commented def and use of OneNormsReader because it didn't compile and wasn't used.
+
+	* PicSOMLucene.java 1.18:
+	Summary: Replaced DirectoryReader with StandardDirectoryReader.
+
+2016-01-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-lucene 1.13:
+	Summary: Changed to use bash, addded --debug, improved.
+
+2016-01-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.17:
+	Started migration to 5.3.1 + multi version support.
+
+	* PicSOMLucene3.java 1.2: Renamed PicSOMLucene to PicSOMLucene3.
+
+	* picsom-lucene 1.12:
+	Started migration to 5.3.1 + multi version support.
+
+	* PicSOMLucene3.java 1.1: Copied from PicSOMLucene.java version 1.16.
+
+2015-03-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-lucene 1.11: Added check for hostname==login2.
+	clarified triton-specific setup.
+
+2012-10-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.16:
+	searchString() now shows parsed query if verbose.
+
+	* picsom-lucene 1.10:
+	Removed inexistent jar-files from the CLASSPATH (as of 3.5.0).
+
+2012-09-25  ajanki  <ajanki@pc19>
+
+	* PicSOMLucene.java 1.15:
+	Create an IndexWriter instance only when something is added to the
+	index. Now, several processes can access the index at the same time as
+	long as they only read data.
+
+2012-09-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.14:
+	Added updateDocument(), getLabels(), flushIndex(), documentExists().
+	Renamed closeIndex() to closeWriter(), added closeReader().
+	Rename (dummy) optimizeIndex() to optimizeWriter().
+	Added boolean relaxed parameter to createReader() to allow empty indices.
+	Improved verbostiy.
+	Removed out-commented old code.
+
+	* picsom-lucene 1.9: Added variables java and javac.
+	Added hostname test for fn01.
+
+2012-09-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.13:
+	Added a check that analyzer is set before index.
+
+2012-08-06  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.12:
+	Removed extra "* ok" from the end of --version output.
+
+	* PicSOMLucene.java 1.11: Changed to use lucene 3.6.1.
+	luceneVersion is now an argument to AnalyzerFactory.create().
+	Added more info in --version.
+
+2012-06-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.10: Added quotedstr in retrieveDocument().
+
+	* picsom-lucene 1.8: Added a SLURM-based triton check.
+
+2012-06-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.9: Added retrieveDocument().
+
+	* PicSOMLucene.java 1.8: Added catch message in createReader().
+
+2012-06-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-lucene 1.7: Added cd that was lost...
+
+	* picsom-lucene 1.6: Corrected bugs...
+
+2012-06-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-lucene 1.5: Added modifications for triton.
+
+2012-04-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOMLucene.java 1.7:
+	All non-error, non-logging output is now with "* " prefix and "* ok" trailer.
+
+	* PicSOMLucene.java 1.6: Small changes.
+
+	* picsom-lucene 1.4: Added cd in the beginning and -Xlint:unchecked.
+
+2012-04-17  satoru  <satoru@pc19>
+
+	* PicSOMLucene.java 1.5: *** empty log message ***
+
+2012-04-03  MarkusKoskela  <markus.koskela@tkk.fi>
+
+	* PicSOMLucene.java 1.4:
+	Added support for "german", "french", and "finnish" analyzers.
+	Added switch "--analyzer analyzername|list".
+	Added PicSOMLucene::checkAnalyzer().
+	Changed AnalyzerFactory::luceneVersion to Version.LUCENE_35.
+	Added AnalyzerFactory::listAnalyzers().
+
+2012-04-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-lucene 1.3, PicSOMLucene.java 1.3:
+	Added interactive use, some methods, upgraded to lucene 3.5.0.
+
+	* PicSOMLucene.java 1.2, picsom-lucene 1.2:
+	Added some command line switches.
+
+2011-09-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* picsom-lucene 1.1, PicSOMLucene.java 1.1:
+	Initial version cut'n'pasted from old code.
+

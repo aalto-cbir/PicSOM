@@ -1,11 +1,9 @@
-// -*- C++ -*-  $Id: madaudiofile.C,v 1.7 2014/01/23 07:54:56 jorma Exp $
+// -*- C++ -*-  $Id: madaudiofile.C,v 1.8 2016/06/23 10:49:26 jorma Exp $
 // 
 // Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
-
-//#ifdef USE_AUDIO
 
 #define MADAUDIO_PRINT_DEBUG
 
@@ -566,4 +564,3 @@ namespace picsom {
   // ----------------------------------------------------------------------
 } // namespace picsom
 
-//#endif // USE_AUDIO

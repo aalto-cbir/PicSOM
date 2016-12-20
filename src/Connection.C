@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Connection.C,v 2.369 2015/11/09 11:35:15 jorma Exp $
+// -*- C++ -*-  $Id: Connection.C,v 2.376 2016/12/07 22:47:12 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -62,7 +62,7 @@ int WSAAPI getnameinfo(const struct sockaddr*,socklen_t,char*,DWORD,
 
 namespace picsom {
   static const string Connection_C_vcid =
-    "@(#)$Id: Connection.C,v 2.369 2015/11/09 11:35:15 jorma Exp $";
+    "@(#)$Id: Connection.C,v 2.376 2016/12/07 22:47:12 jorma Exp $";
 
   /// A dummy initializer.
   const list<pair<string,string> > Connection::empty_list_pair_string;
@@ -537,8 +537,8 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
     break;
   }
   if (s==MAXINT) {
-    ShowError("Failed to bind() socket in Connection::CreateListen(): ",
-	      strerror(errno));
+    ShowError("Failed to bind() socket in Connection::CreateListen(): "+
+	      string(strerror(errno))+" "+ToStr(porta)+".."+ToStr(portb));
     exit(1);
   }
 
@@ -1361,6 +1361,7 @@ int Connection::HttpServerSolveContentLength(const string& s) const {
   bool Connection::HttpServerWriteOutSqlite3db(DataBase *db) {
     string hdr = "HttpServerWriteOutSqlite3db() : ";
     
+#ifdef HAVE_SQLITE3_H
     if (debug_http)
       cout << hdr << "CALLED" << endl;
     
@@ -1374,6 +1375,11 @@ int Connection::HttpServerSolveContentLength(const string& s) const {
       
     string otyp = "application/x-sqlite3";
     return HttpServerWriteOut(data, otyp, true, "");
+
+#else
+    return ShowError(hdr+(db?db->Name():"no database")+
+		     "HAVE_SQLITE3_H not defined");
+#endif // HAVE_SQLITE3_H
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -2637,7 +2643,8 @@ list<pair<string,string> > Connection::HttpServerParseFormData() {
       features += string(features==""?"":",")+"zo5:rgb";
     if (features=="")
       features = "**";
-    features = "c_in12_r_fc6_d_ca3";
+    //features = "c_in12_r_fc6_d_ca3";
+    features = "c_in14_gr_pool5_d_aA3";
     if (features!="")
       script.push_back("features="+features);
     script.push_back("extractfeatures=yes");
@@ -2650,7 +2657,8 @@ list<pair<string,string> > Connection::HttpServerParseFormData() {
     // string dets = "lin-s+cs-ds-svmdb-hkm,fusion-g-lin-hkm";
     // string dets = "lin-hi2,f-lin-hi2";
     // string dets = "lin-hi2-x,f-lin-hi2-x";
-    string dets = "lin-hi2-1";
+    // string dets = "lin-hi2-1";
+    string dets = "lin-hi3";
 
     if (dets!="") {
       script.push_back("detections="+dets);
@@ -2893,7 +2901,7 @@ list<pair<string,string> > Connection::HttpServerParseFormData() {
 	// if (full.find("fusion")!=0 && full.find("caffe::")!=0 &&
 	//     full.find("f-lin-hi2")!=0)
 	//  continue;
-	if (full.find("linear::c_in12_r_fc6_d_ca3::hkm-int2::")!=0)
+	if (full.find("linear::c_in14_gr_pool5_d_aA3::hkm-int3::")!=0)
 	  continue;
 
 	string raw = full;
@@ -6146,6 +6154,18 @@ bool Connection::Close(bool angry, bool notify) {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  bool Connection::ReadEofAndClose() {
+    string msg = "Connection::ReadEofAndClose() : ";
+
+    char buf[10];
+    int r = recv(Rfd(), buf, 1, MSG_PEEK);
+    Close();
+
+    return r==0 || ShowError(msg+"recv() returned "+ToStr(r));
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   size_t Connection::ReadableBytes() {
     int ravail = -1;
     ioctl(rfd, FIONREAD, &ravail);
@@ -7550,9 +7570,12 @@ bool Connection::RfdOK() {
 
     bool ok = true;
 
+    // SetXMLdoc(xmlReadMemory(buf.c_str(), buf.size(),
+    // 			       NULL, NULL, XML_PARSE_HUGE));
     SetXMLdoc(xmlParseMemory(buf.c_str(), buf.size()));
+
     if (!HasXMLdoc()) {
-      cerr << msg << "xmlParseMemory() failed" << endl
+      cerr << msg << "xmlReadMemory() failed" << endl
 	   << msg << "BEGIN DUMP" << endl
 	   << buf.size() << " : [" << buf << "]" << endl;
       ShowError(msg+"END DUMP");
@@ -8518,7 +8541,11 @@ Connection::ExtractUploadObject(xmlNodePtr node) const {
   list<vector<string> > Connection::SparqlQuery(const string& url,
 						const string& s,
 						bool show_head) {
-    string msg = "Connection::SparqlQuery("+url+","+s+") : ";
+    string msg = "Connection::SparqlQuery("+url+") : ";
+    if (Query::DebugInfo())
+      WriteLog(msg+"starting script ["+s+"]");
+
+    bool save_reply = Query::DebugInfo();
 
     list<vector<string> > res;
 
@@ -8540,6 +8567,13 @@ Connection::ExtractUploadObject(xmlNodePtr node) const {
       return res;
     }
 
+    if (save_reply) {
+      static size_t nsave = 0;
+      string fn = "saved-sparql-query-result-"+ToStr(nsave++)+".xml";
+      StringToFile(reply+"\n", fn);
+      WriteLog(msg+"saved reply to <"+fn+">");
+    }
+
     map<string,size_t> variable;
 
     XmlDom xml = XmlDom::FromString(reply);
@@ -8548,6 +8582,8 @@ Connection::ExtractUploadObject(xmlNodePtr node) const {
       return res;
     }
     XmlDom head = xml.Root().FirstElementChild("head");
+    if (Query::DebugInfo())
+      WriteLog(msg+"solving variables");
     vector<string> varv;
     size_t i = 0;
     for (XmlDom var=head.FirstElementChild("variable");
@@ -8555,14 +8591,21 @@ Connection::ExtractUploadObject(xmlNodePtr node) const {
       string vname = var.Property("name");
       variable[vname] = i;
       varv.push_back(vname);
+      if (Query::DebugInfo())
+	WriteLog(msg+"  adding variable \""+vname+"\"");
     }
 
     if (show_head)
       res.push_back(varv);
 
+    if (Query::DebugInfo())
+      WriteLog(msg+"solving results");
     XmlDom results = xml.Root().FirstElementChild("results");
     for (XmlDom result=results.FirstElementChild("result");
 	 result; result=result.NextElement("result")) {
+      if (Query::DebugInfo())
+	WriteLog(msg+"  result #"+ToStr(res.size()));
+
       vector<string> v(variable.size());
       for (XmlDom binding=result.FirstElementChild("binding");
 	   binding; binding=binding.NextElement("binding")) {
@@ -8570,6 +8613,9 @@ Connection::ExtractUploadObject(xmlNodePtr node) const {
 	XmlDom cont = binding.FirstElementChild();
 	string val = cont.FirstChildContent();
 	v[variable[key]] = val;
+	if (Query::DebugInfo())
+	  WriteLog(msg+"    <"+key+"> #"+ToStr(variable[key])+" = <"+
+		   val+">");
       }
       res.push_back(v);
     }

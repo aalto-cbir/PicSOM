@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Index.h,v 2.57 2015/10/09 12:08:13 jorma Exp $
+// -*- C++ -*-  $Id: Index.h,v 2.59 2016/01/27 21:02:47 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -165,6 +165,9 @@ namespace picsom {
     /// Returns the name of the index, 
     ///   like "linear::zo5:colm::hkm-int::ZZ#airplane".
     const string& IndexName() const { return indexname; }
+
+    ///
+    void SetIndexName(const string& n) { indexname = n; }
 
     /// Like "7"
     const string& InstanceSpec() const {
@@ -349,6 +352,9 @@ namespace picsom {
 		 FeatureTargetString()+" subdir="+subdir);
     }
 
+    ///
+    const vector<string>& FeaturesCommand() const { return features_command; }
+
     /// Externally set something eg. in DataBase::DescribedIndex().
     void SetProperty(const string& key, const string& val) {
       property[key] = val;
@@ -390,11 +396,13 @@ namespace picsom {
 				   XmlDom& xml) {
       vector<size_t> v;
       v.push_back(idx);
-      return CalculateFeatures(v, done_segm, xml, NULL);
+      list<incore_feature_t> incore;
+      return CalculateFeatures(v, incore, done_segm, xml, NULL);
     }
 
     ///
-    virtual bool CalculateFeatures(vector<size_t>&, set<string>&, XmlDom&,
+    virtual bool CalculateFeatures(vector<size_t>&, list<incore_feature_t>&,
+				   set<string>&, XmlDom&,
 				   bin_data*);
 
     ///

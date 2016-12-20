@@ -1,4 +1,4 @@
-// -*- C++ -*-    $Id: imagedata.h,v 1.108 2015/11/10 18:19:52 jorma Exp $
+// -*- C++ -*-    $Id: imagedata.h,v 1.109 2016/10/25 08:15:41 jorma Exp $
 
 /**
    \file imagedata.h
@@ -9,8 +9,8 @@
    independent storage for pixel based images.
    
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.108 $
-   $Date: 2015/11/10 18:19:52 $
+   $Revision: 1.109 $
+   $Date: 2016/10/25 08:15:41 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -75,7 +75,7 @@ namespace picsom {
     /// Version control identifier of the imagedata.h file.
     static const string& version() {
       static const string v =
-	"$Id: imagedata.h,v 1.108 2015/11/10 18:19:52 jorma Exp $";
+	"$Id: imagedata.h,v 1.109 2016/10/25 08:15:41 jorma Exp $";
       return v;
     }
 
@@ -2223,10 +2223,12 @@ namespace picsom {
       a = -0.9861*X+2.0051*Y-0.0823*Z; // g
       b = 0.0585*X-0.1190*Y+0.9042*Z; // b
 
-      if(l>1.0) l=1.0; if(l<0.0) l =0.0;  
-      if(a>1.0) a=1.0; if(a<0.0) a =0.0;  
-      if(b>1.0) b=1.0; if(b<0.0) b =0.0;  
-
+      if (l>1.0) l=1.0; 
+      if (l<0.0) l=0.0;  
+      if (a>1.0) a=1.0; 
+      if (a<0.0) a=0.0;  
+      if (b>1.0) b=1.0;
+      if (b<0.0) b=0.0;  
     }
 
     static float inv_lab_nonlinearity(const float a){
@@ -2300,9 +2302,12 @@ namespace picsom {
       u = -0.9861*X+2.0051*Y-0.0823*Z; // g
       v = 0.0585*X-0.1190*Y+0.9042*Z; // b
 
-      if(l>1.0) l=1.0; if(l<0.0) l =0.0;  
-      if(u>1.0) u=1.0; if(u<0.0) u =0.0;  
-      if(v>1.0) v=1.0; if(v<0.0) v =0.0;  
+      if (l>1.0) l=1.0; 
+      if (l<0.0) l=0.0;  
+      if (u>1.0) u=1.0; 
+      if (u<0.0) u=0.0;  
+      if (v>1.0) v=1.0; 
+      if (v<0.0) v=0.0;  
     }
 
     // ------------------------------------------------------------------------

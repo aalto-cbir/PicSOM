@@ -1,4 +1,4 @@
-// $Id: TextBased.C,v 1.9 2011/08/16 09:55:55 jorma Exp $	
+// $Id: TextBased.C,v 1.10 2016/02/08 20:33:09 jorma Exp $	
 
 #include <TextBased.h>
 
@@ -166,7 +166,7 @@ namespace picsom {
     if (i!=weight_type_names.end())
       return i->second;
 
-    static const string undef = "UNDFEF";
+    static const string undef = "UNDEF";
     return undef;
   }
 

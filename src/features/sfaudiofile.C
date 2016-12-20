@@ -1,11 +1,9 @@
-// -*- C++ -*-  $Id: sfaudiofile.C,v 1.8 2013/02/25 11:02:49 jorma Exp $
+// -*- C++ -*-  $Id: sfaudiofile.C,v 1.9 2016/06/23 10:49:26 jorma Exp $
 // 
-// Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
-
-//#ifdef USE_AUDIO
 
 //#define SF_DEBUG 1
 
@@ -21,16 +19,16 @@ namespace picsom {
   // ----------------------------------------------------------------------
     
   sfaudiofile::~sfaudiofile() {
-#ifdef HAVE_SNDFILE_H
+#if defined(PICSOM_USE_AUDIO) && defined(HAVE_SNDFILE_H)
     if (sfile)
       sf_close(sfile);
-#endif // HAVE_SNDFILE_H
+#endif // PICSOM_USE_AUDIO && HAVE_SNDFILE_H
   }
 
   // ----------------------------------------------------------------------
 
   bool sfaudiofile::open(const string& filename) {
-#ifdef HAVE_SNDFILE_H
+#if defined(PICSOM_USE_AUDIO) && defined(HAVE_SNDFILE_H)
     SF_INFO sfinfo;
     sfinfo.format=0;
     sfile = sf_open(filename.c_str(), SFM_READ, &sfinfo);
@@ -69,13 +67,13 @@ namespace picsom {
 #else
     cerr << "libsndfile not available for " << filename << endl;
     return false;
-#endif // HAVE_SNDFILE_H
+#endif // PICSOM_USE_AUDIO && HAVE_SNDFILE_H
   }
 
   // ----------------------------------------------------------------------
 
   audiodata sfaudiofile::getNextAudioSlice(int duration, bool enablefft) {
-#ifdef HAVE_SNDFILE_H
+#if defined(PICSOM_USE_AUDIO) && defined(HAVE_SNDFILE_H)
     bool force_mono = true, mono_by_avg = true;
     size_t nch = getNChannels();
     if (force_mono && nch>1)
@@ -131,10 +129,9 @@ namespace picsom {
     cerr << "libsndfile not available for " << duration
 	 << " " << enablefft << endl;
     return false;
-#endif // HAVE_SNDFILE_H
+#endif // PICSOM_USE_AUDIO && HAVE_SNDFILE_H
   }   
 
   // ----------------------------------------------------------------------
 } // namespace picsom
 
-//#endif // USE_AUDIO

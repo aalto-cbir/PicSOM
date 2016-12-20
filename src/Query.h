@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Query.h,v 2.332 2015/04/23 13:38:41 jorma Exp $
+// -*- C++ -*-  $Id: Query.h,v 2.333 2016/11/02 11:56:28 jorma Exp $
 // 
-// Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -39,7 +39,7 @@ namespace picsom {
   using simple::RandVar;
 
   static const string Query_h_vcid =
-    "@(#)$Id: Query.h,v 2.332 2015/04/23 13:38:41 jorma Exp $";
+    "@(#)$Id: Query.h,v 2.333 2016/11/02 11:56:28 jorma Exp $";
 
   /**
      documentation missing
@@ -78,7 +78,7 @@ namespace picsom {
    
    @short A class implementing query processing in the PicSOM engine. 
 
-   @version $Id: Query.h,v 2.332 2015/04/23 13:38:41 jorma Exp $
+   @version $Id: Query.h,v 2.333 2016/11/02 11:56:28 jorma Exp $
 
 */
 
@@ -461,6 +461,9 @@ namespace picsom {
     /// Adds infolinks.
     bool AddToXMLinfolinklist_detectedobject_sparql(XmlDom&, const string&,
 						    const string&) const;
+
+    /// Helper for the above one.
+    static string AddToXMLinfolinklist_macro(const map<string,string>&, const string&);
 
     /// Adds visited links.
     bool AddToXMLvisitedlinklist(XmlDom&, const string&, const string&) const;
@@ -1299,7 +1302,8 @@ namespace picsom {
     bool ConditionallyCheckObjectIndices(bool sloppy) {
       return !debug_check_lists ||
         (CheckSeenObjectIdx(false) && CheckUniqueObjectIdx(false) &&
-         CheckNewObjectIdx(sloppy) && (can_show_seen||CrossCheckSeenObjectIdx()));
+         CheckNewObjectIdx(sloppy) &&
+	 (can_show_seen||CrossCheckSeenObjectIdx()));
     }
 
     /// Checks the integrity of an objectlist and corresponding vector.
@@ -2486,6 +2490,12 @@ namespace picsom {
 
     /// Stops tacking.
     void Tac(const char *f = NULL) const { picsom->Tac(f); }
+
+    ///
+    static void DebugInfo(bool d) { debug_info = d; }
+
+    ///
+    static bool DebugInfo() { return debug_info; }
 
     /// Sets debug_all_keys used in AddOtherKeyValue().
     static void DebugAllKeys(bool d) { debug_all_keys = d; }
@@ -4283,6 +4293,9 @@ namespace picsom {
 
     ///
     static IntVector watchset;
+
+    ///
+    static bool debug_info;
 
     /// True if you want to see how per TSSOM object weighting is done.
     static bool debug_weights;

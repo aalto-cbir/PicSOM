@@ -1,0 +1,55 @@
+#include <MedFilt.h>
+
+static const string vcid="@(#)$Id: MedFilt.C,v 1.4 2009/04/30 09:56:18 vvi Exp $";
+
+static MedFilt list_entry(true);
+
+///////////////////////////////////////////////////////////////////////////
+
+MedFilt::MedFilt() {
+
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+MedFilt::~MedFilt() {
+
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+const char *MedFilt::Version() const { 
+  return vcid.c_str();
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+void MedFilt::UsageInfo(ostream& os) const { 
+  os << "MedFilt :" << endl
+     << "  options : " << endl
+     << "    NONE yet." << endl;
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+int MedFilt::ProcessOptions(int /*argc*/, char** /*argv*/) { 
+  return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+bool MedFilt::DoProcess() {
+
+  imgdata *copy=GetImageObject()->getCopy();
+  copy->medianFilter();
+
+  bool s=CopyImage(copy, false);
+  delete copy;
+  //  if(Verbose()>1) cout << "Median filtering finished" << endl;
+  return s;
+
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+

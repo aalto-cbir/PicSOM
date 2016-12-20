@@ -1,10 +1,10 @@
-// $Id: Trajectory.C,v 1.7 2015/11/10 08:02:18 jorma Exp $	
+// -*- C++ -*-  $Id: Trajectory.C,v 1.10 2016/12/19 08:15:43 jorma Exp $	
 
 //  r -d6 trajectory -o densetraj=trajectory-dense-raw-0-27-kmeans1000.bin -o hog=trajectory-dense-raw-28-123-kmeans1000.bin -o hof=trajectory-dense-raw-124-231-kmeans1000.bin -o mbhx=trajectory-dense-raw-232-327-kmeans1000.bin -o mbhy=trajectory-dense-raw-328-423-kmeans1000.bin person01_boxing_d1_uncomp.avi
 
 #include <Trajectory.h>
 
-#ifdef HAVE_DENSETRACK_H
+#ifdef HAVE_DENSE_TRAJECTORY_RELEASE_V1_2_DENSETRACK_H
 
 #include <cox/matrix>
 #include <cox/blas>
@@ -13,7 +13,7 @@
 
 namespace picsom {
   static const char *vcid =
-    "$Id: Trajectory.C,v 1.7 2015/11/10 08:02:18 jorma Exp $";
+    "$Id: Trajectory.C,v 1.10 2016/12/19 08:15:43 jorma Exp $";
 
   static Trajectory list_entry(true);
 
@@ -100,9 +100,14 @@ namespace picsom {
 
     VideoSegmentExtension(".avi");
 
+    if (IsRawOutMode())
+      return this;
+
+    size_t tr_dim = 30;
+
     if (densetrajname!="" && !densetraj.is_open()) {
       densetraj.open(densetrajname, false, bin_data::header::format_float,
-		     32*28, 28);
+		     32*tr_dim, tr_dim);
       if (MethodVerbose())
 	cout << "Trajectory::Initialize() read in densetraj <" << densetrajname
 	     << "> " << densetraj.nobjects() << "x" << densetraj.vdim() << endl;
@@ -183,55 +188,58 @@ namespace picsom {
   //===========================================================================
 
   bool Trajectory::ProcessRawTraj(const vector<float>& f) {
-    const size_t vl = 30+3*96+108;
+    const size_t tr_dim = 30, vl = tr_dim+3*96+108;
     if (f.size()!=vl) {
       cerr << "Vector dimension is " << f.size() << " when " << vl
 	   << " was expected" << endl;
       return false;
     }
 
-    vector<float> d(28);
-    for (size_t i=2; i<30; i++)
-      d[i-2] = f[i]-f[i-2];
+    vector<float> d(tr_dim);
+
+    // for (size_t i=2; i<30; i++)
+    //   d[i-2] = f[i]-f[i-2];
+
+    for (size_t i=0; i<30; i++)
+      d[i] = f[i];
     
-    double l = 0;
-    for (size_t i=0; i<d.size(); i+=2)
-      l += sqrt(d[i]*d[i]+d[i+1]*d[i+1]);
+    // double l = 0;
+    // for (size_t i=0; i<d.size(); i+=2)
+    //   l += sqrt(d[i]*d[i]+d[i+1]*d[i+1]);
     
-    for (size_t i=0; i<d.size(); i+=2)
-      d[i] /= l;
+    // for (size_t i=0; i<d.size(); i+=2)
+    //   d[i] /= l;
 
     auto p = f.begin()+30;
     d.insert(d.end(), p, f.end());
     // cout << d.size() << endl;
 
-    if (densetrajname=="" && hogname=="" && hofname=="" &&
-	mbhxname=="" && mbhyname=="")
+    if (IsRawOutMode())
       return PrintAndAppendRawVector(d, 0, 0);
 
     int h = 0;
     size_t dim = 0;
-    h = SolveHit(d,   0,  28, densetraj, dim);
+    h = SolveHit(d,   0,  tr_dim, densetraj, dim);
     SetHit(h, densetrajhist, dim);
     if (KeyPointVerbose())
       cout << "Hit in bin " << h << " of densetraj" << endl;
 
-    h = SolveHit(d,  28, 124, hog,       dim);
+    h = SolveHit(d,  tr_dim, tr_dim+96, hog,       dim);
     SetHit(h, hoghist, dim);
     if (KeyPointVerbose())
       cout << "Hit in bin " << h << " of hog" << endl;
 
-    h = SolveHit(d, 124, 232, hof,       dim);
+    h = SolveHit(d, tr_dim+96, tr_dim+96+108, hof,       dim);
     SetHit(h, hofhist, dim);
     if (KeyPointVerbose())
       cout << "Hit in bin " << h << " of hof" << endl;
 
-    h = SolveHit(d, 232, 328, mbhx,      dim);
+    h = SolveHit(d, tr_dim+96+108, tr_dim+2*96+108, mbhx,      dim);
     SetHit(h, mbhxhist, dim);
     if (KeyPointVerbose())
       cout << "Hit in bin " << h << " of mbhx" << endl;
 
-    h = SolveHit(d, 328, 424, mbhy,      dim);
+    h = SolveHit(d, tr_dim+2*96+108, tr_dim+3*96+108, mbhy,      dim);
     SetHit(h, mbhyhist, dim);
     if (KeyPointVerbose())
       cout << "Hit in bin " << h << " of mbhy" << endl;
@@ -935,7 +943,7 @@ namespace picsom {
 
 } // namespace picsom
 
-#endif // HAVE_DENSETRACK_H
+#endif // HAVE_DENSE_TRAJECTORY_RELEASE_V1_2_DENSETRACK_H
 
 // Local Variables:
 // mode: font-lock

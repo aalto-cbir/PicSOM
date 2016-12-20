@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: TimeUtil.h,v 2.21 2015/03/20 16:14:40 jorma Exp $
+// -*- C++ -*-  $Id: TimeUtil.h,v 2.22 2016/12/08 15:01:02 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -37,7 +37,7 @@ using namespace std;
 
 namespace picsom {
   static const string Time_h_vcid =
-    "@(#)$Id: TimeUtil.h,v 2.21 2015/03/20 16:14:40 jorma Exp $";
+    "@(#)$Id: TimeUtil.h,v 2.22 2016/12/08 15:01:02 jorma Exp $";
 
   /**
      DOCUMENTATION MISSING
@@ -238,6 +238,20 @@ namespace picsom {
     h = m/60;
     m %= 60;
     s -= (60*h+m)*60;
+  }
+  
+  ///
+  inline string SecToString(double s, bool a) {
+    int m = 0, h = 0;
+    SecToMinHour(s, m, h);
+    int ss = floor(s);
+    int ms = floor(1000*(s-ss));
+    char tmp[100];
+    if (a) {
+      sprintf(tmp, "%02d:%02d:%02d.%03d", h, m, ss, ms);
+    } else
+      sprintf(tmp, "%02d:%02d:%02d", h, m, ss);
+    return tmp;
   }
 
   ///

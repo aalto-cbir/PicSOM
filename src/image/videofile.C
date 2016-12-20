@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: videofile.C,v 1.46 2015/10/09 12:00:03 jorma Exp $
+// -*- C++ -*-  $Id: videofile.C,v 1.47 2016/05/03 10:56:08 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -16,6 +16,7 @@
 namespace picsom {
   using namespace std;
 
+  string videofile::_local_bin = "/usr/local/bin";
   int    videofile::_debug = 0;
   bool   videofile::_keep_tmp_files = false;
   string videofile::_temp_dir;
@@ -147,9 +148,6 @@ namespace picsom {
 
   ///--------------------------------------------------------------------------
 
-  static string avprobe_triton =
-	    "/triton/ics/project/imagedb/picsom/linux64/bin/avprobe";
-
   static string avprobe_cmd;
 
   bool videofile::identify(const string& filename) {
@@ -158,7 +156,7 @@ namespace picsom {
     string avprobe = "/usr/bin/ffprobe";
     struct stat tmp;
     if (stat(avprobe.c_str(), &tmp))
-      avprobe = avprobe_triton;
+      avprobe = local_bin()+"/avprobe";
 
     if (stat(avprobe.c_str(), &tmp))
       return identify_mplayer_identify(fname);
@@ -310,7 +308,6 @@ namespace picsom {
   bool videofile::identify_mplayer_identify(const string& fname) {
     const string msg = "identify_mplayer_identify(): ";
 
-    //const string midentify_cmd = "/share/imagedb/picsom/bin/midentify";
     const string midentify_cmd = "/usr/bin/mplayer -vo null -ao null "
       "-frames 1 -identify ";
     const string identify_cmd = "/usr/bin/identify";
@@ -417,7 +414,7 @@ namespace picsom {
       if (stat(avconv.c_str(), &tmp))
 	avconv = "/usr/bin/ffmpeg";
       if (stat(avconv.c_str(), &tmp))
-	avconv = "/triton/ics/project/imagedb/picsom/linux64/bin/avconv";
+	avconv = local_bin()+"/avconv";
       if (stat(avconv.c_str(), &tmp))
 	avconv = "/bin/false";
     }

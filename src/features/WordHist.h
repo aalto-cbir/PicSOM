@@ -1,4 +1,4 @@
-// -*- C++ -*- 	$Id: WordHist.h,v 1.13 2006/06/16 10:38:41 vvi Exp $
+// -*- C++ -*- 	$Id: WordHist.h,v 1.15 2016/02/18 08:46:47 jorma Exp $
 
 /**
    \file WordHist.h
@@ -10,8 +10,8 @@
    for text objects.
   
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.13 $
-   $Date: 2006/06/16 10:38:41 $
+   $Revision: 1.15 $
+   $Date: 2016/02/18 08:46:47 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo Perhaps something?
@@ -37,29 +37,31 @@ namespace picsom {
     //
     class dict_entry {
     public:
-      dict_entry(const string& w, float _d, float _n, float _c,
+      dict_entry(const string& w, size_t i, float _d, float _n, float _c,
 		 float td, float tn) :
-	word(w), d(_d), n(_n), c(_c), tot_d(td), tot_n(tn),
+	word(w), orig_idx(i), d(_d), n(_n), c(_c), tot_d(td), tot_n(tn),
 	index(-1), stop(false), unused(false) {
 	idf     = d ? tot_d/d  : 0;
 	log_idf = d ? log(idf) : 0;
       }
 	
-      string word;   //< the "word" aka "term"
+      string word;     //< the "word" aka "term"
 
-      float d;       //< the number of documents where "word" occurs
+      size_t orig_idx; //< original row in the dict file
 
-      float n;       //< the total number of times "word" occurs
+      float d;         //< the number of documents where "word" occurs
 
-      float c;       //< the total number of words in documents with "word"
+      float n;         //< the total number of times "word" occurs
 
-      float tot_d;   //< the total number of documents in the collection
+      float c;         //< the total number of words in documents with "word"
 
-      float tot_n;   //< the total number of words in the collection
+      float tot_d;     //< the total number of documents in the collection
 
-      float idf;     //< the inverse document frequency
+      float tot_n;     //< the total number of words in the collection
 
-      float log_idf; //< and its logarithm
+      float idf;       //< the inverse document frequency
+
+      float log_idf;   //< and its logarithm
 
       ///
       int index;
@@ -70,10 +72,58 @@ namespace picsom {
       ///
       bool unused;
 
+      ///
+      vector<float> v;
+
     }; // class dict_entry
 
     //
     typedef map<string,dict_entry> dict_t;
+
+    class w2v_data {
+    public:
+      ///
+      w2v_data(const string& = "");
+
+      ///
+      bool read(const string&);
+
+      ///
+      size_t size() const {
+	return vec.size() ? vec[0].size() : 0;
+      }
+
+      ///
+      const vector<float>& tovec(const string& word) const {
+	static const vector<float> empty;
+	auto i = wmap.find(word);
+	return i==wmap.end() ? empty : vec[i->second];
+      }
+
+      ///
+      string file;
+
+      ///
+      vector<string> vocab;
+
+      ///
+      vector<vector<float> > vec;
+
+      ///
+      map<string,size_t> wmap;
+    };
+
+    ///
+    static map<string,w2v_data> w2v_map;
+
+    ///
+    static const vector<float>& word2vec(const string&, const string& = "");
+
+    ///
+    static int word2vec_index(const string&, const string& = "");
+
+    ///
+    static const w2v_data *word2vec_find(const string&);
 
     /** Constructor
 	\param obj initialise to this object
@@ -82,7 +132,8 @@ namespace picsom {
     WordHist(const string& obj = "",
 	     const list<string>& opt = (list<string>)0) {
       vect_size = top_set_size = 0;
-      linedump = false;
+      w2v = NULL;
+      linedump = zero2random = false;
       Initialize(obj, "", NULL, opt);
     }
     
@@ -108,19 +159,21 @@ namespace picsom {
       delete (WordHistData*)p;
     }
 
-    virtual bool IsSparseVector()  const { return true; }
+    virtual bool IsSparseVector() const;
 
-    virtual string Name()          const { return "wordhist"; }
+    virtual string Name()         const { return "wordhist"; }
 
-    virtual string LongName()      const { return "word histogram"; }
+    virtual string LongName()     const { return "word histogram"; }
 
-    virtual string ShortText()     const {
+    virtual string ShortText()    const {
       return "A text feature of word histogram.";
     }
 
     virtual string Version() const;
 
-    virtual featureVector getRandomFeatureVector() const { return featureVector(); }
+    virtual featureVector getRandomFeatureVector() const {
+      return featureVector();
+    }
 
     virtual string OptionSuffix() const {
       string opt;
@@ -160,12 +213,17 @@ namespace picsom {
 
     virtual bool TextPostProcess(int, bool, int);
 
-    virtual bool PrintingEnabled() const { return dictfile!=""; }
+    virtual bool PrintingEnabled() const {
+      return dictfile!="" || w2vfile!="";
+    }
 
     static const string& AllWordsLabel() {
       static const string star = "*";
       return star;
     }
+
+    //
+    bool ReadW2vFile();
 
     // 
     bool ReadDictFile();
@@ -177,9 +235,9 @@ namespace picsom {
     bool FinalizeWordIndex();
 
     //
-    bool AddDictEntry(const string& w, float d, float n, float c,
-		      float td, float tn) {
-      dict.insert(dict_t::value_type(w, dict_entry(w, d, n, c, td, tn)));
+    bool AddDictEntry(const string& w, size_t i,
+		      float d, float n, float c, float td, float tn) {
+      dict.insert(dict_t::value_type(w, dict_entry(w, i, d, n, c, td, tn)));
 
       return true;
     }
@@ -258,6 +316,9 @@ namespace picsom {
     int top_set_size;
 
     //
+    string w2vfile;
+
+    //
     string dictfile;
 
     //
@@ -269,6 +330,12 @@ namespace picsom {
     //
     bool linedump;
     
+    //
+    bool zero2random;
+
+    //
+    const w2v_data *w2v;
+
   }; // class WordHist
 
 } // namespace picsom

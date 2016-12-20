@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: segmentfile.h,v 1.119 2015/02/10 22:17:03 jorma Exp $
+// -*- C++ -*-  $Id: segmentfile.h,v 1.120 2016/01/27 21:10:25 jorma Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
@@ -672,6 +672,7 @@ namespace picsom {
     
     bool frameNrOk(int f) const { return f>=0 && f<=lastframe;}
     coord frameSize(int f) const;
+    void setFromImagedata(const imagedata& i);
     void setFromImagefile(imagefile &i);
     bool isCompatible(const SequenceInfo &o) const;
     xmlNodePtr outputXML() const;
@@ -1850,7 +1851,7 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
     ///
     static const string& version() {
       static string v =
-	"$Id: segmentfile.h,v 1.119 2015/02/10 22:17:03 jorma Exp $";
+	"$Id: segmentfile.h,v 1.120 2016/01/27 21:10:25 jorma Exp $";
       return v;
     }
 
@@ -2238,13 +2239,41 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
     //  compatible at all times
 
     ///
-    bool hasSegments() const{ // is this really needed ?
+    bool hasSegments() const { // is this really needed ?
       return segment_frames.frames.size()>0; //  && compatibleImagesAndSegments());
     }
 
     ///
-    bool hasImages() const{ // is this really needed ?
+    bool hasImages() const { // is this really needed ?
       return image_frames.frames.size()>0; //  && compatibleImagesAndSegments());
+    }
+
+    ///
+    void setImage(const imagedata& i) {
+      image_frames.free();
+      image_frames.frames.clear();
+      _frame_type tmp;
+      tmp.segment=false;
+      tmp.framenr=0;
+      tmp.fileframe=0;
+      image_frames.frames.push_back(tmp);
+      
+      description.sequenceinfo.setFromImagedata(i);
+      forceImage(i, 0);
+    }
+
+    ///
+    void setSegment(const imagedata& i) {
+      segment_frames.free();
+      segment_frames.frames.clear();
+      _frame_type tmp;
+      tmp.segment=false;
+      tmp.framenr=0;
+      tmp.fileframe=0;
+      segment_frames.frames.push_back(tmp);
+      
+      description.sequenceinfo.setFromImagedata(i);
+      forceSegment(i, 0);
     }
 
     /// 

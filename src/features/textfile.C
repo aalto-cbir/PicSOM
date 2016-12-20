@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: textfile.C,v 1.14 2009/08/19 12:56:44 jorma Exp $
+// -*- C++ -*-  $Id: textfile.C,v 1.15 2016/02/08 20:32:31 jorma Exp $
 // 
 // Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
@@ -139,12 +139,12 @@ namespace picsom {
       iconv_t cd = 0;
       cd = iconv_open("WCHAR_T", "UTF-8");
 
-      char* utextptr = utext;
+      char *textptr  = text;
+      char *utextptr = utext;
       size_t inbytesleft = length+1;
       size_t outbytesleft = (length+1)*4;
       
-      int convi = iconv(cd, (ICONV_CONST char**)&text, &inbytesleft, 
-			&utextptr, &outbytesleft);
+      int convi = iconv(cd, &textptr, &inbytesleft, &utextptr, &outbytesleft);
       
       if (convi == -1) {
 	// If the text contained non-UTF8-compatible characters, we'll assume
@@ -169,12 +169,13 @@ namespace picsom {
       wchar_t* wchar = wtext;
       for(unsigned int i=0; i<wcslen(wchar); i++) 
 	d.push(wchar[i]);
+
+      iconv_close(cd);
     }
     
     free(text);
     free(utext);
     
     _data = d;
-    
   }
 }

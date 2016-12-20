@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Feature.C,v 1.243 2015/11/10 07:31:36 jorma Exp $
+// -*- C++ -*-  $Id: Feature.C,v 1.253 2016/10/25 08:12:09 jorma Exp $
 // 
-// Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -107,26 +107,31 @@ namespace picsom {
       SetTempDir(true);
     else
       tempdir = static_tempdir;
+
+    opencvptr = NULL;
+    incore_imagedata_ptr = NULL;
   }
 
   //===========================================================================
 
-  int Feature::Main(const vector<string>& argv, feature_result *result) {
+  int Feature::Main(const vector<string>& argv,
+		    list<incore_feature_t>& incore,
+		    feature_result *result) {
     try {
-#ifdef HAVE_GLOG_LOGGING_H
+#if defined(HAVE_GLOG_LOGGING_H) && defined(PICSOM_USE_CAFFE)
       if (!glog_init_done) {
 	string progname = "features";
 	google::InitGoogleLogging(progname.c_str());
 	FLAGS_logtostderr = 0;
 	glog_init_done = true;
       }
-#endif // HAVE_GLOG_LOGGING_H
+#endif // HAVE_GLOG_LOGGING_H && PICSOM_USE_CAFFE
 
       bool first = true, cmd_shown = false;
       const string& myname = argv[0];
       string msg = "Feature::Main() ";
       string fname;
-      int argc = argv.size()-1;
+      int argc = argv.size()-1+incore.size();
       unsigned int pos = 1;
 
       if (!argc) {
@@ -155,6 +160,8 @@ namespace picsom {
 
       Feature *fptr = NULL;
 
+      auto incore_i = incore.begin();
+
       // feature_result dummy_result; if (!result) result = &dummy_result;
 
       while (argc+concat/2>0) {
@@ -163,7 +170,9 @@ namespace picsom {
           astr = argv[pos];
         else if (concat)
           astr = "";
-        else
+        else if (pos<argv.size()+incore.size())
+	  astr = "";
+	else
           throw string("argv[pos] problem");
 
         if (fname=="")
@@ -579,9 +588,15 @@ namespace picsom {
             }
           }
           now_opts = false;
-      
+
+	  incore_feature_t *incorep = NULL;
+	  if (astr=="" && incore_i!=incore.end()) {
+	    incorep = &*incore_i;
+	    incore_i++;
+	  }
+
           try {
-            if (!ProcessOneFile(fptr, cmd, fname, opts, astr,
+            if (!ProcessOneFile(fptr, cmd, fname, opts, astr, incorep,
                                 first&&print_header&&!quiet,
                                 !testing, first&&print_header&&!quiet, !quiet,
                                 segmfile, label_pattern, input_pat,
@@ -659,6 +674,7 @@ namespace picsom {
                                const string& cmd, const string& feat,
                                const list<string>& opts_in,
                                const string& one_file_in,
+			       incore_feature_t *incorep,
                                bool print_xml, bool print_all_xml,
                                bool print_vl,
                                bool print_data, const string& segmfile_in,
@@ -690,8 +706,8 @@ namespace picsom {
 
     if (concat) {
       if (one_file_in.find_first_of("<>")!=string::npos) {
-	cerr << "ProcessOneFile() : < or > detected in filename while concat=true"
-	     << endl;
+	cerr << "ProcessOneFile() : < or > detected in filename"
+	     << " while concat=true" << endl;
 	return false;
       }
 	
@@ -728,6 +744,19 @@ namespace picsom {
 
       if (skip)
         return true;
+    }
+
+    string all_files_or_incore = all_files;
+    if (all_files_or_incore=="" && incorep) {
+      if (incorep->first.first=="picsom::imagedata*")
+	all_files_or_incore = "/dev/null/incore/imagedata/"
+	  +incorep->first.second;
+      else if (incorep->first.first=="string::filename*") {
+	string *p = NULL;
+	sscanf(incorep->first.second.c_str(), "%p", &p);
+	all_files_or_incore = all_files = *p;
+      } else
+	throw string("incore data type <")+incorep->first.first+">";
     }
 
     string segmfile = segmfile_in;
@@ -768,7 +797,7 @@ namespace picsom {
 	     << "Creating method data" << endl;
       }
 
-      f = CreateMethod(feat, all_files, segmfile, opts_eff);
+      f = CreateMethod(feat, all_files_or_incore, segmfile, opts_eff);
       if (!f) {
 	if (MethodVerbose())
 	  cout << "CreateMethod() failed with <" << feat << "> for <"
@@ -965,139 +994,177 @@ namespace picsom {
     return  pair<bool,int>(false, atoi(s.substr(n).c_str()));
   }
 
-//-----------------------------------------------------------------------------
+  //-----------------------------------------------------------------------------
 
-Feature *Feature::Initialize(const string& img, const string& seg,
-                             segmentfile *s, const list<string>& opt,
-                             bool allocate_data) {
-  string msg = "Feature::Initialize() "+ThreadIdentifierUtil()+" : ";
+  Feature *Feature::Initialize(const string& img, const string& seg,
+			       segmentfile *s, const list<string>& opt,
+			       bool allocate_data) {
+    string msg = "Feature::Initialize() "+ThreadIdentifierUtil()+" : ";
 
-  if (seg!="" && s)
-    throw msg+"seg and s not allowed simultaneously";
+    if (seg!="" && s)
+      throw msg+"seg and s not allowed simultaneously";
   
-  if (img!="" && s)
-    throw msg+"img and s not allowed simultaneously";
+    if (img!="" && s)
+      throw msg+"img and s not allowed simultaneously";
   
-  if (img=="" && !s)
-    return this;
+    if (img=="" && !s)
+      return this;
 
 #ifndef __MINGW32__
-  tics.set_name(Name());
-  // tics.start();
-  cox::tictac::func tt(tics, "Feature::Initialize");
+    tics.set_name(Name());
+    // tics.start();
+    cox::tictac::func tt(tics, "Feature::Initialize");
 #endif
 
-  if (FileVerbose())
-    cout << msg << "starting..." << endl;
+    incore_imagedata_ptr = NULL;
 
-  // this is the place where mats moved it 11 Nov 2004 ...
-  SetAndProcessOptions(opt, false);
-  
-  // after 2014-01-23 this should happen with audio features...
-  if (!IsImageFeature() && !IsVideoFeature() /*&& !IsAudioFeature()*/) {
     if (FileVerbose())
-      cout << " non-image feature, calling LoadObjectData()" << endl;
+      cout << msg << "starting..." << endl;
 
-    LoadObjectData(img, seg); // this function should be overriden 
-                              // by non-image-based child classes
-  } else {
-
-    if (!ImageReadable() && img!="") {
+    // this is the place where mats moved it 11 Nov 2004 ...
+    SetAndProcessOptions(opt, false);
+  
+    // after 2014-01-23 this should happen with audio features...
+    if (!IsImageFeature() && !IsVideoFeature() /*&& !IsAudioFeature()*/) {
       if (FileVerbose())
-        cout << " non-readable image, calling segmentfile()" << endl;
+	cout << " non-image feature, calling LoadObjectData()" << endl;
 
-      allocated_segmentfile = new segmentfile(img,seg,
-                                              NULL,NULL,NULL,
-                                              false); // don't read 'img'
-      segmentfile_ptr = allocated_segmentfile;
-
-      if (IsVideoFeature()) {
-        videofile_ptr = new videofile(img);
-        if (!videofile_ptr->has_video())
-          throw msg+"bad video file!";
-      }
-      if (IsAudioFeature()) { // after 2014-01-23 this should not happen...
-        deprecated_audiofile_ptr = new soundfile;
-        deprecated_audiofile_ptr->open(img);
-        if (!deprecated_audiofile_ptr->hasAudio())
-          throw msg+"bad audio file!";
-      }
-
-    } else if (img!="" || seg!="") {
-      if (FileVerbose())
-        cout << " image or segments specified, calling segmentfile("
-             << img << "," << seg << ")" << endl;
-
-      segmentfile_ptr = allocated_segmentfile = new segmentfile(img, seg);
-      imagefile *imgfile = segmentfile_ptr->inputImageFile();
-
-      if (img!="" && imgfile->nframes()==0) {
-	if (FileVerbose())
-	  cout << " imagefile <" << img << "> broken, no valid frames" << endl;
-	// delete allocated_segmentfile; obs! ???
-	return NULL;
-      }
-
-      if (imgfile->impl_version().find("opencv")!=string::npos)
-	opencvptr = imgfile->impl_data();
-
-      if (FileVerbose()) {
-        cout << " imagefile info: " << imgfile->info();
-	if (opencvptr)
-	  cout << " has OpenCV data @ " << opencvptr;
-	cout << endl;
-      }
-
+      LoadObjectData(img, seg); // this function should be overriden 
+      // by non-image-based child classes
     } else {
-      segmentfile_ptr = s;
-      if (!segmentfile_ptr) {
-        if (FileVerbose())
-          cout << " no image NOR segments NOR pointer specified, ending..."
-               << endl;
 
-        return this;
-      }
+      if (!ImageReadable() && img!="") {
+	if (FileVerbose())
+	  cout << " non-readable image, calling segmentfile()" << endl;
+
+	allocated_segmentfile = new segmentfile(img, seg,
+						NULL, NULL, NULL,
+						false); // don't read 'img'
+	segmentfile_ptr = allocated_segmentfile;
+
+	if (IsVideoFeature()) {
+	  videofile_ptr = new videofile(img);
+	  if (!videofile_ptr->has_video())
+	    throw msg+"bad video file!";
+	}
+	if (IsAudioFeature()) { // after 2014-01-23 this should not happen...
+	  //#ifdef PICSOM_USE_AUDIO
+	  deprecated_audiofile_ptr = new soundfile;
+	  deprecated_audiofile_ptr->open(img);
+	  if (!deprecated_audiofile_ptr->hasAudio())
+	    throw msg+"bad audio file!";
+	  //#else
+	  //throw msg+"PICSOM_USE_AUDIO not defined!";
+	  //#endif // PICSOM_USE_AUDIO
+	}
+
+      } else if (img!="" || seg!="") {
+	string imgeff = img;
+	if (imgeff.find("/dev/null/incore/imagedata/")==0) {
+	  imgeff = "";
+	  string addr = img.substr(27);
+	  sscanf(addr.c_str(), "%p", &incore_imagedata_ptr);
+	  if (FileVerbose())
+	    cout << "INCORE imagedata given @ "
+		 << ToStr(incore_imagedata_ptr) << endl;
+	}
+
+	if (FileVerbose())
+	  cout << " image or segments specified, calling segmentfile("
+	       << imgeff << "," << seg << ")" << endl;
+
+	segmentfile_ptr = allocated_segmentfile = new segmentfile(imgeff, seg);
+	imagefile *imgfile = segmentfile_ptr->inputImageFile();
+
+	if (imgeff!="" && imgfile->nframes()==0) {
+	  if (FileVerbose())
+	    cout << " imagefile <" << img << "> broken, no valid frames" << endl;
+	  // delete allocated_segmentfile; obs! ???
+	  return NULL;
+	}
+
+	if (imgfile && imgfile->impl_version().find("opencv")!=string::npos)
+	  opencvptr = imgfile->impl_data();
+
+	if (FileVerbose() && imgfile) {
+	  cout << " imagefile info: " << imgfile->info();
+	  if (opencvptr)
+	    cout << " has OpenCV data @ " << opencvptr;
+	  cout << endl;
+	}
+
+      } else {
+	segmentfile_ptr = s;
+	if (!segmentfile_ptr) {
+	  if (FileVerbose())
+	    cout << " no image NOR segments NOR pointer specified, ending..."
+		 << endl;
+
+	  return this;
+	}
       
-      if (FileVerbose())
-        cout << " image NOR segments, pointer set" << endl;
+	if (FileVerbose())
+	  cout << " image NOR segments, pointer set" << endl;
+      }
     }
-  }
 
-  VideoSegmentExtension(".mpg");  // this was hardcoded until 2015-10-29
+    VideoSegmentExtension(".mpg");  // this was hardcoded until 2015-10-29
 
-  // this is the place where it was until mats moved it 11 Nov 2004 ...
-  SetAndProcessOptions(opt, true);
+    // this is the place where it was until mats moved it 11 Nov 2004 ...
+    SetAndProcessOptions(opt, true);
 
-  if (BetweenFrameTreatment()==treat_pixelconcat) {
+    if (BetweenFrameTreatment()==treat_pixelconcat) {
+      if (FileVerbose())
+	cout << msg << "BetweenFrameTreatment()==treat_pixelconcat" << endl;
+      EnsureImage();
+      // image->ReadAllFramesAtOnce(true); // default is always false
+    }
+  
+    if (IsImageFeature()) {
+      PossiblySetSlicingAndZoning();
+      SetFrameCacheing();
+    }
+
+    if (IsVideoFeature() || IsAudioFeature())
+      PossiblySetSlicing();
+  
+    if (!rotateinfo.is_rotate_set()) {
+      ResolveScaling(scaling);
+    }
+
+    if (allocate_data) {
+      throw msg+"allocate_data==true strongly deprecated now";
+      // SetDataLabelsAndIndices(false);
+      // AddDataElements(false);
+    }
+
     if (FileVerbose())
-      cout << msg << "BetweenFrameTreatment()==treat_pixelconcat" << endl;
-    EnsureImage();
-    // image->ReadAllFramesAtOnce(true); // default is always false
-  }
+      cout << msg << "ending..." << endl;
   
-  if (IsImageFeature()) {
-    PossiblySetSlicingAndZoning();
-    SetFrameCacheing();
+    return this;
   }
 
-  if (IsVideoFeature() || IsAudioFeature())
-    PossiblySetSlicing();
+  //===========================================================================
   
-  if (!rotateinfo.is_rotate_set()) {
-    ResolveScaling(scaling);
-  }
+  void Feature::EnsureImage() const { // not really const anymore ...
+    if (!HasImage() && incore_imagedata_ptr) {
+      SegmentData()->setImage(*incore_imagedata_ptr);
+      imagedata tmpimg(incore_imagedata_ptr->width(),
+		       incore_imagedata_ptr->height(),
+		       1, imagedata::pixeldata_uint32);
+      SegmentData()->setSegment(tmpimg);
 
-  if (allocate_data) {
-    throw msg+"allocate_data==true strongly deprecated now";
-    // SetDataLabelsAndIndices(false);
-    // AddDataElements(false);
-  }
+      if (FileVerbose())
+	cout << "Feature::EnsureImage() : copied from imagedata @ "
+	     << ToStr(incore_imagedata_ptr) << endl;
 
-  if (FileVerbose())
-    cout << msg << "ending..." << endl;
-  
-  return this;
-}
+      // imagefile::display(*incore_imagedata_ptr);
+    }
+
+    if (!HasImage())
+      abort();
+    // throw "Feature : no image";
+  }
 
   //===========================================================================
   
@@ -2052,13 +2119,14 @@ vector<string> Feature::UsedDataLabelsFromSegmentData() const {
       cout << "  " << i->first << " : \"" << i->second << "\"" << endl;
   }
 
-  if (!UseBackground())
+  if (!UseBackground()) {
     for (i=labs.begin(); i<labs.end(); )
       if (i->second=="background")
         labs.erase(i);
       else
         i++;
-
+  }
+  
   vector<string> ret;
   for (i=labs.begin(); i<labs.end(); i++) {
     char tmp[100];
@@ -2651,70 +2719,70 @@ void Feature::Print(ostream& os, const featureVector& vec, const string& lbl) {
 
   //===========================================================================
 
-int Feature::FeatureVectorSize(bool weak) const {
-  int fakelength = GetVectorLengthFake();
-  if (fakelength>-1)
-    return fakelength;
+  int Feature::FeatureVectorSize(bool weak) const {
+    int fakelength = GetVectorLengthFake();
+    if (fakelength>-1)
+      return fakelength;
 
-  if (data.empty()) {
-    if (weak)
-      return 0;
-    else
-      throw "Feature::FeatureVectorSize() data structure not initialized yet";
-  }
-
-  int nslices = Nslices(), nframes = Nframes();
-  size_t ll = GetData(0)->VectorOrHistogramLength(), lsum = ll;
-
-  for (size_t i=1, n=DataCount(); i<n; i++) {
-    size_t lc = GetData(i)->VectorOrHistogramLength();
-
-    switch (WithinFrameTreatment()) {
-    case treat_concatenate:
-      lsum += lc;
-      break;
-
-    case treat_separate:
-      if (lc!=ll) {
-        char tmp[1000];
-        sprintf(tmp,"Feature::FeatureVectorSize()"
-                " unequal-sized data elements %d != %d", (int)lc, (int)ll);
-        throw string(tmp);
-      }
-      break;
-
-    default:
-      throw string("Feature::FeatureVectorSize() within treatment <")+
-        WithinFrameTreatmentName() + "> not implemented";
+    if (data.empty()) {
+      if (weak)
+	return 0;
+      else
+	throw "Feature::FeatureVectorSize() data structure not initialized yet";
     }
+
+    int nslices = Nslices(), nframes = Nframes();
+    size_t ll = GetData(0)->VectorOrHistogramLength(), lsum = ll;
+
+    for (size_t i=1, n=DataCount(); i<n; i++) {
+      size_t lc = GetData(i)->VectorOrHistogramLength();
+
+      switch (WithinFrameTreatment()) {
+      case treat_concatenate:
+	lsum += lc;
+	break;
+
+      case treat_separate:
+	if (lc!=ll) {
+	  char tmp[1000];
+	  sprintf(tmp,"Feature::FeatureVectorSize()"
+		  " unequal-sized data elements %d != %d", (int)lc, (int)ll);
+	  throw string(tmp);
+	}
+	break;
+
+      default:
+	throw string("Feature::FeatureVectorSize() within treatment <")+
+	  WithinFrameTreatmentName() + "> not implemented";
+      }
+    }
+
+    if (WithinFrameTreatment()==treat_separate && !pair_by_predicate.empty())
+      lsum *= 2;
+
+    if (BetweenFrameTreatment()==treat_concatenate)
+      lsum *= nframes;
+
+    if (BetweenSliceTreatment()==treat_concatenate)
+      lsum *= nslices;
+
+    if (BetweenSliceTreatment()==treat_diffconcat)
+      lsum *= (nslices-1);
+
+    if (FileVerbose() || lsum==0)
+      cout << "Feature::FeatureVectorSize() :"
+	   << " within_frame="  << WithinFrameTreatmentName()
+	   << " between_frame=" << BetweenFrameTreatmentName() 
+	   << " between_slice=" << BetweenSliceTreatmentName()
+	   << " slices=" << nslices
+	   << " frames=" << nframes << " items=" << DataCount()
+	   << " length=" << ll << " results to size=" << lsum << endl;
+
+    if (!lsum)
+      throw "Feature::FeatureVectorSize() returning zero";
+
+    return lsum;
   }
-
-  if (WithinFrameTreatment()==treat_separate && !pair_by_predicate.empty())
-    lsum *= 2;
-
-  if (BetweenFrameTreatment()==treat_concatenate)
-    lsum *= nframes;
-
-  if (BetweenSliceTreatment()==treat_concatenate)
-    lsum *= nslices;
-
-  if (BetweenSliceTreatment()==treat_diffconcat)
-    lsum *= (nslices-1);
-
-  if (FileVerbose() || lsum==0)
-    cout << "Feature::FeatureVectorSize() :"
-         << " within_frame="  << WithinFrameTreatmentName()
-         << " between_frame=" << BetweenFrameTreatmentName() 
-         << " between_slice=" << BetweenSliceTreatmentName()
-         << " slices=" << nslices
-         << " frames=" << nframes << " items=" << DataCount()
-         << " length=" << ll << " results to size=" << lsum << endl;
-
-  if (!lsum)
-    throw "Feature::FeatureVectorSize() returning zero";
-
-  return lsum;
-}
 
   //===========================================================================
 
@@ -3261,9 +3329,9 @@ Feature::featureVector Feature::CalculatePerFrame(int f, int ff, bool print) {
   if (ok)
    PossiblySetZoning();  // added 2014-01-22 so it's set multiple times...
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
   opencvmat = Convert2cvMat();
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
   if (ok) {
     if (FrameVerbose())
@@ -3751,7 +3819,7 @@ string Feature::BaseFileName() const {
       pattern.replace(p, 2, tmp);
     }  
 
-    if (FileVerbose())
+    if ((FileVerbose()&&!IsRawOutMode()) || KeyPointVerbose())
       cout << "Feature::FilenameFromPattern() formed \"" << pattern << "\""
            << " ([" << mm << "]=>[" << mx << "])" << endl;
 
@@ -3825,7 +3893,7 @@ string Feature::BaseFileName() const {
   //===========================================================================
 
   vector<string> Feature::SplitFilename(const string& s) const {
-    if (FileVerbose())
+    if ((FileVerbose()&&!IsRawOutMode()) || KeyPointVerbose())
       cout << "Feature::SplitFilename(" << s << ") :";
 
     vector<string> ret;
@@ -4281,6 +4349,8 @@ bool Feature::PerformScaling(int f) {
 			   int f) const {
     string msg = "Feature::PreProcess("+m+","+ToStr(f)+") : ";
 
+    bool display_it = false; // FrameVerbose();
+
     if (FrameVerbose())
       cout << msg << "for " << ot << " starting " << imgd.info() << endl;
 
@@ -4299,6 +4369,9 @@ bool Feature::PerformScaling(int f) {
 
     if (FrameVerbose())
       cout << msg << "for " << ot << " ending " << imgd.info() << endl;
+
+    if (display_it)
+      imagefile::display(imgd);
 
     return true;
   }
@@ -4342,6 +4415,7 @@ bool Feature::PerformScaling(int f) {
     pmi.push_back(e("shift",    &Feature::PreProcess_shift));
     pmi.push_back(e("crop",     &Feature::PreProcess_crop));
     pmi.push_back(e("resize",   &Feature::PreProcess_resize));
+    pmi.push_back(e("hflip",    &Feature::PreProcess_hflip));
   }
 
   //===========================================================================
@@ -4428,6 +4502,13 @@ bool Feature::PerformScaling(int f) {
 
   //===========================================================================
 
+  static int abs_or_rat(const string& v, size_t m) {
+    if (v.substr(0, 2)=="0.")
+      return floor(atof(v.c_str())*m+0.5);
+
+    return atoi(v.c_str());
+  }
+
   bool Feature::PreProcess_crop(imagedata& img, const string& a) const {
     string msg = "Feature::PreProcess_crop("+a+") : ";
 
@@ -4446,10 +4527,10 @@ bool Feature::PerformScaling(int f) {
       t = b = atoi(av[1].c_str());
 
     } else if (av.size()==4) {
-      l = atoi(av[0].c_str());
-      r = atoi(av[1].c_str());
-      t = atoi(av[2].c_str());
-      b = atoi(av[3].c_str());
+      l = abs_or_rat(av[0], img.width());
+      r = abs_or_rat(av[1], img.width());
+      t = abs_or_rat(av[2], img.height());
+      b = abs_or_rat(av[3], img.height());
 
     } else 
       return ShowError(msg+"arguments not understood");
@@ -4491,6 +4572,27 @@ bool Feature::PerformScaling(int f) {
 
     if (FrameVerbose())
       cout << msg << "result " << img.info() << endl;
+
+    return true;
+  }
+
+  //===========================================================================
+
+  bool Feature::PreProcess_hflip(imagedata& img, const string& a) const {
+    string msg = "Feature::PreProcess_hflip("+a+") : ";
+
+    if (a!="")
+      return ShowError(msg+"no argument should be given");
+
+    if (FrameVerbose())
+      cout << msg << "horizontal flipping " << img.info() << endl;
+
+    for (size_t y=0; y<img.height(); y++)
+      for (size_t x=0; x<img.width()/2; x++) {
+	vector<float> v = img.get_float(x, y);
+	img.set(x, y, img.get_float(img.width()-1-x, y));
+	img.set(img.width()-1-x, y, v);
+      }
 
     return true;
   }
@@ -5400,30 +5502,25 @@ bool Feature::PerformScaling(int f) {
 
     int idx=0;
 
-    for(int y=0;y<height;y++)
-      for(int x=0;x<width;x++){
-
-
-
+    for (int y=0;y<height;y++)
+      for (int x=0;x<width;x++) {
 	vector<int> svec = SegmentVector(f, x, y);
 	vector<int> snew;
 
-	if(x<width-1){
+	if (x<width-1) {
 	  snew = SegmentVector(f, x+1, y);
 	    
-	  if(!vectorsSame(svec,snew)){
+	  if (!vectorsSame(svec,snew)) {
 	    suppressionmask[idx]=1;
 	    suppressionmask[idx+1]=1;
 	  }
-	  
 	}
 
-	if(y<height-1){
-
-	  if(x>0){
+	if (y<height-1) {
+	  if (x>0) {
 	    snew = SegmentVector(f, x-1, y+1);
 	    
-	    if(!vectorsSame(svec,snew)){
+	    if (!vectorsSame(svec,snew)) {
 	      suppressionmask[idx]=1;
 	      suppressionmask[idx+width-1]=1;
 	    }
@@ -5431,16 +5528,15 @@ bool Feature::PerformScaling(int f) {
 
 	  snew = SegmentVector(f, x, y+1);
 
-	  if(!vectorsSame(svec,snew)){
+	  if (!vectorsSame(svec,snew)) {
 	    suppressionmask[idx]=1;
 	    suppressionmask[idx+width]=1;
 	  }
 
-	  if(x<width-1){
-
+	  if (x<width-1) {
 	    snew = SegmentVector(f, x+1, y+1);
 		
-	    if(!vectorsSame(svec,snew)){
+	    if (!vectorsSame(svec,snew)) {
 	      suppressionmask[idx]=1;
 	      suppressionmask[idx+width+1]=1;
 	    }
@@ -5450,53 +5546,52 @@ bool Feature::PerformScaling(int f) {
       }
       // expand the border mask
 
-      if (borderexpand>0) {
-	int templatew=2*borderexpand+1;
-	int templatesize=templatew*templatew;
+    if (borderexpand>0) {
+      int templatew=2*borderexpand+1;
+      int templatesize=templatew*templatew;
 
-	int *templatemask=new int[templatesize];
+      int *templatemask=new int[templatesize];
 
-	int templateorg=borderexpand*templatew+borderexpand;
+      int templateorg=borderexpand*templatew+borderexpand;
 
-	for(int dx=-borderexpand;dx<=borderexpand;dx++)
-	  for(int dy=-borderexpand;dy<=borderexpand;dy++)
-	    templatemask[templateorg+dx+dy*templatew]=
-	      (dx*dx+dy*dy<=borderexpand*borderexpand)?1:0;
+      for(int dx=-borderexpand;dx<=borderexpand;dx++)
+	for(int dy=-borderexpand;dy<=borderexpand;dy++)
+	  templatemask[templateorg+dx+dy*templatew]=
+	    (dx*dx+dy*dy<=borderexpand*borderexpand)?1:0;
 
-	int *expmask=new int[size];
-	memset(expmask,0,size*sizeof(int));
+      int *expmask=new int[size];
+      memset(expmask,0,size*sizeof(int));
 
-	int idx=0;
+      int idx=0;
 
-	for(int y=0;y<height;y++)
-	  for(int x=0;x<width;x++){
-	    int mindx=-borderexpand;
-	    int maxdx=borderexpand;
-	    int mindy=-borderexpand;
-	    int maxdy=borderexpand;
+      for(int y=0;y<height;y++)
+	for(int x=0;x<width;x++){
+	  int mindx=-borderexpand;
+	  int maxdx=borderexpand;
+	  int mindy=-borderexpand;
+	  int maxdy=borderexpand;
+	  
+	  if(x+mindx<0) mindx=x;
+	  if(x+maxdx>=width) maxdx=width-x-1;
+	  
+	  if(y+mindy<0) mindy=y;
+	  if(y+maxdy>=height) maxdy=height-y-1;
 
-	    if(x+mindx<0) mindx=x;
-	    if(x+maxdx>=width) maxdx=width-x-1;
+	  for(int dx=mindx;dx<=maxdx;dx++)
+	    for(int dy=mindy;dy<=maxdy;dy++)
+	      if(templatemask[templateorg+dx+dy*templatew] &&
+		 suppressionmask[idx+dx+dy*width])
+		expmask[idx]=1;
 
-	    if(y+mindy<0) mindy=y;
-	    if(y+maxdy>=height) maxdy=height-y-1;
+	  idx++;
+	}
 
-	    for(int dx=mindx;dx<=maxdx;dx++)
-	      for(int dy=mindy;dy<=maxdy;dy++)
-		if(templatemask[templateorg+dx+dy*templatew] &&
-		   suppressionmask[idx+dx+dy*width])
-		  expmask[idx]=1;
+      delete[] templatemask;
+      delete[] suppressionmask;
+      suppressionmask=expmask;
+    }
 
-	    idx++;
-
-	  }
-
-	delete[] templatemask;
-	delete[] suppressionmask;
-	suppressionmask=expmask;
-      }
-      return suppressionmask;
-
+    return suppressionmask;
   }
 
   //===========================================================================
@@ -5565,7 +5660,7 @@ bool Feature::PerformScaling(int f) {
 
   //===========================================================================
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
   
   cv::Mat Feature::Convert2cvMat(const imagedata& imgin) const {
     imagedata img(imgin);
@@ -5590,7 +5685,7 @@ bool Feature::PerformScaling(int f) {
     return Convert2cvMat(imgin);
   }
 
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
   //===========================================================================
 

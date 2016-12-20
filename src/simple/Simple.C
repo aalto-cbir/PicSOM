@@ -1,7 +1,7 @@
-// -*- C++ -*-  $Id: Simple.C,v 1.20 2013/11/06 15:39:24 jorma Exp $
+// -*- C++ -*-  $Id: Simple.C,v 1.21 2016/10/25 08:16:55 jorma Exp $
 // 
-// Copyright 1994-2009 Jorma Laaksonen <jorma@cis.hut.fi>
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1994-2016 Jorma Laaksonen <jorma@cis.hut.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 TKK, FINLAND
 // 
@@ -130,10 +130,10 @@ int Simple::Is(char *name, int descend) const {
 ///////////////////////////////////////////////////////////////////////////
 
 void Simple::Check(char *type) const {
-  if (this==NULL) {
-    cerr << "NULL pointer to Simple checked..." << endl;
-    return;
-  }
+  // if (this==NULL) {
+  //   cerr << "NULL pointer to Simple checked..." << endl;
+  //   return;
+  // }
 
   if (!Is(type)) {
     cerr << "Type of ";

@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: AudioBased.h,v 1.13 2014/01/23 13:03:15 jorma Exp $
+// -*- C++ -*-  $Id: AudioBased.h,v 1.14 2016/06/23 10:49:25 jorma Exp $
 // 
 // Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -15,15 +15,12 @@
    calculate features from audio objects.
   
    \author Hannes Muurinen <hannes.muurinen@hut.fi>
-   $Revision: 1.13 $
-   $Date: 2014/01/23 13:03:15 $
+   $Revision: 1.14 $
+   $Date: 2016/06/23 10:49:25 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
 */
-
-// compile only if we want to include audio libraries
-//#ifdef USE_AUDIO
 
 #ifndef _AudioBased_h_
 #define _AudioBased_h_
@@ -424,8 +421,6 @@ namespace picsom {
 } // namespace picsom
 
 #endif // _AudioBased_h_
-
-//#endif // USE_AUDIO
 
 // Local Variables:
 // mode: font-lock

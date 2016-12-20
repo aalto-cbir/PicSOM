@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Connection.h,v 2.129 2015/11/09 11:35:36 jorma Exp $
+// -*- C++ -*-  $Id: Connection.h,v 2.130 2015/12/01 09:47:57 jorma Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -49,7 +49,7 @@ extern HIST_ENTRY **history_list ();
 #define PICSOM_POLL_TIMEOUT   (60*1000)
 
 static const string Connection_h_vcid =
-  "@(#)$Id: Connection.h,v 2.129 2015/11/09 11:35:36 jorma Exp $";
+  "@(#)$Id: Connection.h,v 2.130 2015/12/01 09:47:57 jorma Exp $";
 
 namespace picsom {
   typedef list<pair<string,string> > http_headers_t;
@@ -589,6 +589,9 @@ namespace picsom {
 
     /// A helper
     bool DoClose(int);
+
+    /// Called if select() tells data is available, but zero bytes can be read.
+    bool ReadEofAndClose();
 
     /// Used when MPI connection accepted 
     bool CloseFDs();

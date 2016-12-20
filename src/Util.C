@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Util.C,v 2.61 2015/10/01 10:02:08 jorma Exp $
+// -*- C++ -*-  $Id: Util.C,v 2.64 2016/12/05 17:43:14 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include <cmath>
+#include <limits>
 
 #ifdef __linux__
 #include <execinfo.h>
@@ -34,7 +35,7 @@
 
 namespace picsom {
   static const string Util_C_vcid =
-  "@(#)$Id: Util.C,v 2.61 2015/10/01 10:02:08 jorma Exp $";
+  "@(#)$Id: Util.C,v 2.64 2016/12/05 17:43:14 jorma Exp $";
 
   static bool do_abort = false;
   static int locate_file_debug = 0;
@@ -849,14 +850,14 @@ namespace picsom {
     key = mykey;
     value = CopyString(ptr);
 
-    char *ptr2;
-    if (value)
-      for (ptr2=(char*)value+strlen(value)-1; ptr2>=value; ptr2--)
+    if (value) {
+      for (char *ptr2=(char*)value+strlen(value)-1; ptr2>=value; ptr2--)
 	if (*ptr2!=' ' && *ptr2!='\t')
 	  break;
 	else
 	  *ptr2 = 0;
-
+    }
+    
     return true;
   }
 
@@ -1012,6 +1013,146 @@ namespace picsom {
 	return p->mime_type;
     
     return NULL;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool ReadNumPyHeader(istream& in, size_t& o, size_t& fs,
+		       size_t& r, size_t& c) {
+    map<string,string> hdrdict = ReadNumPyHeader(in, o);
+    fs = r = c = 0;
+    string dtype = hdrdict["descr"], fortran_order = hdrdict["fortran_order"];
+    if (dtype!="'<f2'")
+      return false;
+    string s = hdrdict["shape"];
+    size_t p = s.find(',');
+    if (s.size() && s[0]=='(' && s[s.size()-1]==')' && p!=string::npos) {
+      r = atoi(s.substr(1).c_str());
+      c = atoi(s.substr(p+1).c_str());
+      fs = 16;
+    }
+    // cout << r << " " << c << endl;
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  // https://docs.scipy.org/doc/numpy/neps/npy-format.html
+
+  map<string,string> ReadNumPyHeader(istream& in, size_t& o) {
+    bool debug = false;
+    
+    struct numpy_header {
+      char magic[6];
+      unsigned char major, minor;
+      uint16_t header_len;
+    };
+    numpy_header hdr;
+
+    in.read((char*)&hdr, sizeof(hdr));
+    string hdrstr(hdr.header_len, '\0');
+    in.read((char*)hdrstr.c_str(), hdrstr.size());
+    if (debug)
+      cout << string(hdr.magic+1, 5) << " " << (int)hdr.major << "."
+	   << (int)hdr.minor << " " << hdr.header_len << " [" << hdrstr << "]"
+	   << endl;
+    
+    map<string,string> hdrdict;
+    if (string(hdr.magic+1, 5)!="NUMPY" ||
+	(int)hdr.major!=1 || (int)hdr.minor!=0)
+      return hdrdict;
+
+    o = sizeof(hdr)+hdr.header_len;
+
+    for (size_t i=0; i<hdrstr.size();) {
+      if (hdrstr[i]=='{' || hdrstr[i]==',' || hdrstr[i]==' ') {
+	i++;
+	continue;
+      }
+      if (hdrstr[i]=='\'') {
+	string key = hdrstr.substr(i+1);
+	size_t p = key.find('\'');
+	if (p!=string::npos) {
+	  string val = key.substr(p+1);
+	  key.erase(p);
+	  if (val.find(": ")==0) {
+	    val.erase(0, 2);
+	    size_t d = 0;
+	    for (size_t j=0; j<val.size(); j++) {
+	      if (val[j]=='(')
+		d++;
+	      if (val[j]==')')
+		d--;
+	      if (d==0 && val[j]==',') {
+		p = j;
+		break;
+	      }
+	    }
+	    if (p!=0) {
+	      val.erase(p);
+	      hdrdict[key] = val;
+	      if (debug)
+		cout << "a [" << key << "]=[" << val << "]" << endl; 
+	      i += key.size()+p+4;
+	      continue;
+	    }
+	  }
+	}
+      }
+      // hdrdict.clear();
+      break;
+    }
+
+    //  for (auto i=hdrdict.begin(); i!=hdrdict.end(); i++)
+    //    cout << "b [" << i->first << "]=[" << i->second << "]" << endl;
+
+    return hdrdict;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  vector<float> ReadNumPyVector(istream& in, size_t o, size_t s,
+				size_t r, size_t c, size_t idx, bool rowwise) {
+
+    vector<float> v(rowwise?c:r);
+    for (size_t i=0; i<v.size(); i++) {
+      size_t p = o+s/8*(rowwise?idx*c+i:idx+i*c);
+      in.seekg(p);
+      char buf[8];
+      memset(buf, 0, 8);
+      in.read(buf, s/8);
+      if (s==16)
+	v[i] = FromFloat16(*(uint16_t*)buf);
+      else if (s==32)
+	v[i] = *(float*)buf;
+      else
+	v[i] = numeric_limits<float>::quiet_NaN();
+    }
+
+    return v;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  // ftp://ftp.fox-toolkit.org/pub/fasthalffloatconversion.pdf
+
+  float FromFloat16(uint16_t v) {
+    unsigned int sign = v >> 15;
+    unsigned int expo = (v >> 10) & 31;
+    unsigned int mant = v & 1023;
+    float f = 0;
+    if (expo>0 && expo<31)
+      f = (-2*sign+1)*double(1L<<expo)/double(1L<<15)*(1+mant/1024.0);
+    else if (expo==0 && mant)
+      f = (-2*sign+1)/double(1L<<14)*(mant/1024.0);
+    else if (expo==31)
+      f = mant ? numeric_limits<float>::quiet_NaN() :
+	numeric_limits<float>::infinity();
+
+    //cout << "{" << sign << " " << expo << " " << mant << "}=" << f << " ";
+
+    return f;
   }
 
   /////////////////////////////////////////////////////////////////////////////

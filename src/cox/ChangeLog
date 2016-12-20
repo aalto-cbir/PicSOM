@@ -1,3 +1,34 @@
+2016-06-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* pdf_model 1.3: Added add_rbf(), get_rbf() and get_n_rbf().
+
+2016-05-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* blas 1.6:
+	Tried to make euclidean_squared_distance() a bit more efficient.
+
+2016-04-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* matrix 1.9: Summary: Added missing int -> size_t cast.
+
+2016-03-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* pdf_model 1.2, rbf 1.2: Added more properties.
+
+	* matrix 1.8: Commented out saving of matrix.m.
+
+2016-03-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* stat 1.3:
+	Added bool unbias in mean_cov_common() and a cuople of routines that
+	use it.  External function protypes have default value unbias=false
+	which implements the old behavior.
+
+	* matrix 1.7:
+	Added calculation of the determinant for inverse() result.
+
+	* pdf_model 1.1, rbf 1.1: Initial version.
+
 2015-10-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
 
 	* matrix 1.6: Implemented remove_row().

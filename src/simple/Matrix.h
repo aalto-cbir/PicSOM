@@ -1,7 +1,7 @@
-// -*- C++ -*-  $Id: Matrix.h,v 1.10 2014/07/01 13:40:56 jorma Exp $
+// -*- C++ -*-  $Id: Matrix.h,v 1.11 2016/10/25 08:16:25 jorma Exp $
 // 
-// Copyright 1994-2009 Jorma Laaksonen <jorma@cis.hut.fi>
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1994-2016 Jorma Laaksonen <jorma@cis.hut.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 TKK, FINLAND
 // 
@@ -116,7 +116,8 @@ public:
 
   const MatrixOf& FastSet(int i, int j, Type v) const {
     // the following stupidity is for g++'s sake
-    (this->list)[j]->FastSet(i, v); return *this; }
+    (this->list)[j]->FastSet(i, v); 
+    return *this; }
 
   int Size() const { return Rows()*Columns(); }
   MatrixOf& Size(int, int);
@@ -177,10 +178,12 @@ public:
     return *this; }
 
   MatrixOf& Add(int i, int j, Type v) {
-    if (IndexOK(i, j)) Set(i, j, Get(i, j)+v); return *this; }
+    if (IndexOK(i, j)) Set(i, j, Get(i, j)+v); 
+    return *this; }
 
   MatrixOf& Multiply(int i, int j, double v) {
-    if (IndexOK(i, j)) Set(i, j, Type(Get(i, j)*v)); return *this; }
+    if (IndexOK(i, j)) Set(i, j, Type(Get(i, j)*v)); 
+    return *this; }
 
   MatrixOf& AddOuterProduct(const VectorOf<Type>&, double = 1.0);
 

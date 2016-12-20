@@ -1,12 +1,9 @@
-// -*- C++ -*-  $Id: madaudiofile.h,v 1.11 2013/02/25 11:02:07 jorma Exp $
+// -*- C++ -*-  $Id: madaudiofile.h,v 1.12 2016/06/23 10:49:26 jorma Exp $
 // 
 // Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
-
-// compile only if we want to include audio libraries
-//#ifdef USE_AUDIO
 
 #ifndef _MADAUDIOFILE_H
 #define _MADAUDIOFILE_H
@@ -104,4 +101,3 @@ namespace picsom {
 
 #endif //_MADAUDIOFILE_H
 
-//#endif //USE_AUDIO

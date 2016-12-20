@@ -1,0 +1,109 @@
+#! /bin/bash
+
+# $Id: picsom-lucene,v 1.14 2016/01/07 10:35:01 jorma Exp $	
+# 
+# Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+# Aalto University School of Science
+# PO Box 15400, FI-00076 Aalto, FINLAND
+# 
+
+ulimit -Sv unlimited
+
+debug=0
+compile=0
+root=/triton/ics/project/imagedb/picsom/lucene
+lucene=5.4.0
+
+xlint=""
+xlint="-Xlint:unchecked"
+#xlint="-Xlint:deprecation"
+#xlint="-Xlint:all"
+
+xexec=""
+#xexec="-Xss4m"
+
+argok=1
+while [[ $# > 0 && $argok = 1 ]]; do
+    argok=0
+    if [ X$1 = X--debug ]; then
+	debug=1
+	shift
+	argok=1
+    fi
+    if [ X$1 = X--compile ]; then
+	compile=1
+	shift
+	argok=1
+    fi
+    if [ X$1 = X--root ]; then
+	root=$2
+	shift 2
+	argok=1
+    fi
+    if [ X$1 = X--lucene ]; then
+	lucene=$2
+	shift 2
+	argok=1
+    fi
+done 
+
+major=`echo $lucene | colrm 2`
+
+ext=""
+if [ X$major = X3 ]; then
+    ext="3"
+fi
+
+if [[ $debug = 1 ]]; then
+   echo compile=$compile root=$root lucene=$lucene major=$major ext=$ext XXX $*
+fi
+   
+cd $HOME/picsom/java/lucene
+
+#javapath=/usr/lib/jvm/java-1.6.0-openjdk/bin
+#java=$javapath/java
+#javac=$javapath/javac
+java=java
+javac=javac
+
+d=$root
+v=$lucene
+
+# export CLASSPATH=.:$d/lucene-$v/core/lucene-core-$v.jar:\
+# $d/lucene-$v/queryparser/lucene-queryparser-$v.jar${cpath}:\
+# $d/lucene-$v/contrib/analyzers/common/lucene-analyzers-$v.jar
+
+if [[ $major = 3 ]]; then
+    cpath=:$d/lucene-$v/contrib/snowball/lucene-snowball-$v.jar
+    cpath=${cpath}:$d/lucene-$v/contrib/wordnet/lucene-wordnet-$v.jar
+    cpath=${cpath}:$d/lucene-$v/contrib/analyzers/common/lucene-analyzers-$v.jar
+    cpath=:$d/lucene-$v/lucene-core-$v.jar${cpath}:$d/lucene-$v/contrib/analyzers/common/lucene-analyzers-$v.jar
+fi
+
+if [[ $major = 5 ]]; then
+cpath=:$d/lucene-$v/core/*:\
+$d/lucene-$v/queryparser/*:\
+$d/lucene-$v/analysis/common/*:\
+$d/lucene-$v/demo/*
+fi
+
+export CLASSPATH=.$cpath
+
+if [[ $debug = 1 ]]; then
+    echo $java $javac $CLASSPATH
+fi
+
+if [[ $compile = 1 ]]; then
+    cmd="$javac $xlint PicSOMLucene$ext.java"
+    if [[ $debug = 1 ]]; then
+	echo $cmd
+    fi
+    $cmd || exit 1
+fi
+
+if [[ $debug = 1 ]]; then
+    echo $java $xexec PicSOMLucene$ext "$@"
+fi
+
+$java $xexec PicSOMLucene$ext "$@"
+

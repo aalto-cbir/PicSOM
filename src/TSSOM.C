@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: TSSOM.C,v 2.203 2015/10/09 12:08:02 jorma Exp $
+// -*- C++ -*-  $Id: TSSOM.C,v 2.206 2016/04/27 07:07:38 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -19,7 +19,7 @@
 
 namespace picsom {
   static const string TSSOM_C_vcid =
-    "@(#)$Id: TSSOM.C,v 2.203 2015/10/09 12:08:02 jorma Exp $";
+    "@(#)$Id: TSSOM.C,v 2.206 2016/04/27 07:07:38 jorma Exp $";
 
   static TSSOM list_entry(true);
 
@@ -1742,8 +1742,9 @@ bool TSSOM::CheckDataSetTargetTypes() const {
  
     Tic("TSSOM::CheckDataSet");
 
+    const string augm;
     if (db->UseBinFeaturesRead())
-      BinDataOpen(db->OpenReadWriteFea(), db->Size(), false);
+      BinDataOpen(db->OpenReadWriteFea(), db->Size(), false, augm);
 
     string zzz;
     if (db->UseBinFeaturesRead())
@@ -2023,8 +2024,8 @@ bool TSSOM::LoadAndMatchFeatures(int idx, bool may_add, bool take_all) {
       if (!may_add)
         ShowError(errhead, "not allowed to add label <", set[i].Label(), ">");
       else
-        if (CheckDB()->AddLabelAndParents(set[i].Label(), feature_target,
-                                          false)==-1)
+        if (!CheckDB()->AddLabelAndParents(set[i].Label(), feature_target,
+					   false))
           ShowError(errhead, "failed to add label <", set[i].Label(), ">");
     }
   }
@@ -2230,8 +2231,10 @@ bool TSSOM::SolveFeatureCalculationCommand(bool no_recurs, bool angry) {
 
   target_type tt = ObjectsTargetType(idxv.front());
 
-  if (CompatibleTarget(tt))
-    return VectorIndex::CalculateFeatures(idxv, done_segm, xml, raw);
+  if (CompatibleTarget(tt)) {
+    list<incore_feature_t> incore;
+    return VectorIndex::CalculateFeatures(idxv, incore, done_segm, xml, raw);
+  }
 
   return false;  // was true until 2011-09-05
 }
@@ -2457,8 +2460,9 @@ void TSSOM::HackSegmentationCmd(vector<string>& cmd, const string& label) {
     cmd.insert(cmd.begin()+1, "-r");
     cmd.push_back(path);
 
+    list<incore_feature_t> incore;
     feature_result tmp;
-    Feature::Main(cmd, &tmp);
+    Feature::Main(cmd, incore, &tmp);
     if (tmp.data.empty())
       throw string("Feature::Main() failed");
 

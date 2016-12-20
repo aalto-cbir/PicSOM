@@ -1,4 +1,4 @@
-// -*- C++ -*- 	$Id: Trajectory.h,v 1.6 2015/11/10 08:02:24 jorma Exp $
+// -*- C++ -*- 	$Id: Trajectory.h,v 1.9 2016/12/19 08:15:43 jorma Exp $
 /**
    \file Trajectory.h
 
@@ -9,8 +9,8 @@
    is a class that wraps the Trajectory features
   
    \author Jorma Laaksonen <jorma.laaksonen@aalto.fi>
-   $Revision: 1.6 $
-   $Date: 2015/11/10 08:02:24 $
+   $Revision: 1.9 $
+   $Date: 2016/12/19 08:15:43 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -21,12 +21,12 @@
 #include "Feature.h"
 #include "bin_data.h"
 
-#ifdef HAVE_DENSETRACK_H
+#ifdef HAVE_DENSE_TRAJECTORY_RELEASE_V1_2_DENSETRACK_H
 
-#include "DenseTrack.h"
-#include "Initialize.h"
-#include "Descriptors.h"
-#include "OpticalFlow.h"
+#include "dense_trajectory_release_v1.2/DenseTrack.h"
+#include "dense_trajectory_release_v1.2/Initialize.h"
+#include "dense_trajectory_release_v1.2/Descriptors.h"
+#include "dense_trajectory_release_v1.2/OpticalFlow.h"
 
 #include <cox/subspace>
 
@@ -162,12 +162,18 @@ namespace picsom {
 
     virtual featureVector getRandomFeatureVector() const{
       size_t dim = 0;
-      dim += densetraj.nobjects();
-      dim += hog.nobjects();
-      dim += hof.nobjects();
-      dim += mbhx.nobjects();
-      dim += mbhy.nobjects();
-      
+      if (IsRawOutMode()) {
+	// dim = 424;
+	dim = 426;
+
+      } else {
+	dim += densetraj.nobjects();
+	dim += hog.nobjects();
+	dim += hof.nobjects();
+	dim += mbhx.nobjects();
+	dim += mbhy.nobjects();
+      }
+
       if (FrameVerbose())
 	cout << "Trajectory::getRandomFeatureVector() returning vector of dim "
 	     << dim << endl;
@@ -257,7 +263,7 @@ namespace picsom {
 
 } // namespace picsom
 
-#endif // HAVE_DENSETRACK_H
+#endif // HAVE_DENSE_TRAJECTORY_RELEASE_V1_2_DENSETRACK_H
 
 #endif
 

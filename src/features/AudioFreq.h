@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: AudioFreq.h,v 1.10 2013/02/25 11:06:14 jorma Exp $
+// -*- C++ -*-  $Id: AudioFreq.h,v 1.11 2016/06/23 10:49:25 jorma Exp $
 // 
 // Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -18,15 +18,12 @@
 
   
    \author Hannes Muurinen <hannes.muurinen@hut.fi>
-   $Revision: 1.10 $
-   $Date: 2013/02/25 11:06:14 $
+   $Revision: 1.11 $
+   $Date: 2016/06/23 10:49:25 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo Perhaps something?
 */
-
-// compile only if we want to include audio libraries
-//#ifdef USE_AUDIO
 
 #ifndef _AudioFreq_
 #define _AudioFreq_
@@ -323,7 +320,6 @@ namespace picsom {
 }
 #endif // _AudioFreq_
 
-//#endif // USE_AUDIO
 // Local Variables:
 // mode: font-lock
 // End:

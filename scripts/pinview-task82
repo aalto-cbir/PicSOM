@@ -1,0 +1,51 @@
+#! picsom
+
+#$ -S /home/jorma/picsom/c++/picsom.linux64.fast
+#$ -N bus
+#$ -cwd
+#$ -j yes
+#$ -l mem=4G,t=48:00:00
+
+# $Id: pinview-task82,v 1.5 2010/06/14 11:32:24 jorma Exp $	
+
+analyse=simulate
+debugtrap=true
+
+rndseed=1
+
+database=voc2007-20080403
+
+#algorithm=picsom_bottom
+#algorithm=picsomx_bottom
+algorithm=pinview(mkl=1,linrel=1,feat=raw)
+
+restriction=train
+target=image
+features=*
+
+${c} = bus
+${d} = 8
+
+convtype=triangle-1-2-${d}
+
+class=${c}#1&train
+
+verbose=6
+
+maxquestions=20
+permapnewimages=500
+
+forcehit=1
+initial_set=only_forced_images
+
+#classrounds=1
+#rounds=20
+
+result=${c}-rf20
+
+# positive.gaze=${class}
+# gt_pn=0.1
+# gt_np=0.15
+# gt_pn.gaze = 0.244
+# gt_np.gaze = 0.346
+

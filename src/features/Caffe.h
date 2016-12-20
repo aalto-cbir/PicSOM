@@ -1,17 +1,22 @@
-// -*- C++ -*- 	$Id: Caffe.h,v 1.15 2015/11/10 13:46:08 jorma Exp $
+// -*- C++ -*- 	$Id: Caffe.h,v 1.16 2016/01/26 11:54:38 jorma Exp $
 
 #ifndef _Caffe_
 #define _Caffe_
 
 #include "RegionBased.h"
 
-#ifdef HAVE_CAFFE_DATA_LAYERS_HPP
+#ifdef HAVE_CAFFE_DATA_TRANSFORMER_HPP
 
 // #define USE_MKL
 
 #include <cuda_runtime.h>
 #include <cstring>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include <caffe/caffe.hpp>
+#pragma GCC diagnostic pop
 
 #include <boost/algorithm/string.hpp>
 using namespace boost;

@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// $Id: blas,v 1.5 2015/06/04 14:01:51 jorma Exp $	
+// $Id: blas,v 1.6 2016/05/03 10:54:21 jorma Exp $	
 
 #ifndef _cox_blas_
 #define _cox_blas_
@@ -289,9 +289,12 @@ namespace cox {
       if (a.size()!=b.size())
 	throw _h()+"euclidean_squared_distance() vector size mismatch";
 
-      double s = 0;
-      for (size_t i=0; i<a.size(); i++)
-	s += (a[i]-b[i])*(a[i]-b[i]);
+      register double s = 0;
+      auto bi = b.begin();
+      for (auto ai=a.begin(); ai!=a.end(); ai++, bi++) {
+	register double d = *ai-*bi;
+	s += d*d;
+      }
 
       return s;
     }

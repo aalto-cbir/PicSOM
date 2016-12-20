@@ -1,4 +1,4 @@
-// -*- C++ -*- 	$Id: EdgeFourier.h,v 1.10 2012/08/20 08:41:18 jorma Exp $
+// -*- C++ -*- 	$Id: EdgeFourier.h,v 1.11 2016/10/25 08:11:19 jorma Exp $
 /**
    \file EdgeFourier.h
 
@@ -8,12 +8,13 @@
    is a class that performs sobel edge histogram extraction.
   
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.10 $
-   $Date: 2012/08/20 08:41:18 $
+   $Revision: 1.11 $
+   $Date: 2016/10/25 08:11:19 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
 */
+
 #ifndef _EdgeFourier_
 #define _EdgeFourier_
 
@@ -148,13 +149,14 @@ class EdgeFourier : public Feature {
 	cout << "  " << i->first << " : \"" << i->second << "\"" << endl;
     }
 
-    if (!UseBackground())
+    if (!UseBackground()) {
       for (i=labs.begin(); i<labs.end(); )
 	if (i->second=="background")
 	  labs.erase(i);
 	else
 	  i++;
-
+    }
+    
     vector<string> ret;
     for (i=labs.begin(); i<labs.end(); i++) {
       char tmp[100];

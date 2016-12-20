@@ -1,12 +1,9 @@
-// -*- C++ -*-  $Id: AudioBased.C,v 1.6 2013/02/25 11:04:52 jorma Exp $
+// -*- C++ -*-  $Id: AudioBased.C,v 1.7 2016/06/23 10:49:25 jorma Exp $
 // 
 // Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
-
-// compile only if we want to include audio libraries
-//#ifdef USE_AUDIO
 
 #include <AudioBased.h>
 
@@ -53,8 +50,6 @@ namespace picsom {
   //===========================================================================
 
 } // namespace picsom
-
-//#endif // USE_AUDIO
 
 // Local Variables:
 // mode: font-lock

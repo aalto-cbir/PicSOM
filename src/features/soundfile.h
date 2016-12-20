@@ -1,12 +1,9 @@
-// -*- C++ -*-  $Id: soundfile.h,v 1.6 2014/01/23 13:02:02 jorma Exp $
+// -*- C++ -*-  $Id: soundfile.h,v 1.7 2016/06/23 10:49:26 jorma Exp $
 // 
 // Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
-
-// compile only if we want to include audio libraries
-//#ifdef USE_AUDIO
 
 #ifndef _SOUNDFILE_H
 #define _SOUNDFILE_H
@@ -87,4 +84,3 @@ namespace picsom {
 
 #endif // _SOUNDFILE_H
 
-//#endif // USE_AUDIO

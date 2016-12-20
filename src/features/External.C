@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: External.C,v 1.39 2014/02/03 09:21:16 jorma Exp $
+// -*- C++ -*-  $Id: External.C,v 1.40 2016/10/25 08:11:38 jorma Exp $
 // 
-// Copyright 1998-2012 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -92,12 +92,13 @@ bool External::ProcessOptionsAndRemove(list<string>& l) {
         cout << "  " << i->first << " : \"" << i->second << "\"" << endl;
     }
     
-    if (!UseBackground())
+    if (!UseBackground()) {
       for (i=labs.begin(); i<labs.end(); )
         if (i->second=="background")
           labs.erase(i);
         else
           i++;
+    }
     
     vector<string> ret;
     for (i=labs.begin(); i<labs.end(); i++) {

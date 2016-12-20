@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Index.C,v 2.82 2015/10/15 07:33:00 jorma Exp $
+// -*- C++ -*-  $Id: Index.C,v 2.85 2016/10/25 08:07:01 jorma Exp $
 // 
-// Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -17,7 +17,7 @@
 
 namespace picsom {
   static const string Index_C_vcid =
-    "@(#)$Id: Index.C,v 2.82 2015/10/15 07:33:00 jorma Exp $";
+    "@(#)$Id: Index.C,v 2.85 2016/10/25 08:07:01 jorma Exp $";
 
   ///
   Index *Index::list_of_indices;
@@ -203,14 +203,14 @@ namespace picsom {
 	
       if (!first)
 	os << ", ";      
-	first = false;
+      first = false;
       
-	if (col+n.length() > 60) {
-	  os << endl << "\t";
-	  col = 0;
-	}
-	os << n;       
-	col += n.length()+2;
+      if (col+n.length() > 60) {
+	os << endl << "\t";
+	col = 0;
+      }
+      os << n;       
+      col += n.length()+2;
     }
   
     if (!wide && col>0)
@@ -271,9 +271,13 @@ namespace picsom {
   /////////////////////////////////////////////////////////////////////////////
 
   bool Index::CalculateFeatures(vector<size_t>& idxvin,
+				list<incore_feature_t>& incore,
 				set<string>& done_segm,
 				XmlDom& xml, bin_data *raw) {
     string tname = "CalculateFeatures<"+Name()+">";
+
+    if (idxvin.size() && incore.size())
+      return ShowError(tname+"only one type of input allowed");
 
     set<size_t> idxset;
     vector<size_t> idxv;
@@ -299,33 +303,41 @@ namespace picsom {
     // NOTE: here we assume that all objects in the vector have the same
     // properties as the first one, otherwise it doesn't make sense to
     // calculate them all at once... OBS: should we instead check this??
-    int idx = idxv.front();
-    const string& label = Label(idx);
+    int idxfirst = idxv.size() ? idxv.front() : -1;
+    const string labelfirst = idxfirst>=0 ? Label(idxfirst) : "";
 
     if (!CanCalculateFeatures())
       ShowError(hdr, "no features_command");
 
-    target_type tt = db->ObjectsTargetType(idx);
+    target_type tt = target_no_target;
+    stringstream msg;
+    if (idxv.size()) {
+      tt = db->ObjectsTargetType(idxfirst);
+
+      if (idxv.size()==1) 
+	msg << "object #" << idxfirst << " <" << labelfirst << "> type="
+	    << TargetTypeString(tt);
+      else
+	msg << ToStr(idxv.size())+" objects #" << idxfirst << " <" << labelfirst
+	    << "> to #" << idxv.back() << " <" << Label(idxv.back())
+	    << "> type=" << TargetTypeString(tt);
+      if (idxvin.size()!=idxv.size())
+	msg << " (" << idxvin.size()-idxv.size() << " duplicates removed)";
+      
+      if (subdir!="")
+	msg << " from subdir=" << subdir;
+    }
+
+    if (incore.size()) {
+      tt = feature_target; // obs!
+      msg << ToStr(incore.size()) << " INCORE objects";
+    }
+
     if (!CompatibleTarget(tt))
       return ShowError(hdr, "target_type mismatch: ",
 		       FeatureTargetString(), " vs. ", TargetTypeString(tt));
 
-    stringstream msg;
-    if (idxv.size()==1) 
-      msg << "object #" << idx << " <" << label << "> type="
-	  << TargetTypeString(tt);
-    else
-      msg << ToStr(idxv.size())+" objects #" << idx << " <" << label
-	  << "> to #" << idxv.back() << " <" << Label(idxv.back())
-	  << "> type=" << TargetTypeString(tt);
-    if (idxvin.size()!=idxv.size())
-      msg << " (" << idxvin.size()-idxv.size() << " duplicates removed)";
-
-    if (subdir!="")
-      msg << " from subdir=" << subdir;
-
-    WriteLog("Calculating feature vector"+string(idxv.size()==1?"":"s")+
-	     " for ", msg.str()); 
+    WriteLog("Calculating feature vector(s) for ", msg.str()); 
 
     // FIXME: segm should be done for entire vector as well...
 
@@ -334,13 +346,13 @@ namespace picsom {
     //   return ShowError(hdr, "ObjectPathEvenExtract() failed");
 
     list<string> imgs = db->ObjectPathsEvenExtract(idxv);
-    if (imgs.size()==0)
+    if (idxv.size() && imgs.size()==0)
       return ShowError(hdr, "ObjectPathEvenExtract() failed");
 
     bool allow_local_features = false;
     string outdir;
-    if (!allow_local_features && db->HasExtractedFiles()) {
-      outdir = db->ObjectPathEvenExtract(idx, false);
+    if (!allow_local_features && db->HasExtractedFiles() && idxfirst>=0) {
+      outdir = db->ObjectPathEvenExtract(idxfirst, false);
       size_t p = outdir.rfind('/');
       if (p!=string::npos)
 	outdir.erase(p);
@@ -449,7 +461,7 @@ namespace picsom {
       WriteLog("Removed "+ToStr(idxv.size()-fnameset.size())+
 	       " duplicates from object filename list");
 
-    string fname = CalculatedFeaturePath(label, false, idxv.size()>1);
+    string fname = CalculatedFeaturePath(labelfirst, false, idxv.size()>1);
     if (FileExists(fname)) {
       if (RenameToOld(fname))
 	db->AddCreatedFile(fname+".old");
@@ -476,9 +488,17 @@ namespace picsom {
     int r = 1;
 
     bool threads = db->UsePthreadsFeatures() && files.size()>1;
-    WriteLog("Extracting "+Name()+" features for "+ToStr(files.size())
-	     +" files starting <"+files.front()+">"
-	     +(threads?" in threads":""));
+    if (files.size())
+      WriteLog("Extracting "+Name()+" features for "+ToStr(files.size())
+	       +" files starting <"+files.front()+">"
+	       +(threads?" in threads":""));
+    else if (incore.size())
+      WriteLog("Extracting "+Name()+" features for "+ToStr(incore.size())
+	       +" INCORE objects starting <"+incore.front().first.first
+	       +","+incore.front().first.second+">"
+	       +(threads?" in threads":""));
+    else
+      return ShowError(tname+"no objects left");
 
     vector<string> cmd_files = cmd;
     cmd_files.insert(cmd_files.end(), files.begin(), files.end());
@@ -491,7 +511,7 @@ namespace picsom {
       if (threads)
 	r = CalculateFeaturesPthreads(cmd, files, *featresp);
       else
-	r = Feature::Main(cmd_files, featresp);
+	r = Feature::Main(cmd_files, incore, featresp);
 
     } else
       r = Picsom()->ExecuteSystem(cmd_files, true, false, false);
@@ -507,13 +527,17 @@ namespace picsom {
       }
       ShowError("Failed to calculate "+Name()+" features for some object"
 		" in a list of "+ToStr(idxv.size())+" starting with <"+
-		imgs.front()+">");
+		string(imgs.size()?imgs.front():"none")+">");
       ok = be_gentle;
     }
 
     if (useinternal) {  // obs! used to be if (ok && useinternal)...
       if (db->SqlFeatures() && db->SqlMode()!=2)
-	ShowError(hdr+"SQL database opened for read only");
+	return ShowError(hdr+"SQL database opened for read only");
+
+      if (incore.size() && incore.size()!=featres.data.size())
+	return ShowError(hdr+"incore and featres sizes differ");
+      auto incore_i = incore.begin();
 
       VectorIndex *vidx = dynamic_cast<VectorIndex*>(this);
       if (!vidx)
@@ -529,6 +553,7 @@ namespace picsom {
 	  if (!xml)
 	    return ShowError(hdr+"slave/pipe/xml mismatch");
 
+	  /// someday, unify this with DataBase::StoreDetectionResult
 	  string fdata((char*)&i->first[0], i->first.size()*sizeof(float));
 	  istringstream b64in(fdata);
 	  ostringstream b64out;
@@ -543,18 +568,24 @@ namespace picsom {
 	  fe.Prop("type", "float");
 
 	} else {
-	  if (db->SqlFeatures())
-	    vidx->SqlInsertFeatureData(*i);
+	  if (incore.size()) {
+	    incore_i->second = i->first;
+	    incore_i++;
 
-	  if (db->UseBinFeaturesWrite()) {
-	    if (!raw)
-	      vidx->BinDataStoreFeature(*i);
-	    else {
-	      raw->resize(rawidx+1);
-	      if (!raw->set_float(rawidx++, i->first))
-		return ShowError(hdr+"failed setting "+ToStr(i->first.size())+
-				 " dimensional feature vector as #"+
-				 ToStr(rawidx-1)+" in "+raw->str());
+	  } else {
+	    if (db->SqlFeatures())
+	      vidx->SqlInsertFeatureData(*i);
+
+	    if (db->UseBinFeaturesWrite()) {
+	      if (!raw)
+		vidx->BinDataStoreFeature(*i);
+	      else {
+		raw->resize(rawidx+1);
+		if (!raw->set_float(rawidx++, i->first))
+		  return ShowError(hdr+"failed setting "+ToStr(i->first.size())+
+				   " dimensional feature vector as #"+
+				   ToStr(rawidx-1)+" in "+raw->str());
+	      }
 	    }
 	  }
 	}
@@ -702,7 +733,8 @@ namespace picsom {
     vector<string> cmd_files = d.cmd;
     cmd_files.push_back(d.file);
 
-    int r = Feature::Main(cmd_files, &d.res);
+    list<incore_feature_t> incore;
+    int r = Feature::Main(cmd_files, incore, &d.res);
 
     if (debug)
       cout << msg+"in thread... finished <"+d.file+"> with " << r << endl;

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: SVM.h,v 2.59 2015/04/11 19:18:51 jorma Exp $
+// -*- C++ -*-  $Id: SVM.h,v 2.61 2016/06/23 09:57:14 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -17,16 +17,12 @@
 #include <liblinear.h>
 #include <PmSVM.h>
 
-#if defined(HAVE_VL_GENERIC_H) && !defined(HAVE_WINSOCK2_H)
-#define USE_VLFEAT
-#endif // HAVE_VL_GENERIC_H
-
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
 extern "C" {
 #include <vl/generic.h>
 #include <vl/homkermap.h>
 }
-#endif
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
 
 namespace picsom {
   /**
@@ -197,12 +193,14 @@ namespace picsom {
        @param readfrom_model
     */
     bool Create(const string& svmname, string& fname, const string& svmlib,
-                const ground_truth_set& cls, const string& readfrom_model);
+                const ground_truth_set& cls, const string& readfrom_model,
+		const string& featureaugmentation);
 
   private:
     typedef list<FloatVectorSet> setlist_t;
 
-    bool InitProblem(setlist_t& setlist, const ground_truth_set& cls);
+    bool InitProblem(setlist_t& setlist, const ground_truth_set& cls,
+		     const vector<string>& augm);
   public:
 
     ///
@@ -772,14 +770,14 @@ namespace picsom {
     string HomogeneousKernelMap() const { return hkm_name; }
   private: 
 
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
     bool InitialiseHomogeneousKernelMap(const string&, int);
     void HomogeneousKernelMapEvaluate(FloatVector*);
     void HomogeneousKernelMapEvaluate(FloatVectorSet&);
 
     VlHomogeneousKernelMap* hkm;
     int hkm_order;
-#endif
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
 
     ///
     string hkm_name;

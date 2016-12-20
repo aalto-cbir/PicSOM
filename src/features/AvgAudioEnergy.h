@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: AvgAudioEnergy.h,v 1.9 2014/01/23 13:03:44 jorma Exp $
+// -*- C++ -*-  $Id: AvgAudioEnergy.h,v 1.10 2016/06/23 10:49:25 jorma Exp $
 // 
 // Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -16,15 +16,12 @@
 
   
    \author Hannes Muurinen <hannes.muurinen@hut.fi>
-   $Revision: 1.9 $
-   $Date: 2014/01/23 13:03:44 $
+   $Revision: 1.10 $
+   $Date: 2016/06/23 10:49:25 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo Perhaps something?
 */
-
-// compile only if we want to include audio libraries
-//#ifdef USE_AUDIO
 
 #ifndef _AvgAudioEnergy_
 #define _AvgAudioEnergy_
@@ -311,8 +308,6 @@ private:
 }; // class AvgAudioEnergy
 }
 #endif
-
-//#endif //USE_AUDIO
 
 // Local Variables:
 // mode: font-lock

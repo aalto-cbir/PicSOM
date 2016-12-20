@@ -1,3 +1,13 @@
+2016-06-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* FLandmark.C 1.5: Commented out foo().
+
+	* TemporalMorphology.C 1.4: Old change from 11 Dec 2014 08:59:22.
+
+2016-01-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* segmentfile.C 1.180, segmentfile.h 1.120: Added () and setSegment().
+
 2015-02-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
 
 	* segmentfile.C 1.179:

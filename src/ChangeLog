@@ -1,3 +1,597 @@
+2016-12-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* configure.ac 2.112: Changed to 0.34 .
+
+	* Makefile.am 2.35: Added many segmentation methods.
+	Added -DPICSOM_USE_OPENCV .
+
+	* Analysis.C 2.1147, DataBase.h 2.509, DataBase.C 2.935:
+	Made safe for PICSOM_USE_PYTHON undef.
+
+	* DataBase.C 2.934, DataBase.h 2.508:
+	Improved DoAllCaptionings() and DoOneCaptioning().
+	Extracted StoreCaptioningResult().
+	Added PossiblyDeLscom().
+
+	* Analysis.h 2.483, Analysis.C 2.1146:
+	Added ProcessSlaveXmlResultCaption*().
+	Improved AnalyseExtractMedia with bool try_one_call = true.
+
+	* PicSOM.h 2.296: Added IsSlavePiping().
+
+	* PicSOM.C 2.554: SetTempDirRoot() now checks writing permission.
+
+2016-12-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1145, DataBase.C 2.933, DataBase.h 2.507:
+	Added VideoOrSegmentFirstAndLastFrame(), VideoOrSegmentMiddleFrame() and GroundTruthMiddleFrame().
+
+2016-12-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1144, Analysis.h 2.482:
+	Added Analysis::AnalyseYleJsonOutput*().
+
+	* DataBase.C 2.932:
+	Corrected bug with *.txt features in DataBase::FeatureData().
+
+	* TimeUtil.h 2.22: Added SecToString().
+
+	* Connection.C 2.376, DataBase.C 2.931, Makefile 2.134, Makefile.include 2.199:
+	Implemented storing of captioning results in textindex.
+
+	* Analysis.C 2.1143: Added longer argument info in slaves and threads.
+
+2016-12-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.930: Added tt==target_sound in AddLabelAndParents().
+
+	* Connection.C 2.375: Changed xmlParseMemory() to xmlReadMemory().
+
+2016-12-05  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.929: Corrected bugs in DataBase::FeatureDataNumPy().
+
+	* DataBase.C 2.928, Util.C 2.64, Util.h 2.88:
+	Extracted and used ReadNumPyVector().
+
+2016-12-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.927, DataBase.h 2.506:
+	Improved FeatureDataNumPy(), added numpy_feature_info.
+
+	* Util.h 2.87, Util.C 2.63:
+	Added 2x ReadNumPyHeader() and FromFloat16() in Util.
+
+2016-12-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1142, DataBase.C 2.926, DataBase.h 2.505:
+	Added DataBase::FeatureDataCombined*() and fake FeatureDataNumPy().
+
+2016-11-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1141, Analysis.h 2.481, DataBase.C 2.925, DataBase.h 2.504, PicSOM.C 2.553:
+	Added AnalyseCaptioning(), Analyse::captionings,
+	DataBase::Do*Captioning*(), DataBase:described_captionings,
+	DataBase::DebugCaptionings(), -Dcaptionings.
+
+2016-11-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.924: Updated to use the best single model.
+
+	* DataBase.C 2.923: Updated to newer version of neuraltalkTheano.
+
+2016-11-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.922: Working GenerateSentencesNeuralTalk().
+
+2016-11-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.921:
+	Improved GenerateSentencesNeuralTalk(), but not ready yet.
+
+	* Analysis.C 2.1140: Implemented AnalysePythonTest().
+
+2016-11-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Query.C 2.634:
+	AddToXMLinfolinklist_detectedobject_sparql now uses totally DataBase::LinkedDataMappings().
+
+	* DataBase.C 2.920: Corrected bug in handling linked_data_mappings.
+
+	* DataBase.h 2.503, DataBase.C 2.919:
+	Added linked_data_mappings and LinkedDataMappings().
+
+	* Query.C 2.633, Query.h 2.333, PicSOM.C 2.552, DataBase.h 2.502, DataBase.C 2.918, Connection.C 2.374:
+	Improved ajax object detection from od to iia demo path.
+
+2016-10-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Query.C 2.632, DataBase.C 2.917, DataBase.h 2.501:
+	Added DataBase::erf_detection_images etc.
+
+2016-10-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* XMLutil.h 2.52: Changed template >> to > >.
+
+	* Query.C 2.631, Index.C 2.85, DataBase.C 2.916, CbirAlgorithm.C 2.40, Util.C 2.62:
+	Summary: Minor changes to mage gcc 6.2.0 happy.
+
+2016-10-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile.include 2.198: Some rearrangements.
+
+	* configure.ac 2.111:
+	Split to check dense_trajectory_release_v1.2/DenseTrack.h and improved_trajectory_release/DenseTrackStab.h .
+
+2016-09-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.915:
+	VideoFrameRate() now doesn't call ShowError() with 0 fps.
+
+	* PicSOM.C 2.551: Changed to use /usr/local/bin/slurm .
+
+2016-09-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.914:
+	Improved AddLabelAndParents() and InsertOriginsInfo() to handle video objects and framerates.
+
+	* Analysis.C 2.1139: Old changes in AnalyseTensorFlowTest().
+
+2016-06-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOM.C 2.550: Added bool show_gpu_mem in SolveVersionData().
+
+2016-06-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1138, Analysis.h 2.480:
+	Rename AnalyseCudaTest() to AnalyseOpenCvTest().
+	Added empty AnalyseCudaTest().
+
+	* PicSOM.C 2.549: CreateEnvironment() now imports all SLURM_* .
+
+	* PicSOM.C 2.548: Set verbose=true in SolveGpuDevice().
+
+	* PicSOM.C 2.547:
+	Changed to use PICSOM_USE_AUDIO and cleaned old related stuff.
+
+	* Makefile.include 2.197: Cleaned a bit.
+
+	* PicSOM.C 2.546: Cleaned SolveLinuxDistribution() output for CentOS.
+
+	* PicSOM.C 2.545: Corrected typo in HAVE_OPENCV2_CORE_CORE_HPP .
+
+	* SVM.h 2.61, SVM.C 2.109, PicSOM.C 2.544, DataBase.h 2.500, DataBase.C 2.913, ContextState.C 2.13, Analysis.C 2.1137:
+	Changed to use PICSOM_USE_* for SLMOTION, JAULA and OD.
+
+	* Makefile.include 2.196: Moved the defaults in front of the overrides.
+	Chnaged to use PICSOM_USE_* for SLMOTION, JAULA and OD.
+
+2016-06-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile.include 2.195, CbirPinView.C 2.49, PicSOM.C 2.543:
+	Changed to use PICSOM_USE_OCTAVE instead of PICSOM_NO_OCTAVE .
+
+	* Makefile.include 2.194: Reverted LSBCODE = $(shell lsb_release -cs) .
+
+	* Makefile.include 2.193, PicSOM.C 2.542, Analysis.C 2.1136, Analysis.h 2.479, DataBase.C 2.912, DataBase.h 2.499:
+	Added PICSOM_USE_CAFFE .
+
+	* Makefile 2.133: Changed 2015 to 2016.
+
+	* cox/pdf_model 1.3: Added add_rbf(), get_rbf() and get_n_rbf().
+
+	* Analysis.C 2.1135, Analysis.h 2.478, DataBase.h 2.498, Makefile 2.132, Makefile.include 2.192, PicSOM.C 2.541, PicSOM.h 2.295:
+	Added/improved integration of Python and TensorFlow.
+
+2016-06-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile.include 2.191:
+	Added ISTRITON2 and python and PYTHONDEFINES = -D PICSOM_USE_PYTHON
+
+	* Makefile 2.131: Added ImprovedTrajectory.o and $(PYTHONLIBS)
+
+	* DataBase.C 2.911, PicSOM.C 2.540:
+	Moved #include <Python.h> to last, added #undef _POSIX_C_SOURCE+_XOPEN_SOURCE
+
+2016-06-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1134:
+	AnalyseExtractRawFeatures() bow requires vectorlength argument.
+
+	* DataBase.C 2.910, PicSOM.h 2.294: Added insertmode=relativelink .
+
+2016-06-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* bin_data_main.C 1.8: Added -cat and do_cat().
+
+	* PicSOM.C 2.539:
+	Added invocation of a dummy PicSOM object with -f invocation.
+
+	* DataBase.C 2.909:
+	Added dash - as an accepted label frame part in SetLabelRegExps().
+
+2016-05-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1133, Analysis.h 2.477:
+	Added a stub of AnalyseInsertFrames(), but AnalyseInsertSubobjects() should do...
+
+2016-05-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1132:
+	AnalyseSerial() now doesn't fail for missing i->avgprecision.
+	ExpandDetectionsWithClasses() now accepts detectionx.size()==0.
+	AnalyseFeatureTest() now passes video files as "string::filename*".
+
+	* DataBase.C 2.908:
+	Added bool may_copy_parent = true in ExtractMediaClip().
+	Added processing of video subrange foo.mp4[*] meaning full parent content.
+
+	* Index.C 2.84:
+	CalculateFeatures() now sets tt = feature_target if its not an image...
+
+	* PicSOM.C 2.538:
+	Used videofile::local_bin() and changed "/share/apps/bin/slurm" to "/usr/bin/slurm".
+
+	* cox/blas 1.6:
+	Tried to make euclidean_squared_distance() a bit more efficient.
+
+2016-04-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* bin_data.C 2.31:
+	Disabled the rest of optimize() because MADV_DONTNEED(?) made mremap() fail.
+
+2016-04-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOM.C 2.537, DataBase.C 2.907, PicSOM.h 2.293, Analysis.h 2.476, Analysis.C 2.1131:
+	Added Analysis::insert_objects_textline + 2 related *TextLineData() methods.
+	Separate **textentry** lines are now #-concatenated and processed with
+	either DataBase::StoreSentences() or DataBase::TextIndexInput().
+	DataBase::StoreSentences() can now handle video objects with single caption.
+	Added 2nd argument bool val = true in textline_t::str().
+	Added textline_t::has_time_set().
+
+2016-04-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.906: Added some more diagnostics in resize_inner().
+	There was/is some problem with mmap() and mremap() in new lustre...
+
+	* PicSOM.C 2.536:
+	SolveLinuxDistribution() can now read also /etc/system-release .
+
+	* Analysis.C 2.1130:
+	Improved AnalyseBinData() and AnalyseTestBinData().
+
+	* bin_data.C 2.30: Added some more diagnostics in resize_inner().
+	There was/is some problem with mmap() and mremap() in new lustre...
+
+	* Analysis.h 2.475, Analysis.C 2.1129: Added AnalyseTestBinData().
+
+	* cox/matrix 1.9: Summary: Added missing int -> size_t cast.
+
+	* TSSOM.C 2.206:
+	Summary: Changed checking of DataBase::AddLabelAndParents()'s return value.
+
+	* bin_data.C 2.29:
+	Summary: Added check for strerror_r()'s return value.
+
+2016-04-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1128, Analysis.h 2.474, DataBase.C 2.905, DataBase.h 2.497:
+	Added DataBse::SuperClassDetectionSingle()
+
+2016-04-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOM.C 2.535: Added forced_name in HostName().
+
+2016-04-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.904:
+	Changed in-core detection data naming in FusionDetectionSingle() from
+	fusion(...#%c...#%c...)#foo to fusion(...#foo...#foo...).
+
+	* Analysis.C 2.1127, Analysis.h 2.473:
+	Added AnalyseDetectorDifference().
+
+2016-04-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1126, Analysis.h 2.472:
+	Extracted ExpandDetectionsWithClasses().
+	Added AnalyseShowTopDetections().
+
+2016-03-31  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1125:
+	AnalyseDetectionsToFeatures() now supports settings detections=foo#%c class=all_classes.
+
+2016-03-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* cox/pdf_model 1.2, cox/rbf 1.2: Added more properties.
+
+	* cox/matrix 1.8: Commented out saving of matrix.m.
+
+2016-03-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* cox/stat 1.3:
+	Added bool unbias in mean_cov_common() and a cuople of routines that
+	use it.  External function protypes have default value unbias=false
+	which implements the old behavior.
+
+	* cox/matrix 1.7:
+	Added calculation of the determinant for inverse() result.
+
+	* cox/pdf_model 1.1, cox/rbf 1.1: Initial version.
+
+2016-03-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1124: Improved AnalyseDetectorPerformance().
+
+2016-03-21  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.h 2.471, Analysis.C 2.1123:
+	Added AnalyseDetectorPerformance().
+
+2016-03-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1122: Added ROC AUC in outputs of AnalyseRetrieve().
+	Added png_hist and generation of graphical histograms in AnalyseDetectionData().
+
+2016-03-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.903, DataBase.h 2.496:
+	Added extractfulltars and methods.
+	Added ExtractImagesFromTar() and extracted ExtractFromTarCommon() from ExtractImageFromTar().
+
+	* Analysis.C 2.1121:
+	InsertObjectsOperation() now handles **link* /path/to/foo.tar ///tars/ .
+
+	* Analysis.C 2.1120:
+	Added if (trainmodel) checks in CreateSVM() verbosity.
+
+2016-03-02  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile.include 2.190: Added CRYPTOLIBS.
+
+	* Makefile.include 2.189:
+	Removed bogus settings of MAGICKTYPE = NONE and XINE and XINE_EXP = false.
+
+	* Makefile.include 2.188: Added some TAITO specifics.
+
+	* Makefile.include 2.187: Added $(BOOSTTHREADLIB) $(BOOSTSYSTEMLIB) .
+
+	* Makefile.include 2.186: Added PICSOM_PATH.
+
+	* PicSOM.C 2.534:
+	Changed that PICSOM_PATH comes from Makefile.include, no hard-codings left...
+	Failure of SolveGpuDevice() call to nvidia-smi is now silent.
+
+	* DataBase.C 2.902:
+	Removed type checks in ReadCOCOjsoncpp() due to the updated "stable* json files.
+
+	* Analysis.C 2.1119, DataBase.C 2.901:
+	Changed naming (especially relating to #%c class name) in incore fusion() bin_data.
+
+2016-03-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1118, DataBase.C 2.900:
+	Added check for HAVE_JSON_JSON_H around COCOmasks().
+
+	* Analysis.C 2.1117: Corrected a new bug in AnalyseSerial().
+
+2016-02-29  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1116:
+	Added calculating of MAP and Prec@50 std.dev.s in AnalyseRetrieve() and AnalyseSerial().
+
+	* SVM.C 2.108: Added check for range==0 in Model::Scale().
+
+2016-02-24  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1115:
+	Improved display of training classes in CreateSVM().
+
+	* SVM.C 2.107: Added force_finalize.
+
+2016-02-17  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.899:
+	Corrected serious? bug with origins_entry_cache_map in ReadCOCOjsoncpp().
+
+	* Analysis.C 2.1114:
+	Enhanced debugging of ProcessSlaveXmlResultFeatureVector().
+
+	* PicSOM.h 2.292, PicSOM.C 2.533: Moved ExecuteSystem() from .h to .C .
+
+2016-02-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.898: ReadCOCOjsoncpp() now accepts test2015.
+
+2016-02-15  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1113: AnalyseRetrieve() now sets avgprec.
+
+2016-02-12  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1112, Analysis.h 2.470: Added AnalysisRetrieve().
+
+2016-02-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1111:
+	AnalyseMaskedDetection() now handles one or two detections.
+
+2016-02-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.h 2.469, Analysis.C 2.1110: Added AnalyseWord2VecTest().
+
+	* Analysis.C 2.1109:
+	AnalyseMaskedDetection() now uses maxmax = val0 instead of maxn.
+
+	* DataBase.h 2.495, DataBase.C 2.897:
+	Added bool keep_coco_json = true in ReadCOCOjsoncpp().
+	Added ObjectMasks(), ObjectMasksCombined(), etc.
+	Added map<size_t,Json::Value> coco_json, map<size_t,string> coco_category .
+
+	* Analysis.h 2.468, Analysis.C 2.1108: Added AnalyseCOCOmasks.
+
+2016-02-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* bin_data.C 2.28:
+	Added diagnostic message for failed open() in open_inner().
+
+	* Analysis.C 2.1107, Analysis.h 2.467:
+	Improved AnalyseMaskedDetection().
+	Added mapgrid.
+
+2016-01-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.h 2.466, Analysis.C 2.1106: Added AnalyseMaskedDetection().
+
+	* DataBase.C 2.896:
+	Added dependency on HAS_CAFFE_COLORCONVERT that may be defined in caffe/common.hpp .
+
+	* Analysis.C 2.1105: Improved AnalyseFeatureTest().
+
+2016-01-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Analysis.C 2.1104, Analysis.h 2.465, DataBase.C 2.895, Index.C 2.83, Index.h 2.59, TSSOM.C 2.205:
+	Added AnalyseFeatureTest() and incore options for feature extraction.
+
+2016-01-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* PicSOM.C 2.532:
+	In SolveVersionData(), added checks for existence of avlibs etc. not only for headers.
+
+	* configure.ac 2.110:
+	Changed to test caffe/data_transformer.hpp instead of caffe/data_layers.hpp
+
+2016-01-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.h 2.494:
+	Summary: Added #pragma GCC diagnostic ignored "-Wsign-compare" for #include <caffe/caffe.hpp>.
+
+	* DataBase.C 2.894: Summary: Just used an argument ;)
+
+	* Makefile.include 2.185: Summary: Made OPENCVNONFREE to a macro.
+
+	* Makefile.include 2.184:
+	Changed to work with "caffe_20160125" and protobuf_2006001.
+
+	* Analysis.C 2.1103:
+	Just catched up some earlier updates in rare circumstances.
+
+	* DataBase.C 2.893:
+	Changed to work with "caffe_20160125" and protobuf_2006001.
+
+	* DataBase.h 2.493:
+	Added #pragma GCC diagnostic ignored "-Wunused-parameter" for #include <caffe/caffe.hpp>
+
+	* PicSOM.C 2.531: Added GOOGLE_PROTOBUF_VERSION in SolveVersionData().
+
+	* Makefile.include 2.183:
+	Summary: Changed POUTA to match ISCIS=0 LSBCODE=vivid.
+	Changed some default defines to false.
+
+	* ContextState.C 2.12, ContextState.h 2.7, DataBase.C 2.892, Analysis.C 2.1102:
+	Summary: Added #undef USE_JAULA if !defined(HAVE_JAULA_H).
+
+2016-01-20  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.891:
+	DetectionName() and SvmPredDetectionSingleSelf() now accept simultaneous extra and augm.
+
+	* SVM.C 2.106, VectorIndex.C 2.104, VectorIndex.h 2.49, Analysis.C 2.1101, Analysis.h 2.464, Connection.C 2.373, DataBase.C 2.890, DataBase.h 2.492:
+	Added tolerate_missing and feature augmentation stuff.
+
+2016-01-14  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.889: Added bool debug = false in TrecvidSINbottomUp().
+
+2016-01-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* SVM.C 2.105: Added bool augm_negatives = false in InitProblem().
+
+2016-01-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.888:
+	Added ored check of debug_test => verbose in LuceneOperation().
+
+2016-01-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.887:
+	Summary: Correct (possible/latent) bug with add-attribute txt in TextIndexInput().
+	Removed reuirement of field in TextIndexFields() in TextIndexInput().
+
+	* DataBase.C 2.886, DataBase.h 2.491:
+	Added support for -rw=txt, open_read_write_txt and 2x OpenReadWriteTxt()
+	Added (bogus) force_lucene_unlock and 2x ForceLuceneUnlock().
+	LuceneOperation() now returns pair<bool,list<string> >.
+
+	* PicSOM.C 2.530:
+	Added recognition of force_lucene_unlock in Interpret(), but it shouldn't & cannot be set true...
+
+	* Analysis.C 2.1100:
+	Tried to move db->UseSql() && db->SqlMode()!=2 checks to places where really new objects
+	are being added so that e.g. textindex updattes can be done with analyse=insert without -rw=sql .
+
+	* DataBase.C 2.885:
+	SolvePicSOMLuceneArguments() now accepts lucene==4|5 too.
+
+	* DataBase.C 2.884: Added "3.3.0" in SolvePicSOMLuceneArguments().
+
+	* DataBase.h 2.490, DataBase.C 2.883:
+	Added SolvePicSOMLuceneArguments() and used it in LuceneTextIndex().
+
+	* Analysis.C 2.1099, Analysis.h 2.463, DataBase.C 2.882, SVM.C 2.104, SVM.h 2.60, TSSOM.C 2.204, VectorIndex.C 2.103, VectorIndex.h 2.48:
+	Added featureaugmentaton related things.
+
+2015-12-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Connection.C 2.372:
+	Added HAVE_SQLITE3_H check in HttpServerWriteOutSqlite3db().
+
+2015-12-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* configure.ac 2.109: Added AC_CHECK_LIB(dl, dlopen).
+
+	* PicSOM.C 2.529:
+	Added check for jobids.size() in UpdateSlaveInfoNewest().
+
+2015-12-01  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Connection.h 2.130, Connection.C 2.371, PicSOM.C 2.528:
+	Added Connection:ReadEofAndClose() which PicSOM::SelectInput() may call.
+
+2015-11-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile.include 2.182: Added LXSUF=POUTA .
+
+	* PicSOM.C 2.527, Connection.C 2.370: Updated forge -> pouta.
+
+2015-11-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* DataBase.C 2.881:
+	Added call to PossiblyImplementFeatureAugmentation() in ExpandFeatureAlias()
+	for the case on non-alias augmentations.
+
+	* DataBase.C 2.880, DataBase.h 2.489:
+	Extracteed PossiblyImplementFeatureAugmentation() from ExpandFeatureAlias().
+
+	* Makefile.include 2.181:
+	Changed default JSONCPP to false and set in true in trusty.
+
+	* Analysis.C 2.1098:
+	Clarified(?) some CUDA/CAFFE related includes and defines.
+
+	* DataBase.C 2.879, DataBase.h 2.488: Added *FeatureAugmentation*().
+	Clarified(?) some CUDA/CAFFE related includes and defines.
+
+	* Index.h 2.58: Added SetIndexName() and 2nd FeaturesCommand().
+
+	* Makefile.include 2.180, PicSOM.C 2.526:
+	Clarified(?) some CUDA/CAFFE related includes and defines.
+
+	* configure.ac 2.108:
+	Added check for cuda_runtime.h, reordered checks for better(?) efficiency.
+
 2015-11-11  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
 
 	* Makefile.am 2.34, configure.ac 2.107:

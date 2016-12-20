@@ -1,18 +1,15 @@
-// -*- C++ -*-  $Id: AvgAudioEnergy.C,v 1.4 2013/02/25 11:04:28 jorma Exp $
+// -*- C++ -*-  $Id: AvgAudioEnergy.C,v 1.5 2016/06/23 10:49:25 jorma Exp $
 // 
 // Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
 
-// compile only if we want to include audio libraries
-//#ifdef USE_AUDIO
-
 #include <AvgAudioEnergy.h>
 
 namespace picsom {
   static const char *vcid =
-    "$Id: AvgAudioEnergy.C,v 1.4 2013/02/25 11:04:28 jorma Exp $";
+    "$Id: AvgAudioEnergy.C,v 1.5 2016/06/23 10:49:25 jorma Exp $";
 
 static AvgAudioEnergy list_entry(true);
 
@@ -42,8 +39,6 @@ bool AvgAudioEnergy::ProcessOptionsAndRemove(list<string> &l) {
 } // namespace picsom
 
 //=============================================================================
-
-//#endif //USE_AUDIO
 
 // Local Variables:
 // mode: font-lock

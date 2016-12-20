@@ -1,4 +1,4 @@
-// -*- C++ -*- $Id: ContourFD.h,v 1.10 2008/10/31 09:44:26 jorma Exp $
+// -*- C++ -*- $Id: ContourFD.h,v 1.11 2016/10/25 08:10:51 jorma Exp $
 
 /**
    \file ContourFD.h
@@ -6,8 +6,8 @@
    \brief Declarations and definitions of class ContourFD
    
    \author Ville Viitaniemi <Ville.Viitaniemi@hut.fi>
-   $Revision: 1.10 $
-   $Date: 2008/10/31 09:44:26 $
+   $Revision: 1.11 $
+   $Date: 2016/10/25 08:10:51 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -192,13 +192,14 @@ protected:
 	cout << "  " << i->first << " : \"" << i->second << "\"" << endl;
     }
 
-    if (!UseBackground())
+    if (!UseBackground()) {
       for (i=labs.begin(); i<labs.end(); )
 	if (i->second=="background")
 	  labs.erase(i);
 	else
 	  i++;
-
+    }
+    
     vector<string> ret;
     for (i=labs.begin(); i<labs.end(); i++) {
       char tmp[100];

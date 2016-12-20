@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: OCVCentrist.C,v 1.17 2013/02/26 07:39:45 markus Exp $
+// -*- C++ -*-  $Id: OCVCentrist.C,v 1.18 2016/10/25 08:12:36 jorma Exp $
 // 
-// Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -15,7 +15,7 @@
 
 namespace picsom {
   static const string vcid =
-    "$Id: OCVCentrist.C,v 1.17 2013/02/26 07:39:45 markus Exp $";
+    "$Id: OCVCentrist.C,v 1.18 2016/10/25 08:12:36 jorma Exp $";
 
   static OCVCentrist list_entry(true);
   
@@ -366,7 +366,8 @@ namespace picsom {
       }
     // normalize histogram to have 0 mean, remove the first and last entry, and normalize to have unit norm
     double sum = 0; 
-    for(int j=0;j<256;j++) sum += temp[j]; sum/=256;
+    for(int j=0;j<256;j++) sum += temp[j]; 
+    sum/=256;
     for(int j=0;j<256;j++) temp[j] -= sum;
     temp[0] = temp[255] = 0;
     double sq = 0; 

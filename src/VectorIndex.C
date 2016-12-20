@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: VectorIndex.C,v 2.102 2015/06/24 11:34:42 jorma Exp $
+// -*- C++ -*-  $Id: VectorIndex.C,v 2.104 2016/01/20 09:01:50 jorma Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -13,7 +13,7 @@
 
 namespace picsom {
   static const string VectorIndex_C_vcid =
-    "@(#)$Id: VectorIndex.C,v 2.102 2015/06/24 11:34:42 jorma Exp $";
+    "@(#)$Id: VectorIndex.C,v 2.104 2016/01/20 09:01:50 jorma Exp $";
 
   bool VectorIndex::bin_data_full_test = false;
   bool VectorIndex::fast_bin_check     = false;
@@ -48,6 +48,23 @@ namespace picsom {
     tree.Element("size", VectorLength());
 
     return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  vector<string> VectorIndex::SolveFeatureAugmentation(const string& fea,
+						       const string& aug) {
+    string msg = "VectorIndex::SolveFeatureAugmentation("+fea+","+aug+") : ";
+    vector<string> ret;
+    DataBase *db = CheckDB();
+    list<string> ll = db->ExpandFeatureAlias(aug);
+    vector<string> l(ll.begin(), ll.end());
+    if (l.size()==0)
+      l = SplitInCommas(aug);
+    for (auto i=l.begin(); i!=l.end(); i++)
+      ret.push_back(fea+*i);
+
+    return ret;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -231,7 +248,7 @@ namespace picsom {
 
     // FloatVector v(BinInfoVectorLength(), (float*)BinDataAddress(i));
 
-    vector<float> vv = _bin_data.get_float(i);
+    vector<float> vv = _bin_data_m.begin()->second.get_float(i);
     if (!vv.size())
       ShowError(msg+"empty vector returned");
 
@@ -247,10 +264,11 @@ namespace picsom {
   bool VectorIndex::ReadDataFileBin(bool /*nodata*/) {
     string msg = "VectorIndex::ReadDataFileBin() : ";
     
-    if (!BinDataOpen(/*db->OpenReadWrite()*/ false, db->Size(), false))
+    const string augm;
+    if (!BinDataOpen(/*db->OpenReadWrite()*/ false, db->Size(), false, augm))
       return ShowError(msg+"BinDataOpen() failed");
 
-    data.FileName(_bin_data.filename());
+    data.FileName(_bin_data_m.begin()->second.filename());
 
     for (size_t i=0; i<db->Size(); i++) {
       FloatVector *v = BinDataFloatVector(i);
@@ -335,7 +353,8 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool VectorIndex::BinDataOpen(bool rw, size_t n, bool create) {
+  bool VectorIndex::BinDataOpen(bool rw, size_t n, bool create,
+				const string& augm) {
     string msg = "VectorIndex::BinDataOpen("+ToStr(rw)+","+ToStr(n)+
       ","+ToStr(create)+") <"+BinInfoFileName()+"> : ";
 
@@ -344,20 +363,23 @@ namespace picsom {
     // if (rw && VectorLength()==0)
     //   return ShowError(msg+"VectorLength()==0");
 
-    if (BinInfoRawDataLength()==0)
-      BinDataOpenFile(rw, create);
+    if (BinInfoRawDataLength(augm)==0)
+      BinDataOpenFile(rw, create, augm);
 
     if (VectorLength() && BinInfoVectorLength()!=VectorLength())
       return ShowError(msg+"vdim error VectorLength()="+
 		       ToStr(VectorLength())+" BinInfoVectorLength()="+
 		       ToStr(BinInfoVectorLength()));
 
-    if (!tolerate_large && BinInfoRawDataLength()>BinInfoRawDataLength(n))
-      return ShowError(msg+"size mismatch: "+ToStr(BinInfoRawDataLength())+
-		       ">"+ToStr(BinInfoRawDataLength(n))+" "+
-		       _bin_data.str());
+    if (!tolerate_large &&
+	BinInfoRawDataLength(augm)>BinInfoRawDataLength(n, augm))
+      return ShowError(msg+"size mismatch: "+
+		       ToStr(BinInfoRawDataLength(augm))+
+		       ">"+ToStr(BinInfoRawDataLength(n, augm))+" "+
+		       _bin_data_m.begin()->second.str());
 
-    if (rw && create && BinInfoRawDataLength()<BinInfoRawDataLength(n))
+    if (rw && create &&
+	BinInfoRawDataLength(augm)<BinInfoRawDataLength(n, augm))
       return BinDataExpand(n);
 
     if (!rw && !create && !VectorLength() && HasProperty("recipe"))
@@ -407,9 +429,9 @@ namespace picsom {
     list<string> clx = db->SplitClassNames(c);
     vector<string> cl(clx.begin(), clx.end());
 
-    _bin_data.open("/dev/null/"+r, true, bin_data::header::format_float,
+    _bin_data_m.begin()->second.open("/dev/null/"+r, true, bin_data::header::format_float,
 		   0, cl.size());
-    _bin_data.resize(n);
+    _bin_data_m.begin()->second.resize(n);
 
     for (size_t i=0; i<n; i++) {
       if (!db->ObjectsTargetTypeContains(i, feature_target))
@@ -473,8 +495,8 @@ namespace picsom {
 
     cout << msg << "[" << f << "] " << c << " " << z << " " << n << endl;
 
-    _bin_data.open("/dev/null/"+r, true, bin_data::header::format_float, 0, c*z);
-    _bin_data.resize(n);
+    _bin_data_m.begin()->second.open("/dev/null/"+r, true, bin_data::header::format_float, 0, c*z);
+    _bin_data_m.begin()->second.resize(n);
 
     for (size_t i=0; i<n; i++) {
       if (!db->ObjectsTargetTypeContains(i, feature_target))
@@ -536,9 +558,9 @@ namespace picsom {
 
     cout << msg << " dim=" << dim << endl;
 
-    _bin_data.open("/dev/null/"+r, true,
+    _bin_data_m.begin()->second.open("/dev/null/"+r, true,
 		   bin_data::header::format_float, 0, dim);
-    _bin_data.resize(n);
+    _bin_data_m.begin()->second.resize(n);
 
     for (size_t i=0; i<n; i++) {
       if (!db->ObjectsTargetTypeContains(i, feature_target))
@@ -566,18 +588,21 @@ namespace picsom {
    
   /////////////////////////////////////////////////////////////////////////////
 
-  bool VectorIndex::BinDataOpenFile(bool rw, bool create) {
+  bool VectorIndex::BinDataOpenFile(bool rw, bool create, const string& augm) {
     string msg = "VectorIndex::BinDataOpenFile("+string(rw?"rw":"ro")
-      +","+string(create?"1":"0")+") : ";
+      +","+string(create?"1":"0")+","+augm+") : ";
 
-    string fname = FindFile(FeatureFileName(), ".bin", false);
+    string fff = augm!="" ? augm : FeatureFileName();
+    string key = fff==FeatureFileName() ? "" : fff;
+
+    string fname = FindFile(fff, ".bin", false);
 
     if ((fname=="" || FileSize(fname)==0) && (!rw || !create))
       return true; 
     
     bool is_new = false;
     if (fname=="") {
-      fname = Path()+"/"+FeatureFileName()+".bin";
+      fname = Path()+"/"+fff+".bin";
       is_new = true;
     }
 
@@ -594,11 +619,11 @@ namespace picsom {
     msg += "<"+fname+"> : ";
 
     try {
-      _bin_data.open(fname, rw,
-		     bin_data::header::format_float, 0, VectorLength());
+      _bin_data_m[key].open(fname, rw, bin_data::header::format_float,
+			    0, VectorLength());
 
       if (prodquant!="")
-	_bin_data.prodquant(prodquant);
+	_bin_data_m[key].prodquant(prodquant);
 
     } catch (const string& s) {
       /*return*/ ShowError(msg+s);
@@ -611,7 +636,8 @@ namespace picsom {
 
     WriteLog(string("Opened ")+fileinfo+
 	     " bin data file <"+db->ShortFileName(fname)+"> for "+
-	     (rw?"modification":"reading")+"\n  "+_bin_data.str());
+	     (rw?"modification":"reading")+"\n  "
+	     +_bin_data_m[key].str());
     
     Picsom()->PossiblyShowDebugInformation("After opening bin data file");
 
@@ -623,16 +649,16 @@ namespace picsom {
   bool VectorIndex::BinDataExpand(size_t n) {
     string msg = "VectorIndex::BinDataExpand("+ToStr(n)+") : ";
 
-    size_t l = _bin_data.rawsize(n);
+    size_t l = _bin_data_m.begin()->second.rawsize(n);
 
     WriteLog("Extending bin data file <"+
-	     db->ShortFileName(_bin_data.filename())+
-	     "> from "+ToStr(_bin_data.rawsize())+" to "+ToStr(l)+" bytes ("
+	     db->ShortFileName(_bin_data_m.begin()->second.filename())+
+	     "> from "+ToStr(_bin_data_m.begin()->second.rawsize())+" to "+ToStr(l)+" bytes ("
 	     +HumanReadableBytes(l)+")");
 
     try {
-      _bin_data.resize(n, 255);
-      WriteLog("  "+_bin_data.str());
+      _bin_data_m.begin()->second.resize(n, 255);
+      WriteLog("  "+_bin_data_m.begin()->second.str());
     } catch (string& s)  {
       return ShowError(msg+s);
     }
@@ -688,7 +714,7 @@ namespace picsom {
 
     bool debug = false;
 
-    if (!_bin_data.is_incore() && !db->OpenReadWriteFea())
+    if (!_bin_data_m.begin()->second.is_incore() && !db->OpenReadWriteFea())
       return ShowError(msg+"not opened with -rw=...fea...");
 
     if (idx>=db->Size())
@@ -705,7 +731,8 @@ namespace picsom {
       return ShowError(msg+"vec.size()="+ToStr(vec.size())+
 		       " != VectorLength()="+ToStr(VectorLength()));
 
-    if (!BinDataOpen(true, db->Size(), true))
+    const string augm;
+    if (!BinDataOpen(true, db->Size(), true, augm))
       return ShowError(msg+"BinDataOpen(true) failed");
 
     if (debug) {
@@ -714,7 +741,7 @@ namespace picsom {
       cout << db->Label(idx) << endl;
     }
 
-    if (!_bin_data.set_float(idx, vec))
+    if (!_bin_data_m.begin()->second.set_float(idx, vec))
       return ShowError(msg+"idx="+ToStr(idx)+" set_float() failed");
 
     return true;
@@ -856,9 +883,22 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  FloatVectorSet VectorIndex::DataByIndices(const vector<size_t>& v) {
+  FloatVectorSet VectorIndex::DataByIndices(const vector<size_t>& v,
+					    bool tolerate_missing) {
+    const string augm;
     if (db->UseBinFeaturesRead())
-      return DataByIndicesBin(v);
+      return DataByIndicesBin(v, augm, tolerate_missing);
+
+    return db->SqlMode() ? DataByIndicesSql(v) : DataByIndicesClassical(v);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  FloatVectorSet VectorIndex::DataByIndicesAugmented(const vector<size_t>& v,
+						     const string& augm,
+						     bool tolerate_missing) {
+    if (db->UseBinFeaturesRead())
+      return DataByIndicesBin(v, augm, tolerate_missing);
 
     return db->SqlMode() ? DataByIndicesSql(v) : DataByIndicesClassical(v);
   }
@@ -939,29 +979,28 @@ namespace picsom {
   /////////////////////////////////////////////////////////////////////////////
 
   FloatVectorSet VectorIndex::DataByIndicesBin(const vector<size_t>&
-					       idxvec) {
+					       idxvec, const string& augm,
+					       bool tolerate_missing) {
     string msg = "VectorIndex::DataByIndicesBin() : "+Name()+" ";
-
-    bool tolerate_missing = true; // was like zero until 2013-08-20
 
     bool verbose = false;
 
     if (verbose)
       cout << TimeStamp() << msg << "starting <" << FeatureFileName()
-	   << "> n=" << idxvec.size() << endl;
+	   << "> n=" << idxvec.size() << " augm=" << augm << endl;
 
     FloatVectorSet empty, res;
 
-    if (!BinDataOpen(false, db->Size(), false))
+    if (!BinDataOpen(false, db->Size(), false, augm))
       return ShowError(msg+"BinDataOpen() failed");
 
-    if (!_bin_data.is_ok()) {
+    if (!_bin_data_m.begin()->second.is_ok()) {
       ShowError(msg+"bin data not ok");
       return empty;
     }
 
-    // size_t vl = _bin_data.get_header_copy().vdim; // until 2013-10-25
-    size_t vl = _bin_data.vdim();
+    // size_t vl = _bin_data_m.begin()->second.get_header_copy().vdim; // until 2013-10-25
+    size_t vl = _bin_data_m.begin()->second.vdim();
     if (!vl)  {
       ShowError(msg+"bin data dimension is zero");
       return empty;
@@ -970,7 +1009,7 @@ namespace picsom {
     for (size_t i=0; i<idxvec.size(); i++) {
       size_t idx = idxvec[i];
 
-      vector<float> bv = _bin_data.get_float(idx);
+      vector<float> bv = _bin_data_m.begin()->second.get_float(idx);
       if (bv.size()!=vl) {
 	string err = msg+"idx="+ToStr(idx)+" vector dim is "+
 	  ToStr(bv.size())+" as should be "+ToStr(vl);

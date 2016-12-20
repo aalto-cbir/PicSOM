@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: CbirAlgorithm.C,v 2.39 2012/08/22 08:09:36 jorma Exp $
+// -*- C++ -*-  $Id: CbirAlgorithm.C,v 2.40 2016/10/25 08:06:21 jorma Exp $
 // 
-// Copyright 1998-2010 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science and Technology
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -11,7 +11,7 @@
 namespace picsom {
   ///
   static const string CbirAlgorithm_C_vcid =
-    "@(#)$Id: CbirAlgorithm.C,v 2.39 2012/08/22 08:09:36 jorma Exp $";
+    "@(#)$Id: CbirAlgorithm.C,v 2.40 2016/10/25 08:06:21 jorma Exp $";
 
   /// Head of the list of "factory" instances.
   CbirAlgorithm *CbirAlgorithm::list_of_algorithms;
@@ -171,14 +171,14 @@ namespace picsom {
 	
       if (!first)
 	os << ", ";      
-	first = false;
+      first = false;
       
-	if (col+n.length() > 60) {
-	  os << endl << "\t";
-	  col = 0;
-	}
-	os << n;       
-	col += n.length()+2;
+      if (col+n.length() > 60) {
+	os << endl << "\t";
+	col = 0;
+      }
+      os << n;       
+      col += n.length()+2;
     }
   
     if (!wide && col>0)

@@ -1,14 +1,17 @@
-// $Id: Caffe.C,v 1.24 2015/11/10 13:46:16 jorma Exp $	
+// $Id: Caffe.C,v 1.29 2016/12/19 08:14:35 jorma Exp $	
 
 #include <Caffe.h>
 
-#ifdef HAVE_CAFFE_DATA_LAYERS_HPP
-
-#include <caffe/data_layers.hpp>
+#ifdef HAVE_CAFFE_DATA_TRANSFORMER_HPP
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#include <caffe/data_transformer.hpp>
+#pragma GCC diagnostic pop
 
 namespace picsom {
   static const char *vcid =
-    "$Id: Caffe.C,v 1.24 2015/11/10 13:46:16 jorma Exp $";
+    "$Id: Caffe.C,v 1.29 2016/12/19 08:14:35 jorma Exp $";
 
   static Caffe list_entry(true);
 
@@ -187,6 +190,7 @@ blocks = 256x256+avg(512x512:3x3)
     imagedata img(rr.width(), rr.height(), 3, imagedata::pixeldata_float);
     img.set(v);
     img.force_three_channel();
+    // imagefile::display(img);
 
     string resizex = resize;
     if (resizex=="")
@@ -194,6 +198,9 @@ blocks = 256x256+avg(512x512:3x3)
 
     //if (windowsize!="227x227")
     //  throw msg+"only windowsize=227x227 is currently supported";
+
+    if (windowsize=="")
+      throw msg+"windowsize should be set";
 
     vector<string> wsize;
     split(wsize, windowsize, is_any_of("x"));
@@ -211,7 +218,9 @@ blocks = 256x256+avg(512x512:3x3)
 
     bool debug3 = FileVerbose();
     bool debug4 = FrameVerbose();
+#ifdef HAS_CAFFE_COLORCONVERT
     bool debug6 = PixelVerbose();
+#endif
     bool mean_is_rgb = false;
 
     int gpudevice = GpuDeviceId();
@@ -221,8 +230,6 @@ blocks = 256x256+avg(512x512:3x3)
       Caffe::set_mode(Caffe::GPU);
     } else
       Caffe::set_mode(Caffe::CPU);
-
-    Caffe::set_phase(Caffe::TEST);
 
     ProcessBlocksString(img.width(), img.height());
     vector<fv_tree_node*> leaves = BlocksLeaves();
@@ -297,8 +304,15 @@ blocks = 256x256+avg(512x512:3x3)
 	  }
 	}
 
+#ifdef HAS_CAFFE_COLORCONVERT
+	Caffe::set_phase(Caffe::TEST);
+	Net<float> *netp = new Net<float>(prototxttmp);
+#else
+	Net<float> *netp = new Net<float>(prototxttmp, caffe::TEST);
+#endif
+
 	caffe_t caffe(mapkeyname, prototxtorig, model, mean,
-		      new Net<float>(prototxttmp), mimg, caffe2dbmap);
+		      netp, mimg, caffe2dbmap);
 	caffemap[mapkeyname] = caffe;
 	cmi = caffemap.find(mapkeyname);
 	Net<float>& cnet = *cmi->second.net;
@@ -325,6 +339,8 @@ blocks = 256x256+avg(512x512:3x3)
     }
 
     Net<float>& cnet = *cmi->second.net;
+
+#ifdef HAS_CAFFE_COLORCONVERT
     caffe::TransformationParameter_CS cs = cnet.input_color_space();
     string colorspace = caffe::DataTransformer<float>::ColorSpace(cs);
 
@@ -334,10 +350,11 @@ blocks = 256x256+avg(512x512:3x3)
 	windowsize+"\" blocks=\""+blocks+"\" (n_leaves="+ToStr(n_leaves)+
 	") layer=\""+layer+"\" (resize=\""+resize+"\" fusion=\""+fusion+"\")"
 	   << endl;
+#endif
 
     list<vector<float> > emptyres;
 
-    vector<Blob<float>*>& input_blobs = cnet.input_blobs();
+    const vector<Blob<float>*>& input_blobs = cnet.input_blobs();
     if (debug4)
       cout << msg << "input_blobs.size()=" << input_blobs.size() << endl;
     if (input_blobs.size()!=1) {
@@ -347,6 +364,9 @@ blocks = 256x256+avg(512x512:3x3)
     //size_t ss = 227;  // was
     size_t ss = wx;
     size_t block_size = 3*ss*ss;
+    if (!block_size)
+      throw msg+"block_size==0";
+
     if (input_blobs[0]->count()%block_size)
       throw ShowError(msg+"input_blobs[0]->count() mod block_size != 0 : "+
 		      ToStr(input_blobs[0]->count())+" vs "+ToStr(block_size));
@@ -397,6 +417,7 @@ blocks = 256x256+avg(512x512:3x3)
 	  float Rmean = 255*mv[0], Gmean = 255*mv[1], Bmean = 255*mv[2];
 	  vector<double> in { B, G, R }, mean { Bmean, Gmean, Rmean }; 
 	  
+#ifdef HAS_CAFFE_COLORCONVERT
 	  vector<double> out
 	    = caffe::DataTransformer<float>::ColorConvert(cs, in, mean);
 
@@ -406,6 +427,11 @@ blocks = 256x256+avg(512x512:3x3)
 		 << " B=" << B << " Rmean=" << Rmean << " Gmean=" << Gmean
 		 << " Bmean=" << Bmean << " out[0]=" << out[0]
 		 << " out[1]=" << out[1] << " out[2]=" << out[2] << endl;
+#else
+	  vector<double> out(in.size());
+	  for (size_t u=0; u<out.size(); u++)
+	    out[u] = in[u]-mean[u];
+#endif
 
 	  for (size_t ci=0; ci<out.size(); ci++)
 	    *(b+ci*ss*ss) = out[ci];
@@ -545,6 +571,9 @@ blocks = 256x256+avg(512x512:3x3)
 	       << " dim_features=" << dim_features
 	       << " li=" << li
 	       << " feature_blob->offset(li)=" << feature_blob->offset(li)
+	       << " feature_blob->width()=" << feature_blob->width()
+	       << " feature_blob->height()=" << feature_blob->height()
+	       << " feature_blob->channels()=" << feature_blob->channels()
 	       << endl;
 	  cout << msg << "    first component values:";
 	  for (size_t ii=0; ii<10 && ii<v.size(); ii++)
@@ -1063,8 +1092,6 @@ blocks = 256x256+avg(512x512:3x3)
     } else
       Caffe::set_mode(Caffe::CPU);
 
-    Caffe::set_phase(Caffe::TEST);
-
     auto cmi = caffemap.find(name);
     if (cmi==caffemap.end()) {
       //Tic("RunCaffe() construct");
@@ -1097,9 +1124,16 @@ blocks = 256x256+avg(512x512:3x3)
       if (debug3)
 	FLAGS_logtostderr = 1;
 
+#ifdef HAS_CAFFE_COLORCONVERT
+      Caffe::set_phase(Caffe::TEST);
+      Net<float> *netp = new Net<float>(prototxt);
+#else
+      Net<float> *netp = new Net<float>(prototxt, caffe::TEST);
+#endif
+
       imagedata mimg = imagefile(mean).frame(0);
       caffe_t caffe(name, prototxt, model, mean,
-		    new Net<float>(prototxt), mimg, caffe2dbmap);
+		    netp, mimg, caffe2dbmap);
       caffemap[name] = caffe;
       cmi = caffemap.find(name);
       Net<float>& cnet = *cmi->second.net;
@@ -1112,7 +1146,7 @@ blocks = 256x256+avg(512x512:3x3)
     list<vector<float> > emptyres, res;
 
     for (auto ilp = ilist.begin(); ilp!=ilist.end(); ) {
-      vector<Blob<float>*>& input_blobs = cnet.input_blobs();
+      const vector<Blob<float>*>& input_blobs = cnet.input_blobs();
       if (debug4)
 	cout << "input_blobs.size()=" << input_blobs.size() << endl;
       if (input_blobs.size()!=1) {

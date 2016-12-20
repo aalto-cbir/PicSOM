@@ -1,4 +1,4 @@
-// -*- C++ -*-    $Id: textdata.h,v 1.16 2009/08/19 12:56:44 jorma Exp $
+// -*- C++ -*-    $Id: textdata.h,v 1.17 2016/02/18 07:32:12 jorma Exp $
 
 /**
    \file textdata.h
@@ -10,8 +10,8 @@
    in a vector of wchar_t elements.
    
    \author Hannes Muurinen <hannes.muurinen@hut.fi>
-   $Revision: 1.16 $
-   $Date: 2009/08/19 12:56:44 $
+   $Revision: 1.17 $
+   $Date: 2016/02/18 07:32:12 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -29,15 +29,15 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#define WORD_SEPARATORS " \n\t"
-#define LINE_SEPARATORS "\n"
+#define WORD_SEPARATORS " \t\n\r"
+#define LINE_SEPARATORS "\n\r"
 
 #ifdef __MINGW32__
 #define LWORD_SEPARATORS WORD_SEPARATORS
 #define LLINE_SEPARATORS LINE_SEPARATORS
 #else
-#define LWORD_SEPARATORS L" \n\t"
-#define LLINE_SEPARATORS L"\n"
+#define LWORD_SEPARATORS L" \t\n\r"
+#define LLINE_SEPARATORS L"\n\r"
 #endif // __MINGW32__
 /**
   \brief namespace picsom wraps (eventually) all classes.
@@ -70,7 +70,7 @@ namespace picsom {
     /// Version control identifier of the imagedata.h file.
     static const string& version() {
       static const string v =
-	"$Id: textdata.h,v 1.16 2009/08/19 12:56:44 jorma Exp $";
+	"$Id: textdata.h,v 1.17 2016/02/18 07:32:12 jorma Exp $";
       return v;
     }
 

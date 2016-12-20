@@ -132,6 +132,43 @@ am_picsom_OBJECTS = picsom-PicSOM.$(OBJEXT) picsom-DataBase.$(OBJEXT) \
 	segmentation/picsom-segmentfile.$(OBJEXT) \
 	segmentation/picsom-AddDescription.$(OBJEXT) \
 	segmentation/picsom-DisplayResults.$(OBJEXT) \
+	segmentation/picsom-AlignmentMarks.$(OBJEXT) \
+	segmentation/picsom-Binarise.$(OBJEXT) \
+	segmentation/picsom-ByTypicality.$(OBJEXT) \
+	segmentation/picsom-CreateThumbnail.$(OBJEXT) \
+	segmentation/picsom-CropEdges.$(OBJEXT) \
+	segmentation/picsom-FaceParts.$(OBJEXT) \
+	segmentation/picsom-FilterbyBoundingbox.$(OBJEXT) \
+	segmentation/picsom-FilterbyColor.$(OBJEXT) \
+	segmentation/picsom-FilterCentral.$(OBJEXT) \
+	segmentation/picsom-FLandmark.$(OBJEXT) \
+	segmentation/picsom-GenerateHeatmap.$(OBJEXT) \
+	segmentation/picsom-GKMeans.$(OBJEXT) \
+	segmentation/picsom-ImportBitmap.$(OBJEXT) \
+	segmentation/picsom-KMeans.$(OBJEXT) \
+	segmentation/picsom-ListAdjacent.$(OBJEXT) \
+	segmentation/picsom-ListOverlaps.$(OBJEXT) \
+	segmentation/picsom-LocateFaceBox.$(OBJEXT) \
+	segmentation/picsom-MergeColM.$(OBJEXT) \
+	segmentation/picsom-MergeNeighbourhood.$(OBJEXT) \
+	segmentation/picsom-MergeSame.$(OBJEXT) \
+	segmentation/picsom-OCVface.$(OBJEXT) \
+	segmentation/picsom-PickLargest.$(OBJEXT) \
+	segmentation/picsom-PixelTemplate.$(OBJEXT) \
+	segmentation/picsom-Random.$(OBJEXT) \
+	segmentation/picsom-RegionMerge.$(OBJEXT) \
+	segmentation/picsom-RegionMerger.$(OBJEXT) \
+	segmentation/picsom-RemoveHoles.$(OBJEXT) \
+	segmentation/picsom-RestoreScale.$(OBJEXT) \
+	segmentation/picsom-SampleRandom.$(OBJEXT) \
+	segmentation/picsom-ScaleDown.$(OBJEXT) \
+	segmentation/picsom-SeparateMultipart.$(OBJEXT) \
+	segmentation/picsom-SpringModel.$(OBJEXT) \
+	segmentation/picsom-TagDark.$(OBJEXT) \
+	segmentation/picsom-TemporalMorphology.$(OBJEXT) \
+	segmentation/picsom-Tile.$(OBJEXT) \
+	segmentation/picsom-TestInterface.$(OBJEXT) \
+	segmentation/picsom-TilePyramid.$(OBJEXT) \
 	features/picsom-Feature.$(OBJEXT) \
 	features/picsom-textfile.$(OBJEXT) \
 	features/picsom-PorterStemmer.$(OBJEXT) \
@@ -395,6 +432,26 @@ picsom_SOURCES = PicSOM.C DataBase.C Analysis.C Query.C Index.C \
 		 simple/RandVar.C simple/Histogram.C simple/gzstream.C \
 		 segmentation/Segmentation.C segmentation/segmentfile.C \
 		 segmentation/AddDescription.C segmentation/DisplayResults.C \
+                 segmentation/AlignmentMarks.C segmentation/Binarise.C \
+                 segmentation/ByTypicality.C segmentation/CreateThumbnail.C \
+                 segmentation/CropEdges.C \
+                 segmentation/FaceParts.C segmentation/FilterbyBoundingbox.C \
+                 segmentation/FilterbyColor.C segmentation/FilterCentral.C \
+                 segmentation/FLandmark.C segmentation/GenerateHeatmap.C \
+                 segmentation/GKMeans.C \
+                 segmentation/ImportBitmap.C segmentation/KMeans.C \
+                 segmentation/ListAdjacent.C segmentation/ListOverlaps.C \
+                 segmentation/LocateFaceBox.C segmentation/MergeColM.C \
+                 segmentation/MergeNeighbourhood.C segmentation/MergeSame.C \
+                 segmentation/OCVface.C segmentation/PickLargest.C \
+                 segmentation/PixelTemplate.C \
+                 segmentation/Random.C segmentation/RegionMerge.C \
+                 segmentation/RegionMerger.C segmentation/RemoveHoles.C \
+                 segmentation/RestoreScale.C segmentation/SampleRandom.C \
+                 segmentation/ScaleDown.C segmentation/SeparateMultipart.C \
+                 segmentation/SpringModel.C segmentation/TagDark.C \
+                 segmentation/TemporalMorphology.C segmentation/Tile.C \
+                 segmentation/TestInterface.C segmentation/TilePyramid.C  \
 		 features/Feature.C features/textfile.C \
 		 features/PorterStemmer.C features/PixelBased.C \
 		 features/Rgb.C features/RegionBased.C features/Raw.C \
@@ -421,7 +478,7 @@ EXTRA_picsom_SOURCES = image/imagefile-unimpl.C \
 picsom_DEPENDENCIES = image/picsom-imagefile-@IMAGEFILEIMPL@.o @CBIRALGORITHMS@
 picsom_CPPFLAGS = -std=c++11 -Wno-deprecated \
            -I./simple -I./image -I./features -I./segmentation \
-	   -DPICSOM_IMAGEDATA_FAST @NOPTHREADS@ \
+	   -DPICSOM_IMAGEDATA_FAST -DPICSOM_USE_OPENCV @NOPTHREADS@ \
 	   @XML_CPPFLAGS@ @LIBGCRYPT_CFLAGS@ @CSOAP_CFLAGS@ \
 	   @OCTAVE_CFLAGS@ @MYSQL_CFLAGS@
 
@@ -578,6 +635,104 @@ segmentation/picsom-AddDescription.$(OBJEXT):  \
 	segmentation/$(am__dirstamp) \
 	segmentation/$(DEPDIR)/$(am__dirstamp)
 segmentation/picsom-DisplayResults.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-AlignmentMarks.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-Binarise.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-ByTypicality.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-CreateThumbnail.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-CropEdges.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-FaceParts.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-FilterbyBoundingbox.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-FilterbyColor.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-FilterCentral.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-FLandmark.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-GenerateHeatmap.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-GKMeans.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-ImportBitmap.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-KMeans.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-ListAdjacent.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-ListOverlaps.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-LocateFaceBox.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-MergeColM.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-MergeNeighbourhood.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-MergeSame.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-OCVface.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-PickLargest.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-PixelTemplate.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-Random.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-RegionMerge.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-RegionMerger.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-RemoveHoles.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-RestoreScale.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-SampleRandom.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-ScaleDown.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-SeparateMultipart.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-SpringModel.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-TagDark.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-TemporalMorphology.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-Tile.$(OBJEXT): segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-TestInterface.$(OBJEXT):  \
+	segmentation/$(am__dirstamp) \
+	segmentation/$(DEPDIR)/$(am__dirstamp)
+segmentation/picsom-TilePyramid.$(OBJEXT):  \
 	segmentation/$(am__dirstamp) \
 	segmentation/$(DEPDIR)/$(am__dirstamp)
 features/$(am__dirstamp):
@@ -779,8 +934,45 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@image/$(DEPDIR)/picsom-imagefile-unimpl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@image/$(DEPDIR)/picsom-videofile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-AddDescription.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-AlignmentMarks.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-Binarise.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-ByTypicality.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-CreateThumbnail.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-CropEdges.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-DisplayResults.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-FLandmark.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-FaceParts.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-FilterCentral.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-FilterbyBoundingbox.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-FilterbyColor.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-GKMeans.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-GenerateHeatmap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-ImportBitmap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-KMeans.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-ListAdjacent.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-ListOverlaps.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-LocateFaceBox.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-MergeColM.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-MergeNeighbourhood.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-MergeSame.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-OCVface.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-PickLargest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-PixelTemplate.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-Random.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-RegionMerge.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-RegionMerger.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-RemoveHoles.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-RestoreScale.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-SampleRandom.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-ScaleDown.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-Segmentation.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-SeparateMultipart.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-SpringModel.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-TagDark.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-TemporalMorphology.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-TestInterface.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-Tile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-TilePyramid.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@segmentation/$(DEPDIR)/picsom-segmentfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@simple/$(DEPDIR)/picsom-ConfusionMatrix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@simple/$(DEPDIR)/picsom-DataSet.Po@am__quote@
@@ -1479,6 +1671,524 @@ segmentation/picsom-DisplayResults.obj: segmentation/DisplayResults.C
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/DisplayResults.C' object='segmentation/picsom-DisplayResults.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-DisplayResults.obj `if test -f 'segmentation/DisplayResults.C'; then $(CYGPATH_W) 'segmentation/DisplayResults.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/DisplayResults.C'; fi`
+
+segmentation/picsom-AlignmentMarks.o: segmentation/AlignmentMarks.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-AlignmentMarks.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-AlignmentMarks.Tpo -c -o segmentation/picsom-AlignmentMarks.o `test -f 'segmentation/AlignmentMarks.C' || echo '$(srcdir)/'`segmentation/AlignmentMarks.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-AlignmentMarks.Tpo segmentation/$(DEPDIR)/picsom-AlignmentMarks.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/AlignmentMarks.C' object='segmentation/picsom-AlignmentMarks.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-AlignmentMarks.o `test -f 'segmentation/AlignmentMarks.C' || echo '$(srcdir)/'`segmentation/AlignmentMarks.C
+
+segmentation/picsom-AlignmentMarks.obj: segmentation/AlignmentMarks.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-AlignmentMarks.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-AlignmentMarks.Tpo -c -o segmentation/picsom-AlignmentMarks.obj `if test -f 'segmentation/AlignmentMarks.C'; then $(CYGPATH_W) 'segmentation/AlignmentMarks.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/AlignmentMarks.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-AlignmentMarks.Tpo segmentation/$(DEPDIR)/picsom-AlignmentMarks.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/AlignmentMarks.C' object='segmentation/picsom-AlignmentMarks.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-AlignmentMarks.obj `if test -f 'segmentation/AlignmentMarks.C'; then $(CYGPATH_W) 'segmentation/AlignmentMarks.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/AlignmentMarks.C'; fi`
+
+segmentation/picsom-Binarise.o: segmentation/Binarise.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-Binarise.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-Binarise.Tpo -c -o segmentation/picsom-Binarise.o `test -f 'segmentation/Binarise.C' || echo '$(srcdir)/'`segmentation/Binarise.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-Binarise.Tpo segmentation/$(DEPDIR)/picsom-Binarise.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/Binarise.C' object='segmentation/picsom-Binarise.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-Binarise.o `test -f 'segmentation/Binarise.C' || echo '$(srcdir)/'`segmentation/Binarise.C
+
+segmentation/picsom-Binarise.obj: segmentation/Binarise.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-Binarise.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-Binarise.Tpo -c -o segmentation/picsom-Binarise.obj `if test -f 'segmentation/Binarise.C'; then $(CYGPATH_W) 'segmentation/Binarise.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/Binarise.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-Binarise.Tpo segmentation/$(DEPDIR)/picsom-Binarise.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/Binarise.C' object='segmentation/picsom-Binarise.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-Binarise.obj `if test -f 'segmentation/Binarise.C'; then $(CYGPATH_W) 'segmentation/Binarise.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/Binarise.C'; fi`
+
+segmentation/picsom-ByTypicality.o: segmentation/ByTypicality.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ByTypicality.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-ByTypicality.Tpo -c -o segmentation/picsom-ByTypicality.o `test -f 'segmentation/ByTypicality.C' || echo '$(srcdir)/'`segmentation/ByTypicality.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ByTypicality.Tpo segmentation/$(DEPDIR)/picsom-ByTypicality.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ByTypicality.C' object='segmentation/picsom-ByTypicality.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ByTypicality.o `test -f 'segmentation/ByTypicality.C' || echo '$(srcdir)/'`segmentation/ByTypicality.C
+
+segmentation/picsom-ByTypicality.obj: segmentation/ByTypicality.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ByTypicality.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-ByTypicality.Tpo -c -o segmentation/picsom-ByTypicality.obj `if test -f 'segmentation/ByTypicality.C'; then $(CYGPATH_W) 'segmentation/ByTypicality.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ByTypicality.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ByTypicality.Tpo segmentation/$(DEPDIR)/picsom-ByTypicality.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ByTypicality.C' object='segmentation/picsom-ByTypicality.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ByTypicality.obj `if test -f 'segmentation/ByTypicality.C'; then $(CYGPATH_W) 'segmentation/ByTypicality.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ByTypicality.C'; fi`
+
+segmentation/picsom-CreateThumbnail.o: segmentation/CreateThumbnail.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-CreateThumbnail.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-CreateThumbnail.Tpo -c -o segmentation/picsom-CreateThumbnail.o `test -f 'segmentation/CreateThumbnail.C' || echo '$(srcdir)/'`segmentation/CreateThumbnail.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-CreateThumbnail.Tpo segmentation/$(DEPDIR)/picsom-CreateThumbnail.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/CreateThumbnail.C' object='segmentation/picsom-CreateThumbnail.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-CreateThumbnail.o `test -f 'segmentation/CreateThumbnail.C' || echo '$(srcdir)/'`segmentation/CreateThumbnail.C
+
+segmentation/picsom-CreateThumbnail.obj: segmentation/CreateThumbnail.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-CreateThumbnail.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-CreateThumbnail.Tpo -c -o segmentation/picsom-CreateThumbnail.obj `if test -f 'segmentation/CreateThumbnail.C'; then $(CYGPATH_W) 'segmentation/CreateThumbnail.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/CreateThumbnail.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-CreateThumbnail.Tpo segmentation/$(DEPDIR)/picsom-CreateThumbnail.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/CreateThumbnail.C' object='segmentation/picsom-CreateThumbnail.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-CreateThumbnail.obj `if test -f 'segmentation/CreateThumbnail.C'; then $(CYGPATH_W) 'segmentation/CreateThumbnail.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/CreateThumbnail.C'; fi`
+
+segmentation/picsom-CropEdges.o: segmentation/CropEdges.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-CropEdges.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-CropEdges.Tpo -c -o segmentation/picsom-CropEdges.o `test -f 'segmentation/CropEdges.C' || echo '$(srcdir)/'`segmentation/CropEdges.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-CropEdges.Tpo segmentation/$(DEPDIR)/picsom-CropEdges.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/CropEdges.C' object='segmentation/picsom-CropEdges.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-CropEdges.o `test -f 'segmentation/CropEdges.C' || echo '$(srcdir)/'`segmentation/CropEdges.C
+
+segmentation/picsom-CropEdges.obj: segmentation/CropEdges.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-CropEdges.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-CropEdges.Tpo -c -o segmentation/picsom-CropEdges.obj `if test -f 'segmentation/CropEdges.C'; then $(CYGPATH_W) 'segmentation/CropEdges.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/CropEdges.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-CropEdges.Tpo segmentation/$(DEPDIR)/picsom-CropEdges.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/CropEdges.C' object='segmentation/picsom-CropEdges.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-CropEdges.obj `if test -f 'segmentation/CropEdges.C'; then $(CYGPATH_W) 'segmentation/CropEdges.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/CropEdges.C'; fi`
+
+segmentation/picsom-FaceParts.o: segmentation/FaceParts.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FaceParts.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-FaceParts.Tpo -c -o segmentation/picsom-FaceParts.o `test -f 'segmentation/FaceParts.C' || echo '$(srcdir)/'`segmentation/FaceParts.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FaceParts.Tpo segmentation/$(DEPDIR)/picsom-FaceParts.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FaceParts.C' object='segmentation/picsom-FaceParts.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FaceParts.o `test -f 'segmentation/FaceParts.C' || echo '$(srcdir)/'`segmentation/FaceParts.C
+
+segmentation/picsom-FaceParts.obj: segmentation/FaceParts.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FaceParts.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-FaceParts.Tpo -c -o segmentation/picsom-FaceParts.obj `if test -f 'segmentation/FaceParts.C'; then $(CYGPATH_W) 'segmentation/FaceParts.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FaceParts.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FaceParts.Tpo segmentation/$(DEPDIR)/picsom-FaceParts.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FaceParts.C' object='segmentation/picsom-FaceParts.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FaceParts.obj `if test -f 'segmentation/FaceParts.C'; then $(CYGPATH_W) 'segmentation/FaceParts.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FaceParts.C'; fi`
+
+segmentation/picsom-FilterbyBoundingbox.o: segmentation/FilterbyBoundingbox.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FilterbyBoundingbox.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-FilterbyBoundingbox.Tpo -c -o segmentation/picsom-FilterbyBoundingbox.o `test -f 'segmentation/FilterbyBoundingbox.C' || echo '$(srcdir)/'`segmentation/FilterbyBoundingbox.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FilterbyBoundingbox.Tpo segmentation/$(DEPDIR)/picsom-FilterbyBoundingbox.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FilterbyBoundingbox.C' object='segmentation/picsom-FilterbyBoundingbox.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FilterbyBoundingbox.o `test -f 'segmentation/FilterbyBoundingbox.C' || echo '$(srcdir)/'`segmentation/FilterbyBoundingbox.C
+
+segmentation/picsom-FilterbyBoundingbox.obj: segmentation/FilterbyBoundingbox.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FilterbyBoundingbox.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-FilterbyBoundingbox.Tpo -c -o segmentation/picsom-FilterbyBoundingbox.obj `if test -f 'segmentation/FilterbyBoundingbox.C'; then $(CYGPATH_W) 'segmentation/FilterbyBoundingbox.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FilterbyBoundingbox.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FilterbyBoundingbox.Tpo segmentation/$(DEPDIR)/picsom-FilterbyBoundingbox.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FilterbyBoundingbox.C' object='segmentation/picsom-FilterbyBoundingbox.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FilterbyBoundingbox.obj `if test -f 'segmentation/FilterbyBoundingbox.C'; then $(CYGPATH_W) 'segmentation/FilterbyBoundingbox.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FilterbyBoundingbox.C'; fi`
+
+segmentation/picsom-FilterbyColor.o: segmentation/FilterbyColor.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FilterbyColor.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-FilterbyColor.Tpo -c -o segmentation/picsom-FilterbyColor.o `test -f 'segmentation/FilterbyColor.C' || echo '$(srcdir)/'`segmentation/FilterbyColor.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FilterbyColor.Tpo segmentation/$(DEPDIR)/picsom-FilterbyColor.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FilterbyColor.C' object='segmentation/picsom-FilterbyColor.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FilterbyColor.o `test -f 'segmentation/FilterbyColor.C' || echo '$(srcdir)/'`segmentation/FilterbyColor.C
+
+segmentation/picsom-FilterbyColor.obj: segmentation/FilterbyColor.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FilterbyColor.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-FilterbyColor.Tpo -c -o segmentation/picsom-FilterbyColor.obj `if test -f 'segmentation/FilterbyColor.C'; then $(CYGPATH_W) 'segmentation/FilterbyColor.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FilterbyColor.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FilterbyColor.Tpo segmentation/$(DEPDIR)/picsom-FilterbyColor.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FilterbyColor.C' object='segmentation/picsom-FilterbyColor.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FilterbyColor.obj `if test -f 'segmentation/FilterbyColor.C'; then $(CYGPATH_W) 'segmentation/FilterbyColor.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FilterbyColor.C'; fi`
+
+segmentation/picsom-FilterCentral.o: segmentation/FilterCentral.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FilterCentral.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-FilterCentral.Tpo -c -o segmentation/picsom-FilterCentral.o `test -f 'segmentation/FilterCentral.C' || echo '$(srcdir)/'`segmentation/FilterCentral.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FilterCentral.Tpo segmentation/$(DEPDIR)/picsom-FilterCentral.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FilterCentral.C' object='segmentation/picsom-FilterCentral.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FilterCentral.o `test -f 'segmentation/FilterCentral.C' || echo '$(srcdir)/'`segmentation/FilterCentral.C
+
+segmentation/picsom-FilterCentral.obj: segmentation/FilterCentral.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FilterCentral.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-FilterCentral.Tpo -c -o segmentation/picsom-FilterCentral.obj `if test -f 'segmentation/FilterCentral.C'; then $(CYGPATH_W) 'segmentation/FilterCentral.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FilterCentral.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FilterCentral.Tpo segmentation/$(DEPDIR)/picsom-FilterCentral.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FilterCentral.C' object='segmentation/picsom-FilterCentral.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FilterCentral.obj `if test -f 'segmentation/FilterCentral.C'; then $(CYGPATH_W) 'segmentation/FilterCentral.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FilterCentral.C'; fi`
+
+segmentation/picsom-FLandmark.o: segmentation/FLandmark.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FLandmark.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-FLandmark.Tpo -c -o segmentation/picsom-FLandmark.o `test -f 'segmentation/FLandmark.C' || echo '$(srcdir)/'`segmentation/FLandmark.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FLandmark.Tpo segmentation/$(DEPDIR)/picsom-FLandmark.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FLandmark.C' object='segmentation/picsom-FLandmark.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FLandmark.o `test -f 'segmentation/FLandmark.C' || echo '$(srcdir)/'`segmentation/FLandmark.C
+
+segmentation/picsom-FLandmark.obj: segmentation/FLandmark.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-FLandmark.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-FLandmark.Tpo -c -o segmentation/picsom-FLandmark.obj `if test -f 'segmentation/FLandmark.C'; then $(CYGPATH_W) 'segmentation/FLandmark.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FLandmark.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-FLandmark.Tpo segmentation/$(DEPDIR)/picsom-FLandmark.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/FLandmark.C' object='segmentation/picsom-FLandmark.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-FLandmark.obj `if test -f 'segmentation/FLandmark.C'; then $(CYGPATH_W) 'segmentation/FLandmark.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/FLandmark.C'; fi`
+
+segmentation/picsom-GenerateHeatmap.o: segmentation/GenerateHeatmap.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-GenerateHeatmap.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-GenerateHeatmap.Tpo -c -o segmentation/picsom-GenerateHeatmap.o `test -f 'segmentation/GenerateHeatmap.C' || echo '$(srcdir)/'`segmentation/GenerateHeatmap.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-GenerateHeatmap.Tpo segmentation/$(DEPDIR)/picsom-GenerateHeatmap.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/GenerateHeatmap.C' object='segmentation/picsom-GenerateHeatmap.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-GenerateHeatmap.o `test -f 'segmentation/GenerateHeatmap.C' || echo '$(srcdir)/'`segmentation/GenerateHeatmap.C
+
+segmentation/picsom-GenerateHeatmap.obj: segmentation/GenerateHeatmap.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-GenerateHeatmap.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-GenerateHeatmap.Tpo -c -o segmentation/picsom-GenerateHeatmap.obj `if test -f 'segmentation/GenerateHeatmap.C'; then $(CYGPATH_W) 'segmentation/GenerateHeatmap.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/GenerateHeatmap.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-GenerateHeatmap.Tpo segmentation/$(DEPDIR)/picsom-GenerateHeatmap.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/GenerateHeatmap.C' object='segmentation/picsom-GenerateHeatmap.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-GenerateHeatmap.obj `if test -f 'segmentation/GenerateHeatmap.C'; then $(CYGPATH_W) 'segmentation/GenerateHeatmap.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/GenerateHeatmap.C'; fi`
+
+segmentation/picsom-GKMeans.o: segmentation/GKMeans.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-GKMeans.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-GKMeans.Tpo -c -o segmentation/picsom-GKMeans.o `test -f 'segmentation/GKMeans.C' || echo '$(srcdir)/'`segmentation/GKMeans.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-GKMeans.Tpo segmentation/$(DEPDIR)/picsom-GKMeans.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/GKMeans.C' object='segmentation/picsom-GKMeans.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-GKMeans.o `test -f 'segmentation/GKMeans.C' || echo '$(srcdir)/'`segmentation/GKMeans.C
+
+segmentation/picsom-GKMeans.obj: segmentation/GKMeans.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-GKMeans.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-GKMeans.Tpo -c -o segmentation/picsom-GKMeans.obj `if test -f 'segmentation/GKMeans.C'; then $(CYGPATH_W) 'segmentation/GKMeans.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/GKMeans.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-GKMeans.Tpo segmentation/$(DEPDIR)/picsom-GKMeans.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/GKMeans.C' object='segmentation/picsom-GKMeans.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-GKMeans.obj `if test -f 'segmentation/GKMeans.C'; then $(CYGPATH_W) 'segmentation/GKMeans.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/GKMeans.C'; fi`
+
+segmentation/picsom-ImportBitmap.o: segmentation/ImportBitmap.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ImportBitmap.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-ImportBitmap.Tpo -c -o segmentation/picsom-ImportBitmap.o `test -f 'segmentation/ImportBitmap.C' || echo '$(srcdir)/'`segmentation/ImportBitmap.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ImportBitmap.Tpo segmentation/$(DEPDIR)/picsom-ImportBitmap.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ImportBitmap.C' object='segmentation/picsom-ImportBitmap.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ImportBitmap.o `test -f 'segmentation/ImportBitmap.C' || echo '$(srcdir)/'`segmentation/ImportBitmap.C
+
+segmentation/picsom-ImportBitmap.obj: segmentation/ImportBitmap.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ImportBitmap.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-ImportBitmap.Tpo -c -o segmentation/picsom-ImportBitmap.obj `if test -f 'segmentation/ImportBitmap.C'; then $(CYGPATH_W) 'segmentation/ImportBitmap.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ImportBitmap.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ImportBitmap.Tpo segmentation/$(DEPDIR)/picsom-ImportBitmap.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ImportBitmap.C' object='segmentation/picsom-ImportBitmap.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ImportBitmap.obj `if test -f 'segmentation/ImportBitmap.C'; then $(CYGPATH_W) 'segmentation/ImportBitmap.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ImportBitmap.C'; fi`
+
+segmentation/picsom-KMeans.o: segmentation/KMeans.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-KMeans.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-KMeans.Tpo -c -o segmentation/picsom-KMeans.o `test -f 'segmentation/KMeans.C' || echo '$(srcdir)/'`segmentation/KMeans.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-KMeans.Tpo segmentation/$(DEPDIR)/picsom-KMeans.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/KMeans.C' object='segmentation/picsom-KMeans.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-KMeans.o `test -f 'segmentation/KMeans.C' || echo '$(srcdir)/'`segmentation/KMeans.C
+
+segmentation/picsom-KMeans.obj: segmentation/KMeans.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-KMeans.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-KMeans.Tpo -c -o segmentation/picsom-KMeans.obj `if test -f 'segmentation/KMeans.C'; then $(CYGPATH_W) 'segmentation/KMeans.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/KMeans.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-KMeans.Tpo segmentation/$(DEPDIR)/picsom-KMeans.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/KMeans.C' object='segmentation/picsom-KMeans.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-KMeans.obj `if test -f 'segmentation/KMeans.C'; then $(CYGPATH_W) 'segmentation/KMeans.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/KMeans.C'; fi`
+
+segmentation/picsom-ListAdjacent.o: segmentation/ListAdjacent.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ListAdjacent.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-ListAdjacent.Tpo -c -o segmentation/picsom-ListAdjacent.o `test -f 'segmentation/ListAdjacent.C' || echo '$(srcdir)/'`segmentation/ListAdjacent.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ListAdjacent.Tpo segmentation/$(DEPDIR)/picsom-ListAdjacent.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ListAdjacent.C' object='segmentation/picsom-ListAdjacent.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ListAdjacent.o `test -f 'segmentation/ListAdjacent.C' || echo '$(srcdir)/'`segmentation/ListAdjacent.C
+
+segmentation/picsom-ListAdjacent.obj: segmentation/ListAdjacent.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ListAdjacent.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-ListAdjacent.Tpo -c -o segmentation/picsom-ListAdjacent.obj `if test -f 'segmentation/ListAdjacent.C'; then $(CYGPATH_W) 'segmentation/ListAdjacent.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ListAdjacent.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ListAdjacent.Tpo segmentation/$(DEPDIR)/picsom-ListAdjacent.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ListAdjacent.C' object='segmentation/picsom-ListAdjacent.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ListAdjacent.obj `if test -f 'segmentation/ListAdjacent.C'; then $(CYGPATH_W) 'segmentation/ListAdjacent.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ListAdjacent.C'; fi`
+
+segmentation/picsom-ListOverlaps.o: segmentation/ListOverlaps.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ListOverlaps.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-ListOverlaps.Tpo -c -o segmentation/picsom-ListOverlaps.o `test -f 'segmentation/ListOverlaps.C' || echo '$(srcdir)/'`segmentation/ListOverlaps.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ListOverlaps.Tpo segmentation/$(DEPDIR)/picsom-ListOverlaps.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ListOverlaps.C' object='segmentation/picsom-ListOverlaps.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ListOverlaps.o `test -f 'segmentation/ListOverlaps.C' || echo '$(srcdir)/'`segmentation/ListOverlaps.C
+
+segmentation/picsom-ListOverlaps.obj: segmentation/ListOverlaps.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ListOverlaps.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-ListOverlaps.Tpo -c -o segmentation/picsom-ListOverlaps.obj `if test -f 'segmentation/ListOverlaps.C'; then $(CYGPATH_W) 'segmentation/ListOverlaps.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ListOverlaps.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ListOverlaps.Tpo segmentation/$(DEPDIR)/picsom-ListOverlaps.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ListOverlaps.C' object='segmentation/picsom-ListOverlaps.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ListOverlaps.obj `if test -f 'segmentation/ListOverlaps.C'; then $(CYGPATH_W) 'segmentation/ListOverlaps.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ListOverlaps.C'; fi`
+
+segmentation/picsom-LocateFaceBox.o: segmentation/LocateFaceBox.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-LocateFaceBox.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-LocateFaceBox.Tpo -c -o segmentation/picsom-LocateFaceBox.o `test -f 'segmentation/LocateFaceBox.C' || echo '$(srcdir)/'`segmentation/LocateFaceBox.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-LocateFaceBox.Tpo segmentation/$(DEPDIR)/picsom-LocateFaceBox.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/LocateFaceBox.C' object='segmentation/picsom-LocateFaceBox.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-LocateFaceBox.o `test -f 'segmentation/LocateFaceBox.C' || echo '$(srcdir)/'`segmentation/LocateFaceBox.C
+
+segmentation/picsom-LocateFaceBox.obj: segmentation/LocateFaceBox.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-LocateFaceBox.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-LocateFaceBox.Tpo -c -o segmentation/picsom-LocateFaceBox.obj `if test -f 'segmentation/LocateFaceBox.C'; then $(CYGPATH_W) 'segmentation/LocateFaceBox.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/LocateFaceBox.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-LocateFaceBox.Tpo segmentation/$(DEPDIR)/picsom-LocateFaceBox.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/LocateFaceBox.C' object='segmentation/picsom-LocateFaceBox.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-LocateFaceBox.obj `if test -f 'segmentation/LocateFaceBox.C'; then $(CYGPATH_W) 'segmentation/LocateFaceBox.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/LocateFaceBox.C'; fi`
+
+segmentation/picsom-MergeColM.o: segmentation/MergeColM.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-MergeColM.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-MergeColM.Tpo -c -o segmentation/picsom-MergeColM.o `test -f 'segmentation/MergeColM.C' || echo '$(srcdir)/'`segmentation/MergeColM.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-MergeColM.Tpo segmentation/$(DEPDIR)/picsom-MergeColM.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/MergeColM.C' object='segmentation/picsom-MergeColM.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-MergeColM.o `test -f 'segmentation/MergeColM.C' || echo '$(srcdir)/'`segmentation/MergeColM.C
+
+segmentation/picsom-MergeColM.obj: segmentation/MergeColM.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-MergeColM.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-MergeColM.Tpo -c -o segmentation/picsom-MergeColM.obj `if test -f 'segmentation/MergeColM.C'; then $(CYGPATH_W) 'segmentation/MergeColM.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/MergeColM.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-MergeColM.Tpo segmentation/$(DEPDIR)/picsom-MergeColM.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/MergeColM.C' object='segmentation/picsom-MergeColM.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-MergeColM.obj `if test -f 'segmentation/MergeColM.C'; then $(CYGPATH_W) 'segmentation/MergeColM.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/MergeColM.C'; fi`
+
+segmentation/picsom-MergeNeighbourhood.o: segmentation/MergeNeighbourhood.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-MergeNeighbourhood.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-MergeNeighbourhood.Tpo -c -o segmentation/picsom-MergeNeighbourhood.o `test -f 'segmentation/MergeNeighbourhood.C' || echo '$(srcdir)/'`segmentation/MergeNeighbourhood.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-MergeNeighbourhood.Tpo segmentation/$(DEPDIR)/picsom-MergeNeighbourhood.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/MergeNeighbourhood.C' object='segmentation/picsom-MergeNeighbourhood.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-MergeNeighbourhood.o `test -f 'segmentation/MergeNeighbourhood.C' || echo '$(srcdir)/'`segmentation/MergeNeighbourhood.C
+
+segmentation/picsom-MergeNeighbourhood.obj: segmentation/MergeNeighbourhood.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-MergeNeighbourhood.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-MergeNeighbourhood.Tpo -c -o segmentation/picsom-MergeNeighbourhood.obj `if test -f 'segmentation/MergeNeighbourhood.C'; then $(CYGPATH_W) 'segmentation/MergeNeighbourhood.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/MergeNeighbourhood.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-MergeNeighbourhood.Tpo segmentation/$(DEPDIR)/picsom-MergeNeighbourhood.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/MergeNeighbourhood.C' object='segmentation/picsom-MergeNeighbourhood.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-MergeNeighbourhood.obj `if test -f 'segmentation/MergeNeighbourhood.C'; then $(CYGPATH_W) 'segmentation/MergeNeighbourhood.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/MergeNeighbourhood.C'; fi`
+
+segmentation/picsom-MergeSame.o: segmentation/MergeSame.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-MergeSame.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-MergeSame.Tpo -c -o segmentation/picsom-MergeSame.o `test -f 'segmentation/MergeSame.C' || echo '$(srcdir)/'`segmentation/MergeSame.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-MergeSame.Tpo segmentation/$(DEPDIR)/picsom-MergeSame.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/MergeSame.C' object='segmentation/picsom-MergeSame.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-MergeSame.o `test -f 'segmentation/MergeSame.C' || echo '$(srcdir)/'`segmentation/MergeSame.C
+
+segmentation/picsom-MergeSame.obj: segmentation/MergeSame.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-MergeSame.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-MergeSame.Tpo -c -o segmentation/picsom-MergeSame.obj `if test -f 'segmentation/MergeSame.C'; then $(CYGPATH_W) 'segmentation/MergeSame.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/MergeSame.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-MergeSame.Tpo segmentation/$(DEPDIR)/picsom-MergeSame.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/MergeSame.C' object='segmentation/picsom-MergeSame.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-MergeSame.obj `if test -f 'segmentation/MergeSame.C'; then $(CYGPATH_W) 'segmentation/MergeSame.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/MergeSame.C'; fi`
+
+segmentation/picsom-OCVface.o: segmentation/OCVface.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-OCVface.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-OCVface.Tpo -c -o segmentation/picsom-OCVface.o `test -f 'segmentation/OCVface.C' || echo '$(srcdir)/'`segmentation/OCVface.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-OCVface.Tpo segmentation/$(DEPDIR)/picsom-OCVface.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/OCVface.C' object='segmentation/picsom-OCVface.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-OCVface.o `test -f 'segmentation/OCVface.C' || echo '$(srcdir)/'`segmentation/OCVface.C
+
+segmentation/picsom-OCVface.obj: segmentation/OCVface.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-OCVface.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-OCVface.Tpo -c -o segmentation/picsom-OCVface.obj `if test -f 'segmentation/OCVface.C'; then $(CYGPATH_W) 'segmentation/OCVface.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/OCVface.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-OCVface.Tpo segmentation/$(DEPDIR)/picsom-OCVface.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/OCVface.C' object='segmentation/picsom-OCVface.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-OCVface.obj `if test -f 'segmentation/OCVface.C'; then $(CYGPATH_W) 'segmentation/OCVface.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/OCVface.C'; fi`
+
+segmentation/picsom-PickLargest.o: segmentation/PickLargest.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-PickLargest.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-PickLargest.Tpo -c -o segmentation/picsom-PickLargest.o `test -f 'segmentation/PickLargest.C' || echo '$(srcdir)/'`segmentation/PickLargest.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-PickLargest.Tpo segmentation/$(DEPDIR)/picsom-PickLargest.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/PickLargest.C' object='segmentation/picsom-PickLargest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-PickLargest.o `test -f 'segmentation/PickLargest.C' || echo '$(srcdir)/'`segmentation/PickLargest.C
+
+segmentation/picsom-PickLargest.obj: segmentation/PickLargest.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-PickLargest.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-PickLargest.Tpo -c -o segmentation/picsom-PickLargest.obj `if test -f 'segmentation/PickLargest.C'; then $(CYGPATH_W) 'segmentation/PickLargest.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/PickLargest.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-PickLargest.Tpo segmentation/$(DEPDIR)/picsom-PickLargest.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/PickLargest.C' object='segmentation/picsom-PickLargest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-PickLargest.obj `if test -f 'segmentation/PickLargest.C'; then $(CYGPATH_W) 'segmentation/PickLargest.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/PickLargest.C'; fi`
+
+segmentation/picsom-PixelTemplate.o: segmentation/PixelTemplate.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-PixelTemplate.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-PixelTemplate.Tpo -c -o segmentation/picsom-PixelTemplate.o `test -f 'segmentation/PixelTemplate.C' || echo '$(srcdir)/'`segmentation/PixelTemplate.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-PixelTemplate.Tpo segmentation/$(DEPDIR)/picsom-PixelTemplate.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/PixelTemplate.C' object='segmentation/picsom-PixelTemplate.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-PixelTemplate.o `test -f 'segmentation/PixelTemplate.C' || echo '$(srcdir)/'`segmentation/PixelTemplate.C
+
+segmentation/picsom-PixelTemplate.obj: segmentation/PixelTemplate.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-PixelTemplate.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-PixelTemplate.Tpo -c -o segmentation/picsom-PixelTemplate.obj `if test -f 'segmentation/PixelTemplate.C'; then $(CYGPATH_W) 'segmentation/PixelTemplate.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/PixelTemplate.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-PixelTemplate.Tpo segmentation/$(DEPDIR)/picsom-PixelTemplate.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/PixelTemplate.C' object='segmentation/picsom-PixelTemplate.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-PixelTemplate.obj `if test -f 'segmentation/PixelTemplate.C'; then $(CYGPATH_W) 'segmentation/PixelTemplate.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/PixelTemplate.C'; fi`
+
+segmentation/picsom-Random.o: segmentation/Random.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-Random.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-Random.Tpo -c -o segmentation/picsom-Random.o `test -f 'segmentation/Random.C' || echo '$(srcdir)/'`segmentation/Random.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-Random.Tpo segmentation/$(DEPDIR)/picsom-Random.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/Random.C' object='segmentation/picsom-Random.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-Random.o `test -f 'segmentation/Random.C' || echo '$(srcdir)/'`segmentation/Random.C
+
+segmentation/picsom-Random.obj: segmentation/Random.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-Random.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-Random.Tpo -c -o segmentation/picsom-Random.obj `if test -f 'segmentation/Random.C'; then $(CYGPATH_W) 'segmentation/Random.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/Random.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-Random.Tpo segmentation/$(DEPDIR)/picsom-Random.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/Random.C' object='segmentation/picsom-Random.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-Random.obj `if test -f 'segmentation/Random.C'; then $(CYGPATH_W) 'segmentation/Random.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/Random.C'; fi`
+
+segmentation/picsom-RegionMerge.o: segmentation/RegionMerge.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-RegionMerge.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-RegionMerge.Tpo -c -o segmentation/picsom-RegionMerge.o `test -f 'segmentation/RegionMerge.C' || echo '$(srcdir)/'`segmentation/RegionMerge.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-RegionMerge.Tpo segmentation/$(DEPDIR)/picsom-RegionMerge.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/RegionMerge.C' object='segmentation/picsom-RegionMerge.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-RegionMerge.o `test -f 'segmentation/RegionMerge.C' || echo '$(srcdir)/'`segmentation/RegionMerge.C
+
+segmentation/picsom-RegionMerge.obj: segmentation/RegionMerge.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-RegionMerge.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-RegionMerge.Tpo -c -o segmentation/picsom-RegionMerge.obj `if test -f 'segmentation/RegionMerge.C'; then $(CYGPATH_W) 'segmentation/RegionMerge.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/RegionMerge.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-RegionMerge.Tpo segmentation/$(DEPDIR)/picsom-RegionMerge.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/RegionMerge.C' object='segmentation/picsom-RegionMerge.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-RegionMerge.obj `if test -f 'segmentation/RegionMerge.C'; then $(CYGPATH_W) 'segmentation/RegionMerge.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/RegionMerge.C'; fi`
+
+segmentation/picsom-RegionMerger.o: segmentation/RegionMerger.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-RegionMerger.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-RegionMerger.Tpo -c -o segmentation/picsom-RegionMerger.o `test -f 'segmentation/RegionMerger.C' || echo '$(srcdir)/'`segmentation/RegionMerger.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-RegionMerger.Tpo segmentation/$(DEPDIR)/picsom-RegionMerger.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/RegionMerger.C' object='segmentation/picsom-RegionMerger.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-RegionMerger.o `test -f 'segmentation/RegionMerger.C' || echo '$(srcdir)/'`segmentation/RegionMerger.C
+
+segmentation/picsom-RegionMerger.obj: segmentation/RegionMerger.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-RegionMerger.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-RegionMerger.Tpo -c -o segmentation/picsom-RegionMerger.obj `if test -f 'segmentation/RegionMerger.C'; then $(CYGPATH_W) 'segmentation/RegionMerger.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/RegionMerger.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-RegionMerger.Tpo segmentation/$(DEPDIR)/picsom-RegionMerger.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/RegionMerger.C' object='segmentation/picsom-RegionMerger.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-RegionMerger.obj `if test -f 'segmentation/RegionMerger.C'; then $(CYGPATH_W) 'segmentation/RegionMerger.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/RegionMerger.C'; fi`
+
+segmentation/picsom-RemoveHoles.o: segmentation/RemoveHoles.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-RemoveHoles.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-RemoveHoles.Tpo -c -o segmentation/picsom-RemoveHoles.o `test -f 'segmentation/RemoveHoles.C' || echo '$(srcdir)/'`segmentation/RemoveHoles.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-RemoveHoles.Tpo segmentation/$(DEPDIR)/picsom-RemoveHoles.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/RemoveHoles.C' object='segmentation/picsom-RemoveHoles.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-RemoveHoles.o `test -f 'segmentation/RemoveHoles.C' || echo '$(srcdir)/'`segmentation/RemoveHoles.C
+
+segmentation/picsom-RemoveHoles.obj: segmentation/RemoveHoles.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-RemoveHoles.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-RemoveHoles.Tpo -c -o segmentation/picsom-RemoveHoles.obj `if test -f 'segmentation/RemoveHoles.C'; then $(CYGPATH_W) 'segmentation/RemoveHoles.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/RemoveHoles.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-RemoveHoles.Tpo segmentation/$(DEPDIR)/picsom-RemoveHoles.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/RemoveHoles.C' object='segmentation/picsom-RemoveHoles.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-RemoveHoles.obj `if test -f 'segmentation/RemoveHoles.C'; then $(CYGPATH_W) 'segmentation/RemoveHoles.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/RemoveHoles.C'; fi`
+
+segmentation/picsom-RestoreScale.o: segmentation/RestoreScale.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-RestoreScale.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-RestoreScale.Tpo -c -o segmentation/picsom-RestoreScale.o `test -f 'segmentation/RestoreScale.C' || echo '$(srcdir)/'`segmentation/RestoreScale.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-RestoreScale.Tpo segmentation/$(DEPDIR)/picsom-RestoreScale.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/RestoreScale.C' object='segmentation/picsom-RestoreScale.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-RestoreScale.o `test -f 'segmentation/RestoreScale.C' || echo '$(srcdir)/'`segmentation/RestoreScale.C
+
+segmentation/picsom-RestoreScale.obj: segmentation/RestoreScale.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-RestoreScale.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-RestoreScale.Tpo -c -o segmentation/picsom-RestoreScale.obj `if test -f 'segmentation/RestoreScale.C'; then $(CYGPATH_W) 'segmentation/RestoreScale.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/RestoreScale.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-RestoreScale.Tpo segmentation/$(DEPDIR)/picsom-RestoreScale.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/RestoreScale.C' object='segmentation/picsom-RestoreScale.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-RestoreScale.obj `if test -f 'segmentation/RestoreScale.C'; then $(CYGPATH_W) 'segmentation/RestoreScale.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/RestoreScale.C'; fi`
+
+segmentation/picsom-SampleRandom.o: segmentation/SampleRandom.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-SampleRandom.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-SampleRandom.Tpo -c -o segmentation/picsom-SampleRandom.o `test -f 'segmentation/SampleRandom.C' || echo '$(srcdir)/'`segmentation/SampleRandom.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-SampleRandom.Tpo segmentation/$(DEPDIR)/picsom-SampleRandom.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/SampleRandom.C' object='segmentation/picsom-SampleRandom.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-SampleRandom.o `test -f 'segmentation/SampleRandom.C' || echo '$(srcdir)/'`segmentation/SampleRandom.C
+
+segmentation/picsom-SampleRandom.obj: segmentation/SampleRandom.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-SampleRandom.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-SampleRandom.Tpo -c -o segmentation/picsom-SampleRandom.obj `if test -f 'segmentation/SampleRandom.C'; then $(CYGPATH_W) 'segmentation/SampleRandom.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/SampleRandom.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-SampleRandom.Tpo segmentation/$(DEPDIR)/picsom-SampleRandom.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/SampleRandom.C' object='segmentation/picsom-SampleRandom.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-SampleRandom.obj `if test -f 'segmentation/SampleRandom.C'; then $(CYGPATH_W) 'segmentation/SampleRandom.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/SampleRandom.C'; fi`
+
+segmentation/picsom-ScaleDown.o: segmentation/ScaleDown.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ScaleDown.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-ScaleDown.Tpo -c -o segmentation/picsom-ScaleDown.o `test -f 'segmentation/ScaleDown.C' || echo '$(srcdir)/'`segmentation/ScaleDown.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ScaleDown.Tpo segmentation/$(DEPDIR)/picsom-ScaleDown.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ScaleDown.C' object='segmentation/picsom-ScaleDown.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ScaleDown.o `test -f 'segmentation/ScaleDown.C' || echo '$(srcdir)/'`segmentation/ScaleDown.C
+
+segmentation/picsom-ScaleDown.obj: segmentation/ScaleDown.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-ScaleDown.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-ScaleDown.Tpo -c -o segmentation/picsom-ScaleDown.obj `if test -f 'segmentation/ScaleDown.C'; then $(CYGPATH_W) 'segmentation/ScaleDown.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ScaleDown.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-ScaleDown.Tpo segmentation/$(DEPDIR)/picsom-ScaleDown.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/ScaleDown.C' object='segmentation/picsom-ScaleDown.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-ScaleDown.obj `if test -f 'segmentation/ScaleDown.C'; then $(CYGPATH_W) 'segmentation/ScaleDown.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/ScaleDown.C'; fi`
+
+segmentation/picsom-SeparateMultipart.o: segmentation/SeparateMultipart.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-SeparateMultipart.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-SeparateMultipart.Tpo -c -o segmentation/picsom-SeparateMultipart.o `test -f 'segmentation/SeparateMultipart.C' || echo '$(srcdir)/'`segmentation/SeparateMultipart.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-SeparateMultipart.Tpo segmentation/$(DEPDIR)/picsom-SeparateMultipart.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/SeparateMultipart.C' object='segmentation/picsom-SeparateMultipart.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-SeparateMultipart.o `test -f 'segmentation/SeparateMultipart.C' || echo '$(srcdir)/'`segmentation/SeparateMultipart.C
+
+segmentation/picsom-SeparateMultipart.obj: segmentation/SeparateMultipart.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-SeparateMultipart.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-SeparateMultipart.Tpo -c -o segmentation/picsom-SeparateMultipart.obj `if test -f 'segmentation/SeparateMultipart.C'; then $(CYGPATH_W) 'segmentation/SeparateMultipart.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/SeparateMultipart.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-SeparateMultipart.Tpo segmentation/$(DEPDIR)/picsom-SeparateMultipart.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/SeparateMultipart.C' object='segmentation/picsom-SeparateMultipart.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-SeparateMultipart.obj `if test -f 'segmentation/SeparateMultipart.C'; then $(CYGPATH_W) 'segmentation/SeparateMultipart.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/SeparateMultipart.C'; fi`
+
+segmentation/picsom-SpringModel.o: segmentation/SpringModel.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-SpringModel.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-SpringModel.Tpo -c -o segmentation/picsom-SpringModel.o `test -f 'segmentation/SpringModel.C' || echo '$(srcdir)/'`segmentation/SpringModel.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-SpringModel.Tpo segmentation/$(DEPDIR)/picsom-SpringModel.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/SpringModel.C' object='segmentation/picsom-SpringModel.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-SpringModel.o `test -f 'segmentation/SpringModel.C' || echo '$(srcdir)/'`segmentation/SpringModel.C
+
+segmentation/picsom-SpringModel.obj: segmentation/SpringModel.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-SpringModel.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-SpringModel.Tpo -c -o segmentation/picsom-SpringModel.obj `if test -f 'segmentation/SpringModel.C'; then $(CYGPATH_W) 'segmentation/SpringModel.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/SpringModel.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-SpringModel.Tpo segmentation/$(DEPDIR)/picsom-SpringModel.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/SpringModel.C' object='segmentation/picsom-SpringModel.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-SpringModel.obj `if test -f 'segmentation/SpringModel.C'; then $(CYGPATH_W) 'segmentation/SpringModel.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/SpringModel.C'; fi`
+
+segmentation/picsom-TagDark.o: segmentation/TagDark.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-TagDark.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-TagDark.Tpo -c -o segmentation/picsom-TagDark.o `test -f 'segmentation/TagDark.C' || echo '$(srcdir)/'`segmentation/TagDark.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-TagDark.Tpo segmentation/$(DEPDIR)/picsom-TagDark.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/TagDark.C' object='segmentation/picsom-TagDark.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-TagDark.o `test -f 'segmentation/TagDark.C' || echo '$(srcdir)/'`segmentation/TagDark.C
+
+segmentation/picsom-TagDark.obj: segmentation/TagDark.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-TagDark.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-TagDark.Tpo -c -o segmentation/picsom-TagDark.obj `if test -f 'segmentation/TagDark.C'; then $(CYGPATH_W) 'segmentation/TagDark.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/TagDark.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-TagDark.Tpo segmentation/$(DEPDIR)/picsom-TagDark.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/TagDark.C' object='segmentation/picsom-TagDark.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-TagDark.obj `if test -f 'segmentation/TagDark.C'; then $(CYGPATH_W) 'segmentation/TagDark.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/TagDark.C'; fi`
+
+segmentation/picsom-TemporalMorphology.o: segmentation/TemporalMorphology.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-TemporalMorphology.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-TemporalMorphology.Tpo -c -o segmentation/picsom-TemporalMorphology.o `test -f 'segmentation/TemporalMorphology.C' || echo '$(srcdir)/'`segmentation/TemporalMorphology.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-TemporalMorphology.Tpo segmentation/$(DEPDIR)/picsom-TemporalMorphology.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/TemporalMorphology.C' object='segmentation/picsom-TemporalMorphology.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-TemporalMorphology.o `test -f 'segmentation/TemporalMorphology.C' || echo '$(srcdir)/'`segmentation/TemporalMorphology.C
+
+segmentation/picsom-TemporalMorphology.obj: segmentation/TemporalMorphology.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-TemporalMorphology.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-TemporalMorphology.Tpo -c -o segmentation/picsom-TemporalMorphology.obj `if test -f 'segmentation/TemporalMorphology.C'; then $(CYGPATH_W) 'segmentation/TemporalMorphology.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/TemporalMorphology.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-TemporalMorphology.Tpo segmentation/$(DEPDIR)/picsom-TemporalMorphology.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/TemporalMorphology.C' object='segmentation/picsom-TemporalMorphology.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-TemporalMorphology.obj `if test -f 'segmentation/TemporalMorphology.C'; then $(CYGPATH_W) 'segmentation/TemporalMorphology.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/TemporalMorphology.C'; fi`
+
+segmentation/picsom-Tile.o: segmentation/Tile.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-Tile.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-Tile.Tpo -c -o segmentation/picsom-Tile.o `test -f 'segmentation/Tile.C' || echo '$(srcdir)/'`segmentation/Tile.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-Tile.Tpo segmentation/$(DEPDIR)/picsom-Tile.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/Tile.C' object='segmentation/picsom-Tile.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-Tile.o `test -f 'segmentation/Tile.C' || echo '$(srcdir)/'`segmentation/Tile.C
+
+segmentation/picsom-Tile.obj: segmentation/Tile.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-Tile.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-Tile.Tpo -c -o segmentation/picsom-Tile.obj `if test -f 'segmentation/Tile.C'; then $(CYGPATH_W) 'segmentation/Tile.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/Tile.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-Tile.Tpo segmentation/$(DEPDIR)/picsom-Tile.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/Tile.C' object='segmentation/picsom-Tile.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-Tile.obj `if test -f 'segmentation/Tile.C'; then $(CYGPATH_W) 'segmentation/Tile.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/Tile.C'; fi`
+
+segmentation/picsom-TestInterface.o: segmentation/TestInterface.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-TestInterface.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-TestInterface.Tpo -c -o segmentation/picsom-TestInterface.o `test -f 'segmentation/TestInterface.C' || echo '$(srcdir)/'`segmentation/TestInterface.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-TestInterface.Tpo segmentation/$(DEPDIR)/picsom-TestInterface.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/TestInterface.C' object='segmentation/picsom-TestInterface.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-TestInterface.o `test -f 'segmentation/TestInterface.C' || echo '$(srcdir)/'`segmentation/TestInterface.C
+
+segmentation/picsom-TestInterface.obj: segmentation/TestInterface.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-TestInterface.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-TestInterface.Tpo -c -o segmentation/picsom-TestInterface.obj `if test -f 'segmentation/TestInterface.C'; then $(CYGPATH_W) 'segmentation/TestInterface.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/TestInterface.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-TestInterface.Tpo segmentation/$(DEPDIR)/picsom-TestInterface.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/TestInterface.C' object='segmentation/picsom-TestInterface.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-TestInterface.obj `if test -f 'segmentation/TestInterface.C'; then $(CYGPATH_W) 'segmentation/TestInterface.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/TestInterface.C'; fi`
+
+segmentation/picsom-TilePyramid.o: segmentation/TilePyramid.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-TilePyramid.o -MD -MP -MF segmentation/$(DEPDIR)/picsom-TilePyramid.Tpo -c -o segmentation/picsom-TilePyramid.o `test -f 'segmentation/TilePyramid.C' || echo '$(srcdir)/'`segmentation/TilePyramid.C
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-TilePyramid.Tpo segmentation/$(DEPDIR)/picsom-TilePyramid.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/TilePyramid.C' object='segmentation/picsom-TilePyramid.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-TilePyramid.o `test -f 'segmentation/TilePyramid.C' || echo '$(srcdir)/'`segmentation/TilePyramid.C
+
+segmentation/picsom-TilePyramid.obj: segmentation/TilePyramid.C
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT segmentation/picsom-TilePyramid.obj -MD -MP -MF segmentation/$(DEPDIR)/picsom-TilePyramid.Tpo -c -o segmentation/picsom-TilePyramid.obj `if test -f 'segmentation/TilePyramid.C'; then $(CYGPATH_W) 'segmentation/TilePyramid.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/TilePyramid.C'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) segmentation/$(DEPDIR)/picsom-TilePyramid.Tpo segmentation/$(DEPDIR)/picsom-TilePyramid.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='segmentation/TilePyramid.C' object='segmentation/picsom-TilePyramid.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o segmentation/picsom-TilePyramid.obj `if test -f 'segmentation/TilePyramid.C'; then $(CYGPATH_W) 'segmentation/TilePyramid.C'; else $(CYGPATH_W) '$(srcdir)/segmentation/TilePyramid.C'; fi`
 
 features/picsom-Feature.o: features/Feature.C
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(picsom_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT features/picsom-Feature.o -MD -MP -MF features/$(DEPDIR)/picsom-Feature.Tpo -c -o features/picsom-Feature.o `test -f 'features/Feature.C' || echo '$(srcdir)/'`features/Feature.C

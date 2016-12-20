@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: SVM.C,v 2.103 2015/06/29 12:02:10 jorma Exp $
+// -*- C++ -*-  $Id: SVM.C,v 2.109 2016/06/23 09:57:07 jorma Exp $
 // 
-// Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -21,7 +21,7 @@ void print_null(const char *) {}
 
 namespace picsom {
   static const string SVM_C_vcid =
-    "@(#)$Id: SVM.C,v 2.103 2015/06/29 12:02:10 jorma Exp $";
+    "@(#)$Id: SVM.C,v 2.109 2016/06/23 09:57:07 jorma Exp $";
 
   static SVM list_entry(true);
 
@@ -64,12 +64,12 @@ namespace picsom {
 
     SetFeatureNames();
 
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
     hkm_order = 0;
     hkm = NULL;
     InitialiseHomogeneousKernelMap(getParam("homker", ""),
 				   getParamInt("homkerorder", 3));
-#endif
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
 
     string norm_str = getParam("normalize", "");
     if (norm_str.empty())
@@ -113,10 +113,10 @@ namespace picsom {
 
   SVM::~SVM() {
     DestroyModel("", false);
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
     if (hkm)
       vl_homogeneouskernelmap_delete(hkm);
-#endif
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -190,7 +190,8 @@ namespace picsom {
       "readproblem",
       "posneg_ratio",
       "scaling_from",
-      "scaling_to"
+      "scaling_to",
+      "force_finalize"
     };
 
     bool found = ps.find(key)!=ps.end();
@@ -543,7 +544,7 @@ namespace picsom {
 
   bool SVM::Create(const string& svmname, string& fname,
                    const string& svmlib, const ground_truth_set& cls,
-                   const string& readfrom_model) {
+                   const string& readfrom_model, const string& feataugm) {
     string msg = "SVM::Create: ";
     if (!SetLibrary(svmlib))
       return false;
@@ -559,6 +560,13 @@ namespace picsom {
     if (fname.empty())
       fname = "./"+MethodName()+MethodSeparator()+IndexName()+"#"+svmname;
     SetBaseFilename(fname);
+
+    vector<string> augfeat = SolveFeatureAugmentation(FeatureFileName(),
+						      feataugm);
+    if (augfeat.size()>1 ||
+	(augfeat.size()==1 && augfeat[0]!=FeatureFileName()))
+      WriteLog(msg, "feature augmentation: "+FeatureFileName()+" + "
+	       +feataugm+" -> "+CommaJoin(augfeat));
 
     string svm_fname = GetFilename(".svm");
     string paramsel = getParam("paramselect");
@@ -685,7 +693,7 @@ namespace picsom {
     if (readproblem != "no") {
       prob = new Problem(svm_library, readproblem);
     } else {
-      InitProblem(setlist, cls);
+      InitProblem(setlist, cls, augfeat);
       prob = new Problem(svm_library, setlist);
     }
 
@@ -721,8 +729,11 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool SVM::InitProblem(setlist_t& setlist, const ground_truth_set& cls) {
+  bool SVM::InitProblem(setlist_t& setlist, const ground_truth_set& cls,
+			const vector<string>& augm) {
     string msg = "SVM::InitProblem() : ";
+
+    bool tolerate_missing = false;
 
     size_t cs = cls.size();
     for (size_t i=0; i<cs; i++) {
@@ -733,28 +744,50 @@ namespace picsom {
            << CheckDB()->GroundTruthSummaryStr(cls[i], true, false, false)
            << endl;
     }
-
-    setlist.push_back(DataByIndices(cls[0].indices(1)));
-    size_t nitems = setlist.back().Nitems();
-    WriteLog(msg+ToStr(setlist.back().Nitems())+" vectors used for <"+
-	     cls[0].label()+">");
+    
+    bool augm_negatives = false;
+    string ffn = FeatureFileName();
+    size_t nitems = 0;
+    FloatVectorSet vseta;
+    vector<size_t> idxs = cls[0].indices(1);
+    for (auto a=augm.begin(); a!=augm.end(); a++) {
+      WriteLog(msg+"Starting to acquire "+ToStr(idxs.size())+" vectors <"
+	       +*a+">");
+      FloatVectorSet vset2 = DataByIndicesAugmented(idxs, *a, tolerate_missing);
+      nitems += vset2.Nitems();
+      WriteLog(msg+ToStr(vset2.Nitems())+" vectors used for <"+
+	       cls[0].label()+"> augmentation \""+*a+"\"");
+      vseta.TakeAll(vset2);
+    }
+    setlist.push_back(vseta);
 
     for (size_t i=1; i<cls.size(); i++) {
-      setlist.push_back(DataByIndices(cls[i].indices(1)));
-      nitems += setlist.back().Nitems();
-      WriteLog(msg+ToStr(setlist.back().Nitems())+" vectors used for <"+
-	       cls[i].label()+">");
+      idxs = cls[i].indices(1);
+      FloatVectorSet vsetb;
+      for (auto a=augm.begin(); a!=augm.end(); a++)
+	if (augm_negatives || *a==ffn) {
+	  WriteLog(msg+"Starting to acquire "+ToStr(idxs.size())+" vectors <"
+		   +*a+">");
+	  FloatVectorSet vset2 = DataByIndicesAugmented(idxs, *a,
+							tolerate_missing);
+	  nitems += vset2.Nitems();
+	  WriteLog(msg+ToStr(vset2.Nitems())+" vectors used for <"+
+		   cls[i].label()+"> augmentation \""+*a+"\"");
+	  vsetb.TakeAll(vset2);
+	}
+      setlist.push_back(vsetb);
     }
+    WriteLog(msg+"Total of "+ToStr(nitems)+" vectors read");
 
     string hkmmsg;
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
     if (hkm) {
       setlist_t::iterator it = setlist.begin();
       for (; it != setlist.end(); it++)
         HomogeneousKernelMapEvaluate(*it);
       hkmmsg = "hkm="+hkm_name+",order="+ToStr(hkm_order);
     }
-#endif
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
       
     model->RangeFromSetList(setlist);
     model->ResetZeroedCounter();
@@ -1043,6 +1076,7 @@ namespace picsom {
 
     cout.precision(5);
 
+    size_t force_finalize_effective = 0;
     for (seq_param_t::const_iterator i=sp.begin(); i!=sp.end(); i++) {
       double ce = i->first;
       double ge = i->second;
@@ -1052,8 +1086,14 @@ namespace picsom {
 
       double acc = 1.0;
 
-      bool using_cache = false;
+      bool using_cache = false, forced_zero_acc = false;
       double cached_acc = ParamselCacheGet(ce, ge);
+      
+      if (cached_acc==-1.0 && getParamBool("force_finalize", false)) {
+	cached_acc = 0;
+	forced_zero_acc = true;
+	force_finalize_effective++;
+      }
 
       if (cached_acc >= 0) {
         acc = cached_acc;
@@ -1105,7 +1145,8 @@ namespace picsom {
         }
       }
       
-      ParamselCacheWrite(ce, ge, acc);
+      if (!forced_zero_acc)
+	ParamselCacheWrite(ce, ge, acc);
 
       if (verbose) {
         WriteLog("[GridSearch] log2c="+ToStr(ce)+", log2g="+ToStr(ge)+", ",
@@ -1119,6 +1160,10 @@ namespace picsom {
         best_g=ge;
       }
     }
+
+    if (force_finalize_effective)
+      WriteLog(ToStr(force_finalize_effective)+"/"+ToStr(sp.size())+
+	       " paramsel loops skipped");
 
     for (int i=0; i<l; i++)
       delete [] prob_estim[i];
@@ -1231,7 +1276,7 @@ namespace picsom {
     return sp;
   }
 
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -1316,7 +1361,7 @@ namespace picsom {
       HomogeneousKernelMapEvaluate(fvs.Get(i));
   }
 
-#endif
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -1368,10 +1413,10 @@ namespace picsom {
     const int vl = model->MinVectorLength();
     int lcomp = v.Length();
 
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
     int hkm_mult = 2*hkm_order+1;
     lcomp *= hkm_mult;
-#endif
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
 
     if (svm_library!=LIB_SVM && lcomp!=vl) {
       ShowError(msg+"Length of vector to predict (" + ToStr(lcomp) + ") "
@@ -1437,10 +1482,10 @@ namespace picsom {
 
     FloatVector v(vin);
 
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
     if (hkm)
       HomogeneousKernelMapEvaluate(&v);
-#endif
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
    
     int cn = model->GetClassNr();
 
@@ -1825,13 +1870,13 @@ namespace picsom {
     if (svm->Preprocessing() != NO_PREPROCESS)
       mof << "#picsom preprocess_components=" << (int)svm->Preprocessing() << endl;
 
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
     string kname = svm->HomogeneousKernelMap();
     if (!kname.empty()) {
       mof << "#picsom homker=" << kname << endl;
       mof << "#picsom homkerorder=" << svm->hkm_order << endl;
     }
-#endif
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
 
     mof.close();
  
@@ -1923,11 +1968,11 @@ namespace picsom {
       return false;
 
     if (homker!="") {
-#ifdef USE_VLFEAT
+#if defined(HAVE_VL_GENERIC_H) && defined(PICSOM_USE_VLFEAT)
       svm->InitialiseHomogeneousKernelMap(homker, atoi(homkerorder.c_str()));
 #else
       return ShowError(msg, "homker not available without vlfeat");
-#endif // USE_VLFEAT
+#endif // HAVE_VL_GENERIC_H && PICSOM_USE_VLFEAT
     }
 
     if (svm_library == LIB_LINEAR) {
@@ -2003,10 +2048,15 @@ namespace picsom {
     float diff = scaling_to-scaling_from;
     for (int i=0; i<vl; i++) {
       float range = range_max[i]-range_min[i];
-      v[i] = diff*(v[i]-range_min[i])/range + scaling_from;
-      if (isnan(v[i])) {
-        v[i] = 0.0;
-        scale_zeroed++;
+      if (range) {
+	v[i] = diff*(v[i]-range_min[i])/range + scaling_from;
+	if (isnan(v[i])) {
+	  v[i] = 0.0;
+	  scale_zeroed++;
+	}
+      } else {
+	/// obs!  should this be logged ???
+	v[i] = (scaling_to+scaling_from)/2;
       }
     }
     return true;

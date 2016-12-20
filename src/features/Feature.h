@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Feature.h,v 1.209 2015/10/28 08:47:49 jorma Exp $
+// -*- C++ -*-  $Id: Feature.h,v 1.213 2016/06/23 10:51:12 jorma Exp $
 // 
-// Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -15,8 +15,8 @@
    features.
   
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.209 $
-   $Date: 2015/10/28 08:47:49 $
+   $Revision: 1.213 $
+   $Date: 2016/06/23 10:51:12 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -27,10 +27,7 @@
 
 #include <Util.h>
 #include <videofile.h>
-
-//#ifdef USE_AUDIO
 #include <soundfile.h>
-//#endif
 
 #include <iostream>
 #include <fstream>
@@ -59,11 +56,11 @@ using namespace std;
 
 #include <sys/stat.h>
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP    
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#endif
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
 namespace picsom {
   using namespace ::cox;
@@ -115,6 +112,9 @@ namespace picsom {
     list<labeled_float_vector> data;
   }; // class feature_result
 
+  ///
+  typedef pair<pair<string,string>,vector<float> > incore_feature_t;
+
   /// A base class for all features that can be used in the feature extraction.
   class Feature {
   public:
@@ -147,17 +147,20 @@ namespace picsom {
       vector<string> args;
       for (int i=0; i<argc; i++)
 	args.push_back(argv[i]);
-      return Main(args);
+      list<incore_feature_t> incore;
+      return Main(args, incore);
     }
 
     /** The real thing
      */
-    static int Main(const vector<string>&, feature_result* = NULL); 
+    static int Main(const vector<string>&, list<incore_feature_t>&,
+		    feature_result* = NULL); 
 
     /** Per file loop inside Main().
      */
     static bool ProcessOneFile(Feature*&, const string&, const string&,
 			       const list<string>&, const string&,
+			       incore_feature_t*,
 			       bool, bool, bool, bool, const string&,
 			       const string&, const string&, const string&,
 			       const string&, bool, int&,
@@ -217,10 +220,8 @@ namespace picsom {
 
     ///
     void RemoveAudioFile() {
-      //#ifdef USE_AUDIO
       delete deprecated_audiofile_ptr;
       deprecated_audiofile_ptr = NULL;
-      //#endif
     }
     
     /**
@@ -1169,9 +1170,7 @@ namespace picsom {
     virtual int Nframes() const { 
       return 
 	IsVideoFeature() ? videofile_ptr->get_num_frames() :
-	//#ifdef USE_AUDIO
 	IsAudioFeature() ? deprecated_audiofile_ptr->getDuration() : 
-	//#endif
 	SegmentData()->getNumFrames(); 
     }
 
@@ -1187,7 +1186,7 @@ namespace picsom {
       return *SegmentData()->accessFrame();
     }
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
     /** Returns the current frame in OpenCV object
 	\return the current frame
     */
@@ -1212,13 +1211,13 @@ namespace picsom {
      */
     cv::Mat Convert2cvMat() const;
 
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
     /** Returns availbale OpenCV version or an empty string
     */
     static const string& OCVversion() {
       static string v;
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
       v = CV_VERSION;
 #endif // HAVE_OPENCV2_CORE_CORE_HPP
       return v;
@@ -1415,11 +1414,7 @@ namespace picsom {
     }
 
     /// Aborts if we don't have images loaded
-    void EnsureImage() const {
-      if (!HasImage())
-	abort();
-      // throw "Feature : no image";
-    }
+    void EnsureImage() const; // not really const anymore
 
     /// Throws exception if we don't have segments loaded
     void EnsureSegmentation() const {
@@ -1761,6 +1756,11 @@ namespace picsom {
 	\return true if ok
     */
     bool PreProcess_resize(imagedata&, const string&) const;
+
+    /** Example of a preprocessing method
+	\return true if ok
+    */
+    bool PreProcess_hflip(imagedata&, const string&) const;
 
     /** Reads mean&stdev vectors for z-normaliztion from a COD file
      */
@@ -2981,10 +2981,13 @@ namespace picsom {
     /// hidden secrets...
     void *opencvptr;
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP    
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
     /// Given to OCVFeature-based methods.
     cv::Mat opencvmat;
-#endif // HAVE_OPENCV2_CORE_CORE_HPP    
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
+
+    ///
+    imagedata *incore_imagedata_ptr;
 
   };  // class Feature
 

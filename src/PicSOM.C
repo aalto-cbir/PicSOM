@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: PicSOM.C,v 2.525 2015/10/01 14:52:26 jorma Exp $
+// -*- C++ -*-  $Id: PicSOM.C,v 2.554 2016/12/19 08:09:12 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -49,13 +49,13 @@
 #include <sys/utsname.h>
 #endif // HAVE_SYS_UTSNAME_H
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
 #include <opencv2/core/core.hpp>
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
-#ifdef HAVE_OPENCV2_CORE_GPUMAT_HPP
+#if defined(HAVE_OPENCV2_CORE_GPUMAT_HPP) && defined(PICSOM_USE_OPENCV)
 #include <opencv2/core/gpumat.hpp>
-#endif // HAVE_OPENCV2_CORE_GPUMAT_HPP
+#endif // HAVE_OPENCV2_CORE_GPUMAT_HPP && PICSOM_USE_OPENCV
 
 #ifdef HAVE_OPENSSL_SSL_H
 #include <openssl/opensslv.h>
@@ -98,15 +98,7 @@ static string foo = string(license)+string(dblicense);
 #include <json/json.h>
 #endif // HAVE_JSON_JSON_H
 
-#ifdef PICSOM_USE_PYTHON
-#include <Python.h>
-#endif // PICSOM_USE_PYTHON
-
-#ifdef PICSOM_NO_OCTAVE
-#undef PICSOM_HAVE_OCTAVE
-#endif // PICSOM_NO_OCTAVE
-
-#ifdef PICSOM_HAVE_OCTAVE
+#if defined(PICSOM_HAVE_OCTAVE) && defined(PICSOM_USE_OCTAVE)
 // config.h conflicts:
 #undef PACKAGE_BUGREPORT
 #undef PACKAGE_NAME
@@ -118,7 +110,7 @@ static string foo = string(license)+string(dblicense);
 #include <octave/oct.h>
 #include <octave/octave.h>
 #include <octave/parse.h>
-#endif // PICSOM_HAVE_OCTAVE
+#endif // PICSOM_HAVE_OCTAVE && PICSOM_USE_OCTAVE
 
 extern "C" {
 #ifdef HAVE_LIBAVCODEC_AVCODEC_H
@@ -150,9 +142,19 @@ extern "C" {
 #include <unistd.h>
 #endif // HAVE_UNISTD_H
 
-#ifdef USE_SLMOTION
+#ifdef PICSOM_USE_SLMOTION
 #include <../slmotion/slmotion.hpp>
-#endif // USE_SLMOTION
+#endif // PICSOM_USE_SLMOTION
+
+#ifdef PICSOM_USE_TENSORFLOW
+#include <tensorflow/core/public/version.h>
+#endif // PICSOM_USE_TENSORFLOW
+
+#ifdef PICSOM_USE_PYTHON
+#undef _POSIX_C_SOURCE
+#undef _XOPEN_SOURCE
+#include <Python.h>
+#endif // PICSOM_USE_PYTHON
 
 #ifndef CODEFLAGS
 #define CODEFLAGS "--unknown--"
@@ -163,7 +165,7 @@ extern "C" {
 
 namespace picsom {
   const string PicSOM_C_vcid =
-    "@(#)$Id: PicSOM.C,v 2.525 2015/10/01 14:52:26 jorma Exp $";
+    "@(#)$Id: PicSOM.C,v 2.554 2016/12/19 08:09:12 jorma Exp $";
 
   int PicSOM::debug_times  = 0;
   int PicSOM::debug_mem    = 0;
@@ -207,6 +209,9 @@ namespace picsom {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#define _stringify_(x) _stringify__(x) 
+#define _stringify__(x) #x 
+
   PicSOM::PicSOM(const vector<string>& arg) : tics("PicSOM") {
     SetTimeNow(start_time);
 
@@ -228,12 +233,12 @@ namespace picsom {
 
     myname_str = mybinary_str = arg.size() ? arg[0] : "";
 
-#ifdef HAVE_GLOG_LOGGING_H
+#if defined(HAVE_GLOG_LOGGING_H) && defined(PICSOM_USE_CAFFE)
     if (!Feature::GlogInitDone())
       google::InitGoogleLogging(myname_str.c_str());
     FLAGS_logtostderr = 0;
     Feature::GlogInitDone(true);
-#endif // HAVE_GLOG_LOGGING_H
+#endif // HAVE_GLOG_LOGGING_H && PICSOM_USE_CAFFE
 
     listen_connection = mpi_listen_connection =
       soap_server = speech_recognizer = NULL;
@@ -267,16 +272,15 @@ namespace picsom {
     defaultdirpath = true;
     norootdir      = false;
 
-    string ics_path    = "/share/imagedb/picsom";
-    string triton_path = "/triton/ics/project/imagedb/picsom";
-    string hippu_path  = "/fs/proj1/simula/imagedb/picsom";
-    path_str = ics_path;
+    string fallback_path = "/usr/local/lib/picsom";
+    path_str = fallback_path;
+#ifdef PICSOM_PATH
+    path_str = _stringify_(PICSOM_PATH);
+    if (path_str[0]!='/')
+      path_str = UserHomeDir()+"/"+path_str;
+#endif // PICSOM_PATH
     if (!DirectoryExists(path_str))
-      path_str = hippu_path;
-    if (!DirectoryExists(path_str))
-      path_str = triton_path;
-    if (!DirectoryExists(path_str))
-      path_str = ics_path;
+      path_str = "";
 
 #ifdef HAVE_WINREG_H
     path_str = "something from the windows registry";
@@ -380,6 +384,7 @@ namespace picsom {
 
     Segmentation::PicSOMroot(path_str);
     Feature::PicSOMroot(path_str);
+    videofile::local_bin(Path()+"/"+SolveArchitecture()+"/bin");
 
     if (guarding) {
       if (!DoGuarding())
@@ -540,11 +545,12 @@ namespace picsom {
   bool PicSOM::CleanUpBogusDirs() {
     bool wait_rm = false;
 
-    list<string> dd { "/ramdisk", "/tmp", "/local", "/users" };
+    list<string> dd { "/ramdisk", "/tmp", "/local", "/l", "/users" };
 
     list<string> dirs;
 
 #ifdef HAVE_DIRENT_H
+    // This is not effective anymore...
     string slurmdir = "/local";
     DIR *d = opendir(slurmdir.c_str());
 
@@ -663,10 +669,14 @@ namespace picsom {
 	  }
 
 	  switch (mode) {
-	  case 'f':
+	  case 'f': {
+	    // this sets videofile::_local_bin and Feature::picsomroot
+	    vector<string> aa { "*dummy*executable*", "-q" }; 
+	    PicSOM picsomx(aa);
 	    return Feature::Main(argc, argv);
 	    break;
-
+	  }
+	    
 	  case 's':
 	    return Segmentation::Main(argc,(char **)argv);
 	    break;
@@ -754,9 +764,9 @@ namespace picsom {
     vars.insert("JOB_NAME");
     vars.insert("QUEUE");
     vars.insert("REQUEST");
-    vars.insert("SLURM_JOB_ID");
-    vars.insert("SLURM_JOB_NAME");
-    vars.insert("SLURM_MEM_PER_CPU");
+    // vars.insert("SLURM_JOB_ID");
+    // vars.insert("SLURM_JOB_NAME");
+    // vars.insert("SLURM_MEM_PER_CPU");
     vars.insert("_CONDOR_SCRATCH_DIR");
     vars.insert("_CONDOR_JOB_AD");
     vars.insert("_CONDOR_MACHINE_AD");
@@ -768,7 +778,8 @@ namespace picsom {
       try {
         pair<string,string> kv = SplitKeyEqualValueNew(v);
         string key = kv.first;
-        if (key.find("PICSOM_")==0 || vars.find(key)!=vars.end()) {
+        if (key.find("PICSOM_")==0 || key.find("SLURM_")==0 ||
+	    vars.find(key)!=vars.end()) {
           if (key.find("PICSOM_")==0)
             key.erase(0, 7);
           env[key] = kv.second;
@@ -2292,7 +2303,9 @@ bool PicSOM::DoSshForwarding(int p) {
 	      n_rcvd++;
 	    else {
 	      n_norcvd++;
-	      WriteLog(msg+i->jobids[0]+" in <"+i->hostname+"> failing");
+	      string sinfo = "job=["+(i->jobids.size()?i->jobids[0]:"")
+		+"] in <"+i->hostname+"> ("+i->hostspec+")";
+	      WriteLog(msg+sinfo+" failing");
 	    }
 	  } else {
 	    keep_locked = true;
@@ -3050,7 +3063,9 @@ bool PicSOM::DoSshForwarding(int p) {
   bool PicSOM::CheckSlaveCountSlurm(slave_info_t& s) {
     string msg = "CheckSlaveCountSlurm() : ";
 
-    string slurm = "/share/apps/bin/slurm";
+    //string slurm = "/share/apps/bin/slurm";
+    //string slurm = "/usr/bin/slurm";
+    string slurm = "/usr/local/bin/slurm";
     size_t n_pend = 0;
     set<size_t> ids;
     stringstream ss;
@@ -3289,6 +3304,10 @@ bool PicSOM::DoSshForwarding(int p) {
   /////////////////////////////////////////////////////////////////////////////
 
   const string& PicSOM::HostName(bool dom) {
+    const map<string,string> forced_name {
+      make_pair("login2.triton.aalto.fi", "login2")
+	};
+
     static string host, hostdom, numeric;
     if (host=="") {
       if (forcedhostname!="")
@@ -3302,7 +3321,13 @@ bool PicSOM::DoSshForwarding(int p) {
 	const struct hostent* he = GetHostByName(tmp, myhost);
 
 	bool found = false;
-	if (he) {
+	auto p = forced_name.find(hostdom);
+	if (p!=forced_name.end()) {
+	  found = true;
+	  host = hostdom = p->second;
+	}
+
+	if (!found && he) {
 	  hostdom = he->h_name;
 	  if (hostdom.find('.')!=string::npos &&
 	      hostdom.find("localdomain")==string::npos)
@@ -3836,13 +3861,14 @@ bool PicSOM::DoSshForwarding(int p) {
 	  SetAllowedDataBases(defdb+","+svmdb+","+restca+","+facedb);
 	  Connection::DefaultXSL("demo");
 	} else { // forge
-	  SetAllowedDataBases(restca+","+svmdb+","+ilsvrc2012
-			      +",finlandia,d2i-demo");
+	  SetAllowedDataBases(restca+","+svmdb);
+	  //SetAllowedDataBases(restca+","+svmdb+","+ilsvrc2012
+	  //		      +",finlandia,d2i-demo");
 	  expect_slaves = true;
-	  FindDataBase("d2i-demo");
+	  // FindDataBase("d2i-demo");
 	  if (astr.find("test")==string::npos) {
-	    DataBase *fin = FindDataBase("finlandia");
-	    fin->Visible(false);
+	    // DataBase *fin = FindDataBase("finlandia");
+	    // fin->Visible(false);
 	  }
 	}
 	ListenPort();
@@ -4108,6 +4134,15 @@ bool PicSOM::DoSshForwarding(int p) {
 	*/
       if (astr=="-pre2122bug") {
 	Query::Pre2122Bug(true);
+	continue;
+      }
+
+      /*>
+	-Dinfo
+        *DOCUMENTATION MISSING*
+	*/
+      if (astr=="-Dinfo") {
+	Query::DebugInfo(true);
 	continue;
       }
 
@@ -4707,6 +4742,15 @@ bool PicSOM::DoSshForwarding(int p) {
 	*/
       if (astr.find("-Ddetections")==0) {
 	DataBase::DebugDetections(DebugInteger(astr));
+	continue;
+      }
+
+      /*>
+	-Dcaptioning
+        *DOCUMENTATION MISSING*
+	*/
+      if (astr.find("-Dcaptionings")==0) {
+	DataBase::DebugCaptionings(DebugInteger(astr));
 	continue;
       }
 
@@ -5369,7 +5413,7 @@ void PicSOM::ShowUsage(bool error) {
       }
 
       if (c->IsClosed()) // this might not happen anymore...
-	continue;
+	continue; // as of 2015-11-30 this might happen again...
 
       if (c->IsFailed()) // to get rid of Connection::ReadAndParseXML() failures
 	continue;
@@ -5685,6 +5729,24 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  int PicSOM::ExecuteSystem(const string& cmd, bool pre, bool ok, bool err) {
+    if (pre)
+      WriteLog("Executing system("+cmd+")");
+
+    timespec_t start = TimeNow();
+    int r = system(cmd.c_str());
+    
+    if (ok && !r)
+      WriteLog("Successfully executed system("+cmd+") in "+
+	       ToStr(TimeDiff(TimeNow(), start))+" s");
+    if (err && r)
+      ShowError("Failed to execute system("+cmd+") status=", ToStr(r));
+    
+    return r;
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
   pair<bool,vector<string> > 
   PicSOM::ShellExecute(const vector<string>& cmdin,
 		       bool also_err, bool verbose) {
@@ -5718,19 +5780,24 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
   /////////////////////////////////////////////////////////////////////////////
 
   int PicSOM::SolveGpuDevice() {
+    // obs!  should obey SLURM_JOB_GPUS GPU_DEVICE_ORDINAL CUDA_VISIBLE_DEVICES
+
     string smi = "/usr/bin/nvidia-smi";
     if (!FileExists(smi))
       return -1;
 
+    bool verbose = true;
     vector<string> cmd { smi, "-q", "-d", "UTILIZATION"	/*, "2>&1"*/ };
-    auto rr = ShellExecute(cmd, false, true);
+    auto rr = ShellExecute(cmd, false, verbose);
     if (rr.first==false)
       return -1;
 
     vector<string> l = rr.second;
 
     vector<float> gpu;
-    for (size_t i=0; i<l.size(); i++)
+    for (size_t i=0; i<l.size(); i++) {
+      if (verbose)
+	cout << l[i] << endl;
       if (l[i].substr(0, 4)=="GPU " && i+2<l.size() &&
 	  l[i+2].find(" Gpu ")!=string::npos) {
 	size_t p =  l[i+2].find(" : ");
@@ -5740,7 +5807,8 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 	else if (p!=string::npos)
 	  gpu.push_back(-1);
       }
-    
+    }
+
     int id = -1;
     for (size_t i=0; id==-1 && i<gpu.size(); i++)
       if (gpu[i]<=0.0)
@@ -5812,35 +5880,45 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 
   string PicSOM::SolveLinuxDistribution() const {
     string f = "/usr/bin/lsb_release";
-    if (!FileExists(f))
-      return "";
+    if (FileExists(f)) {
+      FILE *pipe = popen((f+" -d").c_str(), "r");
+      if (!pipe)
+	return "";
 
-    FILE *pipe = popen((f+" -d").c_str(), "r");
-    if (!pipe)
-      return "";
+      char tmp[10000];
+      char *r = fgets(tmp, sizeof tmp, pipe);
+      pclose(pipe);
+      if (!r)
+	return "";
 
-    char tmp[10000];
-    char *r = fgets(tmp, sizeof tmp, pipe);
-    pclose(pipe);
-    if (!r)
-      return "";
+      string line = tmp;
+      if (line.find("Description:")!=0)
+	return "";
+      size_t p = line.find_first_of(" \t");
+      if (p==string::npos)
+	return "";
+      p = line.find_first_not_of(" \t", p);
+      if (p==string::npos)
+	return "";
 
-    string line = tmp;
-    if (line.find("Description:")!=0)
-      return "";
-    size_t p = line.find_first_of(" \t");
-    if (p==string::npos)
-      return "";
-    p = line.find_first_not_of(" \t", p);
-    if (p==string::npos)
-      return "";
+      line.erase(0, p);
+      p = line.find_first_of("\n\r");
+      if (p!=string::npos)
+	line.erase(p);
 
-    line.erase(0, p);
-    p = line.find_first_of("\n\r");
-    if (p!=string::npos)
-      line.erase(p);
+      return line;
+    }
 
-    return line;
+    f = "/etc/system-release";
+    if (FileExists(f)) {
+      string line = FileToString(f);
+      size_t p = line.find_last_not_of(" \t\n\r");
+      if (p!=string::npos)
+	line.erase(p+1);
+      return line;
+    }
+     
+    return "";
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -5919,18 +5997,21 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     Segmentation::ListMethods(slist, true);
     SetVersionData("Segmentations", slist.str());
 
-#ifdef USE_SLMOTION
+#ifdef PICSOM_USE_SLMOTION
     SetVersionData("slmotion", slmotion::SLMOTION_VCID);
-#endif // USE_SLMOTION
+#endif //  PICSOM_USE_SLMOTION
 
-#ifdef USE_OD
+#ifdef PICSOM_USE_OD
     SetVersionData("ObjectDetection", ObjectDetection::Version());
-#endif // USE_OD
+#endif //  PICSOM_USE_OD
 
     vector<string> pieces;
-#ifdef CAFFE_VERSION
+#if defined(CAFFE_VERSION) && defined(PICSOM_USE_CAFFE)
     pieces.push_back("caffe_" CAFFE_VERSION);
-#endif // CAFFE_VERSION
+#endif // CAFFE_VERSION && PICSOM_USE_CAFFE
+#ifdef GOOGLE_PROTOBUF_VERSION
+    pieces.push_back("protobuf_"+ToStr(GOOGLE_PROTOBUF_VERSION));
+#endif // GOOGLE_PROTOBUF_VERSION
 #ifdef INTEL_MKL_VERSION
     char mklvers[100];
     MKL_Get_Version_String(mklvers, sizeof mklvers);
@@ -5942,21 +6023,21 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 #ifdef MAD_VERSION
     pieces.push_back("mad_" MAD_VERSION " ("+string(mad_version)+")");
 #endif // MAD_VERSION
-#ifdef SNDFILE_1
+#if defined(PICSOM_USE_AUDIO) && defined(SNDFILE_1)
     pieces.push_back("sndfile"
 		     " ("+string(sf_version_string())+")");
-#endif // SNDFILE_1
-#ifdef HAVE_AUDIOFILE_H
+#endif // PICSOM_USE_AUDIO && SNDFILE_1
+#if defined(PICSOM_USE_AUDIO) && defined(HAVE_AUDIOFILE_H)
     pieces.push_back("audiodfile_"
       +ToStr(LIBAUDIOFILE_MAJOR_VERSION)+"."+ToStr(LIBAUDIOFILE_MINOR_VERSION)
 		     +"."+ToStr(LIBAUDIOFILE_MICRO_VERSION));
-#endif // HAVE_AUDIOFILE_H
+#endif // PICSOM_USE_AUDIO && HAVE_AUDIOFILE_H
 #ifdef HAVE_FFTW3_H
     pieces.push_back("fftw3 ("+ToStr(fftw_version)+")");
 #endif // HAVE_FFTW3_H
-#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(CV_VERSION)
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(CV_VERSION) && defined(PICSOM_USE_OPENCV)
     pieces.push_back("opencv_" CV_VERSION);
-#endif // HAVE_OPENCV2_CORE_CORE_HPP && CV_VERSION
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && CV_VERSION && PICSOM_USE_OPENCV
 #ifdef VL_VERSION_STRING
     pieces.push_back("vlfeat_" VL_VERSION_STRING
       " ("+string(vl_get_version_string())+")");
@@ -5964,9 +6045,9 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 #ifdef HAVE_FLANDMARK_DETECTOR_H
     pieces.push_back("flandmark");
 #endif // HAVE_FLANDMARK_DETECTOR_H
-#ifdef PICSOM_HAVE_OCTAVE
+#if defined(PICSOM_HAVE_OCTAVE) && defined(PICSOM_USE_OCTAVE)
     pieces.push_back("octave_" OCTAVE_VERSION);
-#endif // PICSOM_HAVE_OCTAVE
+#endif // PICSOM_HAVE_OCTAVE && PICSOM_USE_OCTAVE
 #ifdef HAVE_MYSQL_H
     pieces.push_back("mysql_" MYSQL_SERVER_VERSION
       " ("+string(mysql_get_client_info())+")");
@@ -5998,11 +6079,11 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
       pieces.push_back("linpack("+
         string(UseLinpack()?"":"not ")+"used)");
 
-#ifdef HAVE_LIBAVCODEC_AVCODEC_H
+#if defined(HAVE_LIBAVCODEC_AVCODEC_H) && defined(HAVE_LIBAVCODEC)
     pieces.push_back("libavcodec_" stringize(LIBAVCODEC_VERSION) " ("+
     		     av_version_str(avcodec_version())+")");
 #endif // HAVE_LIBAVCODEC_AVCODEC_H
-#ifdef HAVE_LIBAVFORMAT_AVFORMAT_H
+#if defined(HAVE_LIBAVFORMAT_AVFORMAT_H) && defined(HAVE_LIBAVFORMAT)
     pieces.push_back("libavformat_" stringize(LIBAVFORMAT_VERSION) " ("+
     		     av_version_str(avformat_version())+")");
 #endif // HAVE_LIBAVFORMAT_AVFORMAT_H
@@ -6010,7 +6091,7 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 //     pieces.push_back("libavdevice_" stringize(LIBAVDEVICE_VERSION) " ("+
 // 		     av_version_str(avdevice_version())+")");
 // #endif // HAVE_LIBAVDEVICE_AVDEVICE_H
-#ifdef HAVE_LIBAVUTIL_AVUTIL_H
+#if defined(HAVE_LIBAVUTIL_AVUTIL_H) && defined(HAVE_LIBAVUTIL)
     pieces.push_back("libavutil_" stringize(LIBAVUTIL_VERSION) " ("+
     		     av_version_str(avutil_version())+")");
 #endif // HAVE_LIBAVUTIL_AVUTIL_H
@@ -6018,7 +6099,7 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 //     pieces.push_back("libavfilter_" stringize(LIBAVFILTER_VERSION) " ("+
 // 		     av_version_str(avfilter_version())+")");
 // #endif // HAVE_LIBAVFILTER_AVFILTER_H
-#ifdef HAVE_LIBSWSCALE_SWSCALE_H
+#if defined(HAVE_LIBSWSCALE_SWSCALE_H) && defined(HAVE_LIBSWSCALE)
     pieces.push_back("libswscale_" stringize(LIBSWSCALE_VERSION) " ("+
     		     av_version_str(swscale_version())+")");
 #endif // HAVE_LIBSWSCALE_SWSCALE_H
@@ -6048,6 +6129,10 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     SetVersionData("Python", string(PY_VERSION)+" ("+pythonv+")");
 #endif // PY_VERSION
 
+#ifdef TF_VERSION_STRING
+    SetVersionData("TensorFlow", string(TF_VERSION_STRING)+" ("+")");
+#endif // TF_VERSION_STRING
+
 #ifdef HAS_IMGROBOT_INTERNAL
     SetVersionData("HAS_IMGROBOT_INTERNAL",  "*** defined ***");
 #endif // HAS_IMGROBOT_INTERNAL
@@ -6064,9 +6149,15 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     SetVersionData("PICSOM_USE_READLINE",  "*** defined ***");
 #endif // PICSOM_USE_READLINE
 
-#if defined(USE_CUDA) && defined(HAVE_OPENCV2_CORE_GPUMAT_HPP)
+#if defined(HAVE_OPENCV2_CORE_GPUMAT_HPP) && defined(PICSOM_USE_OPENCV)
+#ifdef PICSOM_USE_TENSORFLOW
+    bool show_gpu_mem = false;
+#else
+    bool show_gpu_mem = true;
+#endif // PICSOM_USE_TENSORFLOW
+
     int ncuda = cv::gpu::getCudaEnabledDeviceCount();
-    SetVersionData("CudaEnabledDeviceCount", ToStr(ncuda));
+    SetVersionData("cv::gpu::CudaEnabledDeviceCount", ToStr(ncuda));
     vector<pair<cv::gpu::FeatureSet,string> > fea {
       { cv::gpu::FEATURE_SET_COMPUTE_10, "10" },
       { cv::gpu::FEATURE_SET_COMPUTE_11, "11" },
@@ -6086,43 +6177,49 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     if (ncuda!=0) {
       string cap_built;
       for (size_t i=0; i<fea.size(); i++) 
-	if (cv::gpu::TargetArchs::builtWith(fea[i].first))
-	  cap_built += (cap_built!=""?" ":"")+fea[i].second;
+    	if (cv::gpu::TargetArchs::builtWith(fea[i].first))
+    	  cap_built += (cap_built!=""?" ":"")+fea[i].second;
 
       string cap_has, cap_ptx, cap_bin;
       for (int maj=1; maj<5; maj++)
-	for (int min=0; min<10; min++) {
-	  if (cv::gpu::TargetArchs::has(maj, min))
-	    cap_has += (cap_has!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
-	  if (cv::gpu::TargetArchs::hasPtx(maj, min))
-	    cap_ptx += (cap_ptx!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
-	  if (cv::gpu::TargetArchs::hasBin(maj, min))
-	    cap_bin += (cap_bin!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
-	}
-	  
-      SetVersionData(" compute capability built", cap_built);
-      SetVersionData(" compute capability has", cap_has);
-      SetVersionData(" compute capability ptx", cap_ptx);
-      SetVersionData(" compute capability bin", cap_bin);
+    	for (int min=0; min<10; min++) {
+    	  if (cv::gpu::TargetArchs::has(maj, min))
+    	    cap_has += (cap_has!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
+    	  if (cv::gpu::TargetArchs::hasPtx(maj, min))
+    	    cap_ptx += (cap_ptx!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
+    	  if (cv::gpu::TargetArchs::hasBin(maj, min))
+    	    cap_bin += (cap_bin!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
+    	}
+    	  
+      SetVersionData("  compute capability built", cap_built);
+      SetVersionData("  compute capability has", cap_has);
+      SetVersionData("  compute capability ptx", cap_ptx);
+      SetVersionData("  compute capability bin", cap_bin);
     }
+
     for (int j=0; j<ncuda; j++) {
       cv::gpu::DeviceInfo di(j);
       stringstream str;
       str << di.deviceID() << " \""
-	  << di.name() << "\" "
-	  << di.majorVersion() << "." << di.minorVersion() << " "
-	  << di.multiProcessorCount() << " "
-	  << di.freeMemory() << " / "
-	  << di.totalMemory();
-      
-      for (size_t i=0; i<fea.size(); i++) 
-	if (di.supports(fea[i].first))
-	  str << " " << fea[i].second;
+       	  << di.name() << "\" "
+       	  << di.majorVersion() << "." << di.minorVersion() << " "
+	  << "#multiproc=" << di.multiProcessorCount();
 
-      str << " compatible=" << (di.isCompatible()?"YES":"NO");
+      if (show_gpu_mem)
+	str << " memory=" << di.freeMemory() << " / "<< di.totalMemory();
+    
+      str << " supports=[";
+      bool firsts = true;
+      for (size_t i=0; i<fea.size(); i++) 
+	if (di.supports(fea[i].first)) {
+       	  str << (firsts?"":" ") << fea[i].second;
+	  firsts = false;
+	}
+
+      str << "] compatible=" << (di.isCompatible()?"YES":"NO");
       SetVersionData("  #"+ToStr(j), str.str());
     }
-#endif // USE_CUDA && HAVE_OPENCV2_CORE_GPUMAT_HPP
+#endif // HAVE_OPENCV2_CORE_GPUMAT_HPP && PICSOM_USE_OPENCV
 
     SetVersionData("imagedata", imagedata::version());
     SetVersionData("imagefile", imagefile::version());
@@ -7238,6 +7335,11 @@ bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
     return true;
   }
 
+  if (keystr=="debugcaptionings") {
+    DataBase::DebugCaptionings(intval);
+    return true;
+  }
+
   if (keystr=="debugfeatures") {
     DataBase::DebugFeatures(intval);
     return true;
@@ -7358,6 +7460,12 @@ bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
   if (keystr=="slavedbopenmode") {
     if (IsSlave())
       DataBase::OpenReadWrite(valstr);
+    return true;
+  }
+
+  if (keystr=="force_lucene_unlock") {
+    // DataBase::ForceLuceneUnlock(boolval);
+    DataBase::ForceLuceneUnlock(false); // this shouldn't be true...
     return true;
   }
 
@@ -7623,19 +7731,31 @@ bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
       Connection *c = GetConnection(j);
       // c->ReadableBytes() added 2015-05-21 for allowing keep-alive
       if (c->CanBeSelected() && c->Rfd()<FD_SETSIZE &&
-	  FD_ISSET(c->Rfd(), &rset) &&
-	  c->Type()!=Connection::conn_listen && c->ReadableBytes()) {
-	c->IncrementQueries();
+	  FD_ISSET(c->Rfd(), &rset) && c->Type()!=Connection::conn_listen) {
+	if (c->ReadableBytes()) {
+	  c->IncrementQueries();
 
-	if (Connection::DebugSelects()) {
-	  cout << endl << "  #" << j << " ";
-	  c->Dump();
-	  cout << " bytes=" << c->ReadableBytes() << endl;
+	  if (Connection::DebugSelects()) {
+	    cout << endl << "  #" << j << " ";
+	    c->Dump();
+	    cout << " bytes=" << c->ReadableBytes() << endl;
+	  }
+
+	  c->Active(true);
+	  
+	  return c;
+
+	} else {
+	  if (Connection::DebugSelects()) {
+	    cout << "  about to read EOF from ";
+	    c->Dump();
+	    cout << endl;
+	  }
+	  if (!c->ReadEofAndClose())
+	    ShowError("PicSOM::SelectInput() : ReadEofAndClose() failed");
+
+	  return c;
 	}
-
-	c->Active(true);
-
-	return c;
       }
     }
   
@@ -9247,12 +9367,11 @@ bool PicSOM::HasTerminalInput() {
     if (!listen_connection)
       return "";
 
-    stringstream ss;
-    ss << "http://"
-       << (uselocalhost ? "localhost" : HostName(true))
-       << ":" << listen_connection->Port();
+    string hname = uselocalhost ? "localhost" : HostName(true);
 
-    return ss.str();
+    string url = "http://"+hname+":"+ToStr(listen_connection->Port());
+
+    return url;
   }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -10342,7 +10461,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 
   bool PicSOM::OctaveInializeOnce() {
     static bool ret  = false;
-#ifdef PICSOM_HAVE_OCTAVE
+#if defined(PICSOM_HAVE_OCTAVE) && defined(PICSOM_USE_OCTAVE)
     MutexLock();
     static bool done = false;
     if (!done) {
@@ -10370,7 +10489,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
       }
     }
     MutexUnlock();
-#endif // PICSOM_HAVE_OCTAVE
+#endif // PICSOM_HAVE_OCTAVE && PICSOM_USE_OCTAVE
 
     return ret ? true : ShowError("OctaveInializeOnce() failing");
   }
@@ -10378,7 +10497,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
   /////////////////////////////////////////////////////////////////////////////
 
   bool PicSOM::OctaveAddPath(const string& path, bool exist, bool once) {
-#ifdef PICSOM_HAVE_OCTAVE
+#if defined(PICSOM_HAVE_OCTAVE) && defined(PICSOM_USE_OCTAVE)
     for (list<string>::const_iterator i=octavebasepath.begin();
          i!=octavebasepath.end(); i++) {
       if ((*i)!="" && path.substr(0, 1)=="/")
@@ -10398,7 +10517,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
     return true;
 #else
     return (path.size()||exist||once)&&false;
-#endif // PICSOM_HAVE_OCTAVE
+#endif // PICSOM_HAVE_OCTAVE && PICSOM_USE_OCTAVE
   }
   
   /////////////////////////////////////////////////////////////////////////////
@@ -10472,6 +10591,15 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	if (fs<min)
 	  continue;
       }
+      string t = s+"/"+UserName()+"-picsom-"+ToStr(getpid())
+	+".test";
+      bool fail = false;
+      if (!StringToFile("hello world\n", t))
+	fail = true;
+      Unlink(t);
+      if (fail)
+	continue;
+
       string info;
       if (fs) {
 	float fsf = float((10*fs)/(1024L*1024*1024))/10;
@@ -10719,7 +10847,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  string textline_t::str(bool full) const {
+  string textline_t::str(bool full, bool val) const {
     stringstream ss;
     
     if (full)
@@ -10728,12 +10856,14 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	 << " " << (db?db->Name():"no db") 
 	 << " [" << generator << "][" << evaluator << "] ";
 
-    if (start!=-1 && end!=-1)
+    if (has_time_set())
       ss << start << " " << end << " ";
     for (auto i=txt_val.begin(); i!=txt_val.end(); i++) {
       if (i!=txt_val.begin())
 	ss << " # ";
-      ss << i->first << " (" << i->second << ")";
+      ss << i->first;
+      if (val)
+	ss << " (" << i->second << ")";
     }
 	  
     return ss.str();

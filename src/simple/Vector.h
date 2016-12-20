@@ -1,7 +1,7 @@
-// -*- C++ -*-  $Id: Vector.h,v 1.20 2013/08/19 09:15:56 jorma Exp $
+// -*- C++ -*-  $Id: Vector.h,v 1.21 2016/10/25 08:16:39 jorma Exp $
 // 
-// Copyright 1994-2009 Jorma Laaksonen <jorma@cis.hut.fi>
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1994-2016 Jorma Laaksonen <jorma@cis.hut.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 TKK, FINLAND
 
@@ -185,17 +185,20 @@ public:
 
   /// vector's component 'idx' to be 'value'.
   const VectorOf& Set(int idx, Type v) const {
-    if (IndexOK(idx)) FastSet(idx, v); return *this; }
+    if (IndexOK(idx)) FastSet(idx, v); 
+    return *this; }
 
   const VectorOf& FastSet(int idx, Type v) const {
     vector[idx] = v; return *this; }
 
   const VectorOf& Set(Type v) const {
-    for (int i=0; i<length; i++) vector[i] = v; return *this; }
+    for (int i=0; i<length; i++) vector[i] = v; 
+    return *this; }
   //. Set vector's component 'idx' to be 'value'.
 
   const VectorOf& SetRange(int beg, int end, Type v) const {
-    for (int i=beg; i<=end; i++) Set(i, v); return *this; }
+    for (int i=beg; i<=end; i++) Set(i, v); 
+    return *this; }
 
   const VectorOf& Change(Type ov, Type nv) const {
     for (int i=0; i<length; i++)
@@ -524,7 +527,9 @@ public:
       pow(NormSquared(d), 1/d); }
 
   VectorOf& Normalize(double = 2);
-  VectorOf& DirectToPositive() { if (Sum()<0.0) Multiply(-1); return *this; }
+  VectorOf& DirectToPositive() { 
+    if (Sum()<0.0) Multiply(-1); 
+    return *this; }
   VectorOf& Randomize();
   VectorOf& MoveTowards(const VectorOf&, double = 1);
   VectorOf& RemoveMean();

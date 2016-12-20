@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: bin_data.C,v 2.27 2015/03/04 14:21:53 jorma Exp $
+// -*- C++ -*-  $Id: bin_data.C,v 2.31 2016/04/29 10:38:48 jorma Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -33,7 +33,7 @@
 
 namespace picsom {
   static const string bin_data_C_vcid =
-    "@(#)$Id: bin_data.C,v 2.27 2015/03/04 14:21:53 jorma Exp $";
+    "@(#)$Id: bin_data.C,v 2.31 2016/04/29 10:38:48 jorma Exp $";
 
   bool bin_data::close_handles = true;
 
@@ -281,8 +281,9 @@ namespace picsom {
     if (!_incore) {
       int oflags = rw ? O_RDWR|O_CREAT : O_RDONLY;
       _fd = ::open(fn.c_str(), oflags, 0664);
-      if (_fd<0)
-	throw(msg+"open() error");
+      if (_fd<0) {
+	throw(msg+"open() error "+string(strerror(errno)));
+      }
     }
 
     _filename = fn;
@@ -319,7 +320,7 @@ namespace picsom {
 	st.st_size = sizeof(_header);
 
     } else if ((size_t)st.st_size<sizeof(_header))
-      throw(msg+"file size "/*+ToStr(st.st_size)+*/" too small");
+      throw(msg+"file size "+ToStr(st.st_size)+" too small");
     
 #ifdef HAVE_SYS_MMAN_H
     int prot = rw ? PROT_WRITE|PROT_READ : PROT_READ;
@@ -438,7 +439,9 @@ namespace picsom {
   /////////////////////////////////////////////////////////////////////////////
 
   bool bin_data::resize_inner(size_t n, unsigned char x) throw(string) {
-    string msg = "bin_data::resize_inner() : ";
+    string msg = "bin_data::resize_inner("+ToStr(n)+") : ";
+
+    // cout << "resize_inner() : 0" << endl;
 
     if (close_handles && _fd<0 && !_incore) {
       int oflags = _rw ? O_RDWR|O_CREAT : O_RDONLY;
@@ -449,13 +452,31 @@ namespace picsom {
 
     size_t l = rawsize(n);
 
+    if (_size>l)
+      throw(msg+"shrinking the data size not implemented: _size="+
+	    ToStr(_size)+" l="+ToStr(l));
+
+    // cout << "resize_inner() : 1" << endl;
+
     if (!_incore && ftruncate(_fd, l))
       throw msg+"ftruncate() error "+string(strerror(errno));
 
+    // cout << "resize_inner() : 2" << endl;
+
 #ifdef HAVE_MREMAP
+    // cout << "resize_inner() : 3" << endl;
+
     void *p = mremap(_ptr, _size, l, MREMAP_MAYMOVE);
-    if (p==MAP_FAILED)
-      throw msg+"mremap() error "+string(strerror(errno));
+    if (p==MAP_FAILED) 
+      throw msg+"mremap() error "+string(strerror(errno))+" _size="+
+	ToStr(_size)+" l="+ToStr(l)+" <"+_filename+">";
+    // cout << "resize_inner() : 4a" << endl;
+
+    // if (mprotect(p, l, _rw?PROT_READ+PROT_WRITE:PROT_READ))
+    //   throw msg+"mprotect() error "+string(strerror(errno));
+
+    // cout << "resize_inner() : 4b" << endl;
+
 #else
 #ifdef HAVE_SYS_MMAN_H
     int prot = PROT_WRITE|PROT_READ;
@@ -471,14 +492,23 @@ namespace picsom {
 #endif // HAVE_SYS_MMAN_H
 #endif // HAVE_MREMAP
 
+    // cout << "resize_inner() : 5" << endl;
+
     if (close_handles && !_incore) {
       if (::close(_fd))
 	throw msg+"close() error "+string(strerror(errno));
       _fd = -1;
     }
 
+    // cout << "resize_inner() : 6" << endl;
+
+    // cout << "_ptr=" << _ptr << " p=" << p << " _size=" << _size << " l="
+    //      << l << " l-_size=" << size_t(l-_size) << " x=" << (int)x << endl;
+
     memset((char*)p+_size, x, l-_size);
    
+    // cout << "resize_inner() : 7" << endl;
+
     _ptr  = p;
     _size = l;
     
@@ -768,25 +798,27 @@ namespace picsom {
 #ifdef HAVE_SYS_MMAN_H
     // string msg = "bin_data::optimize() : ";
 
-    size_t pagesize = sysconf(_SC_PAGESIZE);
-    size_t l = ((char*)p-(char*)_ptr)/pagesize;
-
-    if (madvise(_ptr, l*pagesize, MADV_DONTNEED))
-      {} // cerr << "madvise() failed 1" << endl;
-    
-    if (madvise((char*)_ptr+l*pagesize, _size-l*pagesize, MADV_SEQUENTIAL))
-      {} // cerr << "madvise() failed 2" << endl;
-    
     if (false) {
-    size_t rss = rss_size();
-    // cout << "RSS: " << _n_access << " : " << rss
-    //      << " (" << HumanReadableBytes(rss) << ")" << endl;
+      size_t pagesize = sysconf(_SC_PAGESIZE);
+      size_t l = ((char*)p-(char*)_ptr)/pagesize;
 
-    // MADV_DONTFORK
+      if (madvise(_ptr, l*pagesize, MADV_DONTNEED))
+	{} // cerr << "madvise() failed 1" << endl;
+    
+      if (madvise((char*)_ptr+l*pagesize, _size-l*pagesize, MADV_SEQUENTIAL))
+	{} // cerr << "madvise() failed 2" << endl;
+    }
 
-    int advise = rss<=_opt_rss_target ? MADV_SEQUENTIAL :  MADV_DONTNEED;
-    if (madvise(_ptr, _size, advise))
-      {} // cerr << "madvise() failed" << endl;
+    if (false) {
+      size_t rss = rss_size();
+      // cout << "RSS: " << _n_access << " : " << rss
+      //      << " (" << HumanReadableBytes(rss) << ")" << endl;
+
+      // MADV_DONTFORK
+
+      int advise = rss<=_opt_rss_target ? MADV_SEQUENTIAL :  MADV_DONTNEED;
+      if (madvise(_ptr, _size, advise))
+	{} // cerr << "madvise() failed" << endl;
     }
 #endif // HAVE_SYS_MMAN_H
   }

@@ -1,3 +1,22 @@
+2016-10-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.109: Summary: Minor changes to mage gcc 6.2.0 happy.
+
+2016-05-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* videofile.C 1.47, videofile.h 1.29:
+	Added and used string videofile::_local_bin and 2x local_bin().
+
+2016-01-13  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.21: Added convert gif -> png.
+
+2015-11-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.20:
+	Some (old?) finetuning of render_text_impl().
+	display_impl() now calls eog.
+
 2015-11-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
 
 	* imagedata.C 1.3, imagedata.h 1.108: Corrected typo.

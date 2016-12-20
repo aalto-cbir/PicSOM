@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: segmentfile.C,v 1.179 2015/02/10 22:18:26 jorma Exp $
+// -*- C++ -*-  $Id: segmentfile.C,v 1.180 2016/01/27 21:10:25 jorma Exp $
 // 
 // Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -2192,7 +2192,7 @@ namespace picsom {
 
   const string& segmentfile::impl_version() {
     static string v =
-      "$Id: segmentfile.C,v 1.179 2015/02/10 22:18:26 jorma Exp $";
+      "$Id: segmentfile.C,v 1.180 2016/01/27 21:10:25 jorma Exp $";
     return v;
   }
   
@@ -2953,17 +2953,15 @@ namespace picsom {
 
   ///////////////////////////////////////////////////////////////////////////
 
-
-  void segmentfile::forceSegment(const imagedata &s,int f){
-
-    if(!description.sequenceinfo.frameNrOk(f))
+  void segmentfile::forceSegment(const imagedata& s, int f) {
+    if (!description.sequenceinfo.frameNrOk(f))
       throw name_head() + "forceSegment(): bad frame number";  
 
     coord sz=description.sequenceinfo.frameSize(f);
-    if(sz.x != (int)s.width() || sz.y != (int)s.height())
+    if (sz.x != (int)s.width() || sz.y != (int)s.height())
 	throw string("segmentfile::forceSegment : incompatible image size");
 
-    if(s.count() != 1)
+    if (s.count() != 1)
        throw name_head() + "forceSegment(): count != 1";  
     
     _discard_frame(segment_frames.frames[f]); // ensure that memory is not allocated
@@ -2976,8 +2974,8 @@ namespace picsom {
     tmp.segment=true;
     tmp.frameSrc=no_source;
 
-    image_frames.frames[f]=tmp;
-
+    //image_frames.frames[f]=tmp;
+    segment_frames.frames[f]=tmp;
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -6180,8 +6178,10 @@ namespace picsom {
       
       return ret;
     }
+
   ///////////////////////////////////////////////////////////////////////////
-  void SequenceInfo::setFromImagefile(imagefile &i){
+
+  void SequenceInfo::setFromImagefile(imagefile &i) {
     lastframe=i.nframes()-1;
 
     // assume all the frames to be of the same size
@@ -6207,6 +6207,20 @@ namespace picsom {
     sizeinfo.push_back(tmp);
     
   }
+
+  ///////////////////////////////////////////////////////////////////////////
+
+  void SequenceInfo::setFromImagedata(const imagedata& img) {
+    lastframe = 0;
+    FrameSizeInfo tmp;
+    tmp.firstframe = 0;
+    tmp.lastframe = lastframe;
+    tmp.width  = img.width();
+    tmp.height = img.height();
+    sizeinfo.clear();
+    sizeinfo.push_back(tmp);
+  }
+
   ///////////////////////////////////////////////////////////////////////////
   bool SequenceInfo::isCompatible(const SequenceInfo &o) const{
     if(lastframe != o.lastframe) return false;

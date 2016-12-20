@@ -1,3 +1,111 @@
+2016-12-19  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ImprovedTrajectory.C 1.3, ImprovedTrajectory.h 1.3, Trajectory.C 1.10, Trajectory.h 1.9:
+	Changed defines.
+
+	* Caffe.C 1.29: Added debugging.
+
+2016-10-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ZernikeMom.C 1.6, ZernikeMom.h 1.5, WordHist.C 1.19, SimpleGeometric.h 1.5, PseudoMPEG7.h 1.8, PorterStemmer.C 1.5, OCVCentrist.C 1.18, Feature.C 1.253, External.C 1.40, EdgeFourier.h 1.11, ContourFD.h 1.11:
+	Summary: Minor changes to mage gcc 6.2.0 happy.
+
+2016-06-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.252, Feature.h 1.213: Added PICSOM_USE_OPENCV .
+
+	* AudioBased.C 1.7, AudioBased.h 1.14, AudioFreq.C 1.5, AudioFreq.h 1.11, AvgAudioEnergy.C 1.5, AvgAudioEnergy.h 1.10, Feature.C 1.251, Feature.h 1.212, MuvisFeat.C 1.17, audioapp.C 1.3, audiodata.C 1.5, madaudiofile.C 1.8, madaudiofile.h 1.12, sfaudiofile.C 1.9, sfaudiofile.h 1.4, soundfile.h 1.7, soundfile_impl.C 1.4, soundfile_impl.h 1.4:
+	Changed to use PICSOM_USE_AUDIO and cleaned old related stuff.
+
+2016-06-22  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.250: Added PICSOM_USE_CAFFE .
+
+	* Makefile 1.95:
+	Extracted VIDEOFEATUREMETHODS from IMAGEFEATUREMETHODS.
+
+	* Makefile 1.94: Added ImprovedTrajectory.
+
+	* Feature.C 1.249: Indented Feature::FeatureVectorSize().
+
+	* Trajectory.C 1.9, Trajectory.h 1.8:
+	Corrected bug with absolute coordinates vs. differences.
+
+2016-05-16  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* ImprovedTrajectory.C 1.2, ImprovedTrajectory.h 1.2: Working version.
+
+	* Feature.C 1.248:
+	Changed verbosity to reduce clutter with raw features.
+
+2016-05-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* features.C 1.31: Added incore in feature_thread().
+
+	* Trajectory.C 1.8: Added -*- C++ -*- .
+
+	* ImprovedTrajectory.C 1.1, ImprovedTrajectory.h 1.1:
+	Yet just copied...
+
+	* Trajectory.h 1.7:
+	Moved the include files into dense_trajectory_release_v1.2 subdir.
+
+2016-05-03  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.247:
+	ProcessOneFile() can? now handle incorep->first.first=="string::filename*".
+
+2016-02-18  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* WordHist.C 1.18, WordHist.h 1.15: Added zero2random.
+
+	* textdata.h 1.17: Added \r in *_SEPARATORS .
+
+2016-02-08  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* TextBased.C 1.10: Corrected misspelled UNDEF.
+
+	* textfile.C 1.15: Corrected a bug with iconv().
+
+	* WordHist.h 1.14, WordHist.C 1.17: Added support to word2vec.
+
+2016-01-28  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.28: Added replacement for HAS_CAFFE_COLORCONVERT.
+
+	* Feature.C 1.246: Added debugging message in EnsureImage().
+
+	* Caffe.C 1.27:
+	Added dependency on HAS_CAFFE_COLORCONVERT that may be defined in caffe/common.hpp .
+
+2016-01-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.C 1.245, Feature.h 1.211:
+	Added AnalyseFeatureTest() and incore options for feature extraction.
+
+2016-01-26  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.26:
+	Changed to test caffe/data_transformer.hpp instead of caffe/data_layers.hpp
+	Commented out colorspace related locally implemented things.
+
+	* Caffe.h 1.16:
+	Changed to test caffe/data_transformer.hpp instead of caffe/data_layers.hpp
+
+2016-01-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Makefile 1.93: Summary: Added Trajectory in IMAGEFEATUREMETHODS.
+
+2015-11-30  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Caffe.C 1.25:
+	Added check+throw for unset windowsize and zero block_size.
+
+2015-11-23  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* Feature.h 1.210, Feature.C 1.244:
+	Added PreProcess_hflip() and added 0.xx fractions in PreProcess_crop.
+
 2015-11-10  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
 
 	* Caffe.C 1.24, Caffe.h 1.15:
