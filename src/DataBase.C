@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: DataBase.C,v 2.935 2016/12/19 09:03:39 jorma Exp $
+// -*- C++ -*-  $Id: DataBase.C,v 2.950 2017/10/05 12:37:41 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -58,7 +58,7 @@
 
 namespace picsom {
   static const string DataBase_C_vcid =
-    "@(#)$Id: DataBase.C,v 2.935 2016/12/19 09:03:39 jorma Exp $";
+    "@(#)$Id: DataBase.C,v 2.950 2017/10/05 12:37:41 jormal Exp $";
 
   // a special guest appearance...
   const string& object_info::db_name() const {
@@ -224,6 +224,7 @@ namespace picsom {
     extra_features_dir      = "";
     alwaysusetarfiles       = false;
     extractfulltars         = true;
+    extractfullzips         = false;
 
     defaultquery = new Query(Picsom());
     defaultquery->SetDefaultQueryIdentity();
@@ -325,7 +326,7 @@ namespace picsom {
 	stringstream ss;
 	ss << "<" << dbfile << "> to <" << tempdbfile << "> "
 	   << fsize << " bytes (" << FileSizeHumanReadable(dbfile) << ")";
-	timespec_t start = TimeNow();
+	struct timespec start = TimeNow();
  	if (!CopyFile(dbfile, tempdbfile)) {
 	  ShowError("Copying "+ss.str()+" failed");
 	  exit(1);
@@ -429,9 +430,9 @@ namespace picsom {
     if (FileExists(labelsFileName))
       labelsfile = labelsFileName;
 
-    if (Size()==0) // cn be true if externalmetadata
+    if (Size()==0) // can be true if externalmetadata
       ReadLabels();
-
+    
     if (!UseSql()) {
       ReadDuplicates(); //obs! doesn't work with SQL
       ReadSubobjects(); //obs! doesn't work with SQL
@@ -506,6 +507,15 @@ namespace picsom {
 #ifdef HAVE_MYSQL_H
     MysqlClose();
 #endif // HAVE_MYSQL_H
+
+#ifdef HAVE_ZIP_H
+    for (auto i=zipfiles.begin(); i!=zipfiles.end(); i++) {
+      if (zip_close(i->second)==0)
+	WriteLog("Closed ZIP file "+ShortFileName(i->first));
+      else
+	ShowError("Failed to close ZIP file "+i->first);
+    }
+#endif // HAVE_ZIP_H
 
     Picsom()->PossiblyShowDebugInformation("Before svms.clear() in "+Name());
 
@@ -765,7 +775,8 @@ void DataBase::Dump(Simple::DumpMode /*dt*/, ostream& os) const {
 	continue;
       }
 
-      if (val!="" || key=="defaultfeatures" || key=="defaultindices") {
+      if (val!="" || key=="defaultfeatures" || key=="defaultindices" ||
+	   key=="erf_detection_images") {
 	ok &= InterpretOrPostpone(key, val, no_labels_yet);
 	continue;
       }
@@ -1026,7 +1037,7 @@ bool DataBase::ApplyDefaultAspectsXML(xmlNodePtr l) {
       string tmpsfile = TempFile("settings.xml", false);
       CopyOrCreateSettingsXml(tmpsfile);
       bool ok = SqlStoreFileFromFile("settings.xml", tmpsfile);
-      Unlink(tmpsfile);
+      // Unlink(tmpsfile); // commented out 2017-08-16
       if (!ok) {
 	ShowError(msg+"SqlStoreFileFromFile() failed");
 	SqliteClose();
@@ -1262,7 +1273,7 @@ bool DataBase::ApplyDefaultAspectsXML(xmlNodePtr l) {
       return 0;
 
     if (l.empty()) {
-      ShowError("DataBase <"+name+"> LabelIndex("") failed");
+      ShowError("DataBase <"+name+"> LabelIndex(\"\") failed");
       return -1;
     }
 
@@ -1788,6 +1799,12 @@ void DataBase::CheckEmptyText(const string& txt) {
 
     else if (key=="extractfulltars")
       extractfulltars = IsAffirmative(val);
+
+    else if (key=="extractfullzips")
+      extractfullzips = IsAffirmative(val);
+
+    else if (key=="concepts")
+      concepts = val;
 
     else if (key=="erf_detection_images") {
       if (val=="")
@@ -3030,7 +3047,7 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
 	if (!ok)
 	  ShowError(hdr+"retrieving <"+name+"> failed");
 	else {
-	  timespec_t modtime, instime;
+	  struct timespec modtime, instime;
 	  memcpy(&modtime, modd.c_str(), sizeof modtime);
 	  memcpy(&instime, insd.c_str(), sizeof instime);
 	  sql_file_info info = {
@@ -3057,7 +3074,7 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
       unsigned long name_length = 0, moddate_length = 0, insdate_length = 0,
 	user_length = 0;
 
-      timespec_t moddate = TimeZero(), insdate = TimeZero();
+      struct timespec moddate = TimeZero(), insdate = TimeZero();
 
       MYSQL_BIND bind[4];
       memset(bind, 0, sizeof(bind));
@@ -4787,7 +4804,7 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
     keys.insert("codebook");    // ColorSIFT
     keys.insert("gmm");         // vlfeat
     keys.insert("kmeans");      // vlfeat
-    keys.insert("model");       // caffe
+    keys.insert("model");       // caffe torch
     keys.insert("densetraj");   // trajectory
     keys.insert("hog");         // trajectory
     keys.insert("hof");         // trajectory
@@ -4808,9 +4825,9 @@ Index *DataBase::FindIndex(const string& fn, const string& params,
     if (!FileExists(ret))
       ret = Picsom()->RootDir("share", true)+"/"+val;
 
-    if (!FileExists(ret) && fname=="caffe" && key=="model") {
-      ret = ExpandPath("caffe", "models")+"/"+val;
-      if (!DirectoryExists(ret) && IsLocalDiskDb()) {
+    if (!FileExists(ret) && key=="model" && (fname=="caffe"||fname=="torch")) {
+      ret = ExpandPath(fname, "models")+"/"+val;
+      if (fname=="caffe" && !DirectoryExists(ret) && IsLocalDiskDb()) {
 	string prototxt = ExpandPath("caffe/models")+"/"+val+"/prototxt";
 	string model    = ExpandPath("caffe/models")+"/"+val+"/model";
 	string mean     = ExpandPath("caffe/models")+"/"+val+"/mean.png";
@@ -5985,8 +6002,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       }
 
       bool hasdata = true;
-      if (!DoOneDetection(force, idx[i], descr, classname, instance, feats, augm,
-			  ad, tolerate_missing, hasdata, xml))
+      if (!DoOneDetection(force, idx[i], descr, classname, instance, feats, 
+			  augm, ad, tolerate_missing, hasdata, xml))
 	return ShowError(msg+"DoOneDetection() failed");
 
       dstat.ndone   +=  hasdata;
@@ -7120,7 +7137,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 	    cout << TimeStamp() << msg << "combined result with " << fusion
 		 << " : " << detname << " = " << val << endl;
 
-	  if (!StoreDetectionResult(idx, detname, val))
+	  bool incore = false;
+	  if (!StoreDetectionResult(idx, detname, val, incore))
 	    return ShowError(msg+"failed to store detection data");
 	}
       }
@@ -7166,7 +7184,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
   /////////////////////////////////////////////////////////////////////////////
 
   bool DataBase::StoreDetectionResult(size_t idx, const string& detname,
-				      float val) {
+				      float val, bool incore) {
     string msg = "DataBase::StoreDetectionResult(float) : ";
 
     Tic("StoreDetectionResult");
@@ -7181,7 +7199,6 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     if (ok && storedetections.find("bin")!=string::npos) {
       found = true;
       vector<float> vec { val };
-      bool incore = false;
       ok = BinInsertDetectionData(idx, detname, vec, incore);
     }
 
@@ -8386,7 +8403,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 	if (p!=string::npos && *i!="")
 	  detname.replace(p, 2, *i);
 
-	if (!StoreDetectionResult(idx, detname, val))
+	bool incore = false;
+	if (!StoreDetectionResult(idx, detname, val, incore))
 	  return ShowError(msg+"failed to store detection data");
 	
       } else if (debug1)
@@ -8567,7 +8585,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 	for (size_t c=idx; c<=last; c++) {
 	  float val = hit_found&&length_ok ? stored[c] : 0.0;
 	
-	  if (!StoreDetectionResult(c, detname, val))
+	  bool incore = false;
+	  if (!StoreDetectionResult(c, detname, val, incore))
 	    return ShowError(msg+"failed to store detection data");
 	}
       }
@@ -8872,8 +8891,9 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 	   << endl;
     
     string detname = par["name"]+"#"+par["class"];
-    
-    if (!StoreDetectionResult(idx, detname, val))
+
+    bool incore = false;
+    if (!StoreDetectionResult(idx, detname, val, incore))
       return ShowError(msg+"failed to store detection data");
 
     Tac("CombineDetectionSingle");
@@ -9135,7 +9155,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 
     string svmlib, svmopts, extraout;
     list<pair<string,string> > kv;
-
+    bool incore = false;
+    
     // obs! should be coordinated with DetectionName()
     for (auto i=m.begin(); i!=m.end(); i++)
       if (i->first=="svm_library")
@@ -9154,7 +9175,10 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 	  svmopts = i->second;
 
       } else if (i->first=="extraout") {
-	  extraout = i->second; // obs! should be used in detname???
+	extraout = i->second; // obs! should be used in detname???
+
+      } else if (i->first=="incore") {
+	incore = IsAffirmative(i->second);
 
       } else
 	return ShowError(msg+"parameter <"+i->first+">=<"+i->second+
@@ -9269,6 +9293,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       ss << msg << "idx=" << idx << " label=" << Label(idx)
 	 << " frame#=" << frno
 	 << " prefix=" << prefix
+	 << " incore=" << incore
 	 << " feat=" << feat
 	 << " class=" << cls
 	 << " instance=" << inst
@@ -9309,7 +9334,7 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
     if (namep)
       *namep = detname;
 
-    if (!valp && !StoreDetectionResult(idx, detname, val))
+    if (!valp && !StoreDetectionResult(idx, detname, val, incore))
       return ShowError(msg+"failed to store detection data");
 
     Tac("SvmPredDetectionSingleSelf");
@@ -9573,7 +9598,8 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       if (namep)
 	*namep = lscname;
 
-      if (!valp && !StoreDetectionResult(idx, lscname, val))
+      bool incore = false;
+      if (!valp && !StoreDetectionResult(idx, lscname, val, incore))
 	return ShowError(msg+"failed to store detection data");
     }
 
@@ -9621,8 +9647,9 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
       WriteLog(msg+ToStr(idx)+" "+clsx+" "+ToStr(val)+" ("+ToStr(rndseed)+")");
 
     string outname = "random::"+extra+"#"+clsx;
- 
-    if (!valp && !StoreDetectionResult(idx, outname, val))
+
+    bool incore = false;
+    if (!valp && !StoreDetectionResult(idx, outname, val, incore))
       return ShowError(msg+"failed to store detection data");
 
     Tac("RandomDetectionSingle");
@@ -12204,6 +12231,24 @@ bool DataBase::ReadOriginsIntoHash() {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  void DataBase::ClearObjects() { 
+    _objects.clear(); 
+    origins_entry_cache_map.clear();
+    //bindetections.clear();
+    for (auto i=bindetections.begin(); i!=bindetections.end(); i++)
+      i->second.erase_all();
+    
+    //index.clear();
+    for (size_t i=0; i<Nindices(); i++)
+      if (IndexIs(i, "vectorindex") || IndexIs(i, "tssom")) {
+	VectorIndex *vidx = (VectorIndex*)GetIndex(i);
+	vidx->BinDataEraseAll();
+	vidx->Data().FullDelete();
+      }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   object_info& DataBase::AddObject(const string& l, target_type t) {
     try {
       //Tic("AddObject");
@@ -12255,7 +12300,7 @@ bool DataBase::ReadOriginsIntoHash() {
 
     Tic("ReadLabelsSql");
 
-    timespec_t now = TimeNow();
+    struct timespec now = TimeNow();
     size_t n = 0;
 
     string cmd = "SELECT indexz,label,type FROM objects ORDER BY indexz;";
@@ -12365,7 +12410,7 @@ bool DataBase::ReadOriginsIntoHash() {
 #endif // HAVE_MYSQL_H
     
     if (n) {
-      timespec_t end = TimeNow();
+      struct timespec end = TimeNow();
       float secf = TimeDiff(end, now);
       char sec[100], nsec[100];
       sprintf(sec, "%.3f", secf);
@@ -12896,7 +12941,7 @@ string DataBase::TargetTypeStatistics(const tt_stat_t& tts) const {
   /////////////////////////////////////////////////////////////////////////////
 
   bool DataBase::MakeSubObjectIndex(int start_idx) {
-    timespec_t now = TimeNow();
+    struct timespec now = TimeNow();
 
     bool ok = UseSql() ?
       MakeSubObjectIndexSql(start_idx) :
@@ -12912,7 +12957,7 @@ string DataBase::TargetTypeStatistics(const tt_stat_t& tts) const {
       t += o->children.size();
     }
 
-    timespec_t end = TimeNow();
+    struct timespec end = TimeNow();
     float secf = TimeDiff(end, now);
     char sec[100];
     sprintf(sec, "%.3f", secf);
@@ -13654,6 +13699,10 @@ bool DataBase::SetClassAugment(const xmlNodePtr &n) {
       return GroundTruthMiddleFrame(tt, f, aa[0], 
 				    V(aa.begin()+1, aa.end()));
 
+    if (f=="auxid" && aa.size()>=2)              // $auxid()
+      return GroundTruthAuxid(tt, f, aa[0], aa[1], 
+			      V(aa.begin()+2, aa.end()));
+
     ShowError(msg+" : function ["+f+"] with ",
 	      ToStr(aa.size()), " arguments is unknown");
 
@@ -14353,8 +14402,8 @@ bool DataBase::SetClassAugment(const xmlNodePtr &n) {
   /////////////////////////////////////////////////////////////////////////////
 
   ground_truth DataBase::GroundTruthSql(target_type tt, const string& f,
-					 const string& expr,
-					 const vector<string>& a) {
+					const string& expr,
+					const vector<string>& a) {
     stringstream msgss;
     msgss << "GroundTruthSql/" << f << "(" << TargetTypeString(tt)
 	  << ", " << expr << "," << CommaJoin(a) << ") ";
@@ -14622,6 +14671,34 @@ bool DataBase::SetClassAugment(const xmlNodePtr &n) {
       }
     
     return GroundTruthCommons(gt, tt, f, expr, a);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  ground_truth DataBase::GroundTruthAuxid(target_type tt,
+					  const string& f,
+					  const string& id,
+					  const string& s,
+					  const vector<string>& a) {
+    stringstream msgss;
+    msgss << "GroundTruthAuxid/" << f << "(" << TargetTypeString(tt)
+	  << ", [" << id << "][" << s << "]," << CommaJoin(a) << ") ";
+    string msg = msgss.str();
+
+    if (debug_gt)
+      cout << TimeStamp() << msg << endl;
+
+    if (s=="0")
+      return GroundTruthSql(tt, "sql", "auxid=\""+id+"\"", a);
+    
+    if (s=="1") {
+      string e = "(auxid=\""+id+"\" OR auxid LIKE \"%/"+id+"\")";
+      return GroundTruthSql(tt, "sql", e, a);
+    }
+    
+    ShowError(msg+": s==\""+s+"\" unknown");
+    
+    return ground_truth();
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -14966,19 +15043,34 @@ bool DataBase::GroundTruthExpandOld_fast(ground_truth& c) const {
 ///////////////////////////////////////////////////////////////////////////////
 
 ground_truth 
-DataBase::GroundTruthExpression(const string& ss, target_type tt,
+DataBase::GroundTruthExpression(const string& ssin, target_type tt,
 				int other, bool expand) {
   if (debug_gt)
-    cout << "GroundTruthExpression([" << ss << "]," << TargetTypeString(tt)
+    cout << "GroundTruthExpression([" << ssin << "]," << TargetTypeString(tt)
 	 << "," << other << "," << expand << ")" << endl;
 
   ground_truth empty(Size());
   empty.Set(-1);
   empty.expandable(expand);
 
+  string ss = ssin;
   if (ss=="")
     return empty;
 
+  // A nice hack follows...
+  if (ss.substr(0, 3)=="///") {
+    string ssr = "$auxid("+ss.substr(3)+",0)";
+    if (debug_gt)
+      cout << " * replacing [" << ss << "] with [" << ssr << "]" << endl;
+    ss = ssr;
+  }
+  if (ss.substr(0, 2)=="//") {
+    string ssr = "$auxid("+ss.substr(2)+",1)";
+    if (debug_gt)
+      cout << " * replacing [" << ss << "] with [" << ssr << "]" << endl;
+    ss = ssr;
+  }
+  
   bool err = false;
 
   string::const_iterator beg = ss.begin();
@@ -15026,7 +15118,7 @@ DataBase::GroundTruthExpression(const string& ss, target_type tt,
       err = true;
   }
 
-  if (err||np||ns%2) {
+  if (err||np /* ||ns%2 */) {
     ShowError("DataBase::GroundTruthExpression(): syntax error in ["+ss+"]");
     return empty;
   }
@@ -16788,7 +16880,15 @@ string DataBase::SolveObjectPathOrigins(const string& dir, const string& obj,
   bool DataBase::ExtractImagesFromTar(const vector<size_t>& idxs) /*const*/ {
     string msg = "DataBase::ExtractImagesFromTar() : ";
 
-    if (extractfulltars) {
+    bool extractfull = extractfulltars;
+    if (idxs.size()) {
+      auto h = ReadOriginsInfo(idxs[0], false, true);
+      string url = h["url"];
+      if (url.find(".zip[")!=string::npos || url.find(".ZIP[")!=string::npos)
+	extractfull = extractfullzips;
+    }
+
+    if (extractfull) {
       for (auto i=idxs.begin(); i!=idxs.end(); i++)
 	if (!ExtractImageFromTar(*i))
 	  return false;
@@ -16797,14 +16897,18 @@ string DataBase::SolveObjectPathOrigins(const string& dir, const string& obj,
 
     map<string,list<pair<size_t,string> > > files;
 
+    bool is_zip = false;
+
     for (auto i=idxs.begin(); i!=idxs.end(); i++) {
       string type, cont, contesc, file;
       if (!ExtractFromTarCommon(*i, type, cont, contesc, file))
 	return false;
 
-      bool is_zip = type=="zip";
+      is_zip = type=="zip";
+#ifndef HAVE_ZIP_H
       if (is_zip)
 	return ShowError(msg+"cannot handle zip");
+#endif // HAVE_ZIP_H
 
       if (cont!=contesc)
 	return ShowError(msg+"cannot handle cont!=contesc");
@@ -16825,14 +16929,90 @@ string DataBase::SolveObjectPathOrigins(const string& dir, const string& obj,
       string ttdir = tdir+"/"+i->first;
       Picsom()->MkDirHier(ttdir, 0777);
 
-      string cmd = "cd "+ttdir+" && tar xf "+contfile;
+      bool done = false;
+#ifdef HAVE_ZIP_H
+      if (is_zip) {
+#if (LIBZIP_VERSION_MAJOR>0)
+        zip_error_t err;
+	zip_error_init(&err);
+#endif // LIBZIP_VERSION_MAJOR>0
+	int ierr = 0;
+        auto z = zipfiles.find(contfile);
+	if (z==zipfiles.end()) {
+	  int flags = 0;
+#ifdef ZIP_RDONLY
+	  flags |= ZIP_RDONLY;
+#endif // ZIP_RDONLY
 
-      for (auto j=i->second.begin(); j!=i->second.end(); j++)
-	cmd += " "+j->second;
+          zip_t *x = zip_open(contfile.c_str(), flags, &ierr);
+	  if (!x) {
+#if (LIBZIP_VERSION_MAJOR>0)
+            zip_error_init_with_code(&err, ierr);
+            const char *es = zip_error_strerror(&err);
+#else
+	    char errtmp[1000];
+	    zip_error_to_str(errtmp, sizeof errtmp, ierr, errno);
+	    const char *es = errtmp;
+#endif // LIBZIP_VERSION_MAJOR>0
+	    return ShowError(msg+"zip_open("+contfile+") failed: "+es);
+          }
+          zipfiles[contfile] = x;
+          z = zipfiles.find(contfile);
+        }
+	for (auto j=i->second.begin(); j!=i->second.end(); j++) {
+          zip_file_t *zf = zip_fopen(z->second, j->second.c_str(), 0);
+	  if (zf==NULL) {
+#if (LIBZIP_VERSION_MAJOR>0)
+            zip_error_t *ep = zip_get_error(z->second);
+            const char *es = zip_error_strerror(ep);
+#else
+	    const char *es = zip_strerror(z->second);
+#endif // LIBZIP_VERSION_MAJOR>0
+	    return ShowError(msg+"zip_fopen("+contfile+","+j->second+
+			     ") failed: "+es);
+          }
+	  zip_stat_t st;
+	  zip_stat_init(&st);
+	  if (zip_stat(z->second, j->second.c_str(), 0, &st)) {
+#if (LIBZIP_VERSION_MAJOR>0)
+            zip_error_t *ep = zip_get_error(z->second);
+            const char *es = zip_error_strerror(ep);
+#else
+	    const char *es = zip_strerror(z->second);
+#endif // LIBZIP_VERSION_MAJOR>0
+	    return ShowError(msg+"zip_stat("+contfile+","+j->second+
+			     ") failed: "+es);
+          }
+	  string str(st.size, ' ');
+	  size_t n = zip_fread(zf, &str[0], st.size);
+	  if (n!=st.size) {
+	    return ShowError(msg+"zip_fread("+contfile+","+j->second+
+			     ") failed: "+ToStr(n)+"!="+ToStr(st.size));
+          }
+	  zip_fclose(zf);
+	  string dst = ttdir+"/"+j->second, dstd = dst;
+	  size_t p = dstd.rfind('/');
+	  if (p!=string::npos)
+	    dstd.erase(p);
+	  Picsom()->MkDirHier(dstd, 0777);
+	  if (!StringToFile(str, dst)) {
+	    return ShowError(msg+"storing in <"+dst+"> failed");
+	  }
+        }	
+        done = true;
+      }
+#endif // HAVE_ZIP_H
 
-      if (Picsom()->ExecuteSystem(cmd, true, true, true))
-	return ShowError(msg+"ExecuteSystem() failed");
+      if (!done) {
+        string cmd = "cd "+ttdir+" && tar xf "+contfile;
 
+	for (auto j=i->second.begin(); j!=i->second.end(); j++)
+	  cmd += " "+j->second;
+
+	if (Picsom()->ExecuteSystem(cmd, true, true, true))
+	  return ShowError(msg+"ExecuteSystem() failed");
+      }
+      
       for (auto j=i->second.begin(); j!=i->second.end(); j++) {
 	string z = ttdir+"/"+j->second;
 	string r = InsertedObjectPath(j->first, false, false, false);
@@ -17124,7 +17304,7 @@ string DataBase::SolveObjectPathOrigins(const string& dir, const string& obj,
       if (!Picsom()->MakeDirectory(dst, true))
 	  ShowError(msg+"failed to create directory for <"+dst+">");
 
-      timespec_t start = TimeNow();
+      struct timespec start = TimeNow();
       if (!CopyFile(src, dst))
 	ShowError(msg+"failed to copy <"+src+"> to <"+dst+">");
       else {
@@ -19108,8 +19288,8 @@ bool DataBase::IsPrunable(const string& ll) const {
 	  SqliteShowRow(stmt);
 
 	string tsstr = SqliteString(stmt, 7);  // insdate (not moddate)
-	if (tsstr.size()==sizeof(timespec_t)) {
-	  timespec_t ts;
+	if (tsstr.size()==sizeof(struct timespec)) {
+	  struct timespec ts;
 	  memcpy(&ts, tsstr.c_str(), sizeof ts);
 	  ret["date"]     = Picsom()->OriginsDateString(ts, false);
 	} else
@@ -19188,7 +19368,7 @@ bool DataBase::IsPrunable(const string& ll) const {
 	  MysqlShowRow(stmt);
 
 	string tsstr(col[ 7], len[ 7]);  // insdate (not moddate)
-	timespec_t ts;
+	struct timespec ts;
 	memcpy(&ts, tsstr.c_str(), sizeof ts);
 
 	ret["name"]       = string(col[ 0], len[ 0]);
@@ -21190,6 +21370,13 @@ bool DataBase::GetSubstring(const string& str, string& result,
 	  ShowError("odlist given but PICSOM_USE_OD not defined");
 #endif // PICSOM_USE_OD
       }
+      else if (i->use == "container-regular") {
+	WriteLog("Preparing to insert objects from container");
+	if (!InsertContainerObjectsAndFile(*i, ol))
+	  ShowError(msg+"inserting container <"+i->path+"> failed");
+      }
+      else
+	return ShowError(msg+"use=\""+i->use+"\" not understood"); 
     }
 
     // Now that all the pictures have been inserted
@@ -21497,9 +21684,10 @@ bool DataBase::InsertSegmentationObject(const upload_object_data& i) {
 
     string auxid;
     string label = info.forcedlabel;
+    string oname = info.path!="" ? info.path : info.auxid;
     if (label=="")
       label = labelimport=="" ?
-	NextFreeLabel() : ImportedLabel(info.path, auxid);
+	NextFreeLabel() : ImportedLabel(oname, auxid);
     if (!label.length())
       return ShowError(errhead, "NextFreeLabel() or ImportedLabel() failed");
     if (label=="*skipped*")
@@ -21537,7 +21725,13 @@ bool DataBase::InsertSegmentationObject(const upload_object_data& i) {
     if (tt==target_error)
       return ShowError(errhead, "MIMEtypeToTargetType() failed");
 
-    if (tt&target_image) {
+    bool in_container = false;
+    if (info.url.find(".zip[")!=string::npos ||
+	info.url.find(".tar[")!=string::npos ||
+	info.url.find(".tar.gz[")!=string::npos)
+      in_container = true;
+    
+    if (tt&target_image && !in_container) {
       bool ok = true;
       try {
 	imagefile file(info.path);
@@ -21552,10 +21746,28 @@ bool DataBase::InsertSegmentationObject(const upload_object_data& i) {
       }
     }
 
-    string name = InsertObjectFile(label, info.data, info.ctype,
-				   info.comprext, info.path);
-    info.dbname = name;
-    string truefile = SqlObjects() ? info.path : name;
+    if (!in_container) {
+      string name = InsertObjectFile(label, info.data, info.ctype,
+				     info.comprext, info.path);
+      info.dbname = name;
+    } else {
+      string name = info.url;
+      size_t p = name.rfind('[');
+      if (p==string::npos)
+	return ShowError(errhead, "ERR-1");
+      name.erase(0, p+1);
+      p = name.rfind('.');
+      if (p==string::npos)
+	return ShowError(errhead, "ERR-2");
+      name.erase(0, p);
+      p = name.rfind(']');
+      if (p==string::npos)
+	return ShowError(errhead, "ERR-3");
+      name.erase(p);
+      info.dbname = label+name;
+    }
+    
+    string truefile = SqlObjects() ? info.path : info.dbname;
 
     map<string,string> oi;
     if (info.colors+info.dimensions+info.checksum!="") {
@@ -21568,7 +21780,7 @@ bool DataBase::InsertSegmentationObject(const upload_object_data& i) {
     /*
       if (tt & (target_image|target_video)) { // only for images
       string col = "-", dim = "0x0", csm = "-";
-      SolveMissingOriginsInfo(name, col, dim, csm);
+      SolveMissingOriginsInfo(info.dbname, col, dim, csm);
       oi["colors"]     = col;
       oi["dimensions"] = dim;
       oi["checksum"]   = csm;
@@ -21589,16 +21801,16 @@ bool DataBase::InsertSegmentationObject(const upload_object_data& i) {
       insertobjectsrealinfo = true;
 
     XmlDom xml1;
-    bool ok = !name.empty();
+    bool ok = !info.dbname.empty();
     ok = ok && InsertImageText(label, tmp);
-    ok = ok && InsertOriginsInfo(idx, truefile, name,
+    ok = ok && InsertOriginsInfo(idx, truefile, info.dbname,
 				 info.ctype, info.url, info.page,
 				 info.data, oi, info.date, tt,
 				 nframes, framerate, xml1);
     insertobjectsrealinfo = insertobjectsrealinfo_was;
 
     if (tt & target_image && ThumbnailType()=="create")
-      ok = ok && InsertImageThumbnails(name);
+      ok = ok && InsertImageThumbnails(info.dbname);
 
     // now this is the place where we know the index...
     int index = AddOneLabel(label, tt, false, false);
@@ -21612,7 +21824,7 @@ bool DataBase::InsertSegmentationObject(const upload_object_data& i) {
 
     // do we need to extract parts from a collection (message)?
     if (tt & target_message) 
-      if (!InsertMessageParts(info, name, label))
+      if (!InsertMessageParts(info, info.dbname, label))
 	return ShowError(errhead, "InsertMessageParts() failed");
 
     if (!ok)
@@ -21640,6 +21852,209 @@ bool DataBase::InsertSegmentationObject(const upload_object_data& i) {
     ConditionallyAddToContext(info);
 #endif // PICSOM_USE_CONTEXTSTATE
 
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::InsertContainerObjectsAndFile(upload_object_data& info,
+					       XmlDom& ol) {
+    string msg = "DataBase::InsertContainerObjectsAndFile() <"+info.path+"> : ";
+
+    WriteLog(msg+"starting");
+
+    string f;
+    if (!InsertContainerObjects(info, ol, f))
+      return ShowError(msg+"InsertContainerObjects() failed");
+
+    if (f=="")
+      return InsertContainerFile(info.path, false);
+
+    else
+      return InsertContainerFile(f, true);
+    
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::InsertContainerFile(const string& f, bool created) {
+    string msg = "DataBase::InsertContainerFile("+f+","+ToStr(created)+") :";
+
+    WriteLog(msg+"starting");
+
+    insertmode_t insertmode_was = insertmode;
+    if (created)
+      insertmode = insert_move;
+
+    string r = InsertObjectData("*CONTAINER*", "", "", "", f);
+
+    insertmode = insertmode_was;
+
+    if (r=="")
+      return ShowError(msg+"InsertObjectData() failed");
+    
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::InsertContainerObjects(upload_object_data& info, XmlDom& ol,
+					string& tmpfile) {
+    string msg = "DataBase::InsertContainerObjects() <"+info.path+"> : ";
+
+    WriteLog(msg+"starting");
+
+    if (info.ctype=="application/zip") {
+      tmpfile = "";
+#ifdef HAVE_ZIP_H
+#if (LIBZIP_VERSION_MAJOR>0)
+      zip_error_t err;
+      zip_error_init(&err);
+#endif // LIBZIP_VERSION_MAJOR>0
+      int ierr = 0;
+      int flags = 0;
+#ifdef ZIP_RDONLY
+      flags |= ZIP_RDONLY;
+#endif // ZIP_RDONLY
+
+      zip_t *x = zip_open(info.path.c_str(), flags, &ierr);
+      if (!x) {
+#if (LIBZIP_VERSION_MAJOR>0)
+	zip_error_init_with_code(&err, ierr);
+	const char *es = zip_error_strerror(&err);
+#else
+	char errtmp[1000];
+	zip_error_to_str(errtmp, sizeof errtmp, ierr, errno);
+	const char *es = errtmp;
+#endif // LIBZIP_VERSION_MAJOR>0
+	return ShowError(msg+"zip_open() failed: "+es);
+      }
+      SqlBeginTransaction();
+      for (size_t j=0;; j++) {
+#ifdef ZIP_FL_ENC_GUESS
+	zip_flags_t nflags = ZIP_FL_ENC_GUESS;
+#else
+	int nflags = 0;
+#endif // ZIP_FL_ENC_GUESS
+	const char *fn = zip_get_name(x, j, nflags);
+	if (!fn)
+	  break;
+	WriteLog("** "+string(fn));
+
+	string fnx = fn;
+	size_t p = fnx.rfind('/');
+	if (p!=string::npos)
+	  fnx.erase(0, p+1);
+
+	if (fnx=="") {
+	  WriteLog("**** skipping...");
+	  continue;
+	}
+	  
+	string url = info.path;
+	p = url.rfind('/');
+	if (p!=string::npos)
+	  url.erase(0, p+1);
+	url += string("[")+fn+"]";
+
+	upload_object_data i = info;
+	i.ctype  = FileExtensionToMIMEtype(fnx);
+	i.path   = "";
+	i.url    = url;
+	i.auxid  = fn;
+	i.use    = "regular";
+	i.nofile = true;
+	bool insertobjectsrealinfo_was = insertobjectsrealinfo;
+	insertobjectsrealinfo = false;
+	bool ok = InsertRegularObject(i, ol);
+	insertobjectsrealinfo = insertobjectsrealinfo_was;
+	if (!ok)
+	  ShowError(msg+"InsertRegularObject("+i.path+") failed");
+      }
+      SqlEndTransaction();
+
+      if (zip_close(x))
+	ShowError("Failed to close ZIP file <"+info.path+">");
+      
+      return true;
+#else
+      return ShowError(msg+"libzip not available");
+#endif // HAVE_ZIP_H
+    }
+
+    if (info.ctype=="application/x-tar") {
+      string bname = info.path;
+      size_t p = bname.rfind('/');
+      if (p!=string::npos)
+	bname.erase(0, p+1);
+      p = bname.rfind('.');
+      if (p!=string::npos && 
+	  (bname.substr(p)==".gz" || bname.substr(p)==".GZ")) {
+	bname.erase(p);
+	p = bname.rfind('.');
+      }
+      if (p!=string::npos)
+	bname.erase(p);
+      tmpfile = TempDir("tar_to_zip")+"/"+bname+".zip";
+      TarToZip(info.path, tmpfile);
+      string fname = tmpfile;
+      p = fname.rfind('/');
+      if (p!=string::npos)
+	fname.erase(0, p+1);
+      upload_object_data i = info;
+      i.path = fname;
+      i.ctype = "application/zip";
+      string dummy;
+      return InsertContainerObjects(i, ol, dummy);
+    }
+    
+    return ShowError(msg+"MIME type <"+info.ctype+"> unknown");
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::ContainsImages(const string& f) {
+    string msg = "DataBase::ContainsImages("+f+") : ";
+    WriteLog(msg+"returns true");
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool DataBase::TarToZip(const string& tar, const string& zip) {
+    string msg = "DataBase::TarToZip("+tar+","+zip+") : ";
+
+    bool debug = true;
+
+    WriteLog(msg+"starting");
+    string bname = tar;
+    size_t p = bname.rfind('/');
+    if (p!=string::npos)
+      bname.erase(0, p+1);
+    string dir = TempDir("tar_to_zip_tmp/"+bname);
+
+    string tar_opts = debug ? "xvf" : "xf";
+    vector<string> tar_cmd {
+      "cd", dir, ";", "tar", tar_opts, Picsom()->Cwd()+"/"+tar
+	};
+    if (Picsom()->ExecuteSystem(tar_cmd, debug, debug, debug))
+      return ShowError("tar extraction failed");
+      
+    string zip_opts = debug ? "-vry" : "-ry";
+    vector<string> zip_cmd {
+      "cd", dir, ";", "zip", zip_opts, zip, "."
+	};
+    if (Picsom()->ExecuteSystem(zip_cmd, debug, debug, debug))
+      return ShowError("zip packing failed");
+
+    vector<string> rm_cmd {
+      "/bin/rm", "-rf", dir
+	};
+    if (Picsom()->ExecuteSystem(rm_cmd, debug, debug, debug))
+      return ShowError("rm failed");
+    
+    WriteLog(msg+"ending");
     return true;
   }
 
@@ -22338,14 +22753,32 @@ bool DataBase::ReWriteChangedDivisionFiles(bool cwd, bool zipped) {
 
     bool ignore_symlink_errors = true;
 
-    string opath = SolveObjectPath(label, sdir, "", true);
-    if (opath.empty()) {
-      stringstream err;
-      err << "label=<"<<label << ">, sdir=<"<<sdir << ">, ext=<"<<ext << ">";
-      ShowError(msg+"SolveObjectPath(", err.str(), ") failed");
-      return "";
+    string opath;
+
+    if (label!="*CONTAINER*") {
+      opath = SolveObjectPath(label, sdir, "", true);
+      if (opath.empty()) {
+	stringstream err;
+	err << "label=<"<<label << ">, sdir=<"<<sdir << ">, ext=<"<<ext << ">";
+	ShowError(msg+"SolveObjectPath(", err.str(), ") failed");
+	return "";
+      }
+      opath += ext;
+
+    } else {
+      string fname = srcpath;
+      size_t p = fname.rfind('/');
+      if (p!=string::npos)
+	fname.erase(0, p+1);
+      opath = ExpandPath("tars/"+fname);
+      if (FileExists(opath)) {
+	ShowError(msg+"file <"+opath+"> already exists");
+	// we could store foo.zip as tars/foo-1.zip or tars/foo-2.zip
+	// but that should have been known already in InsertContainerObjects()
+	// so we have a potential problem here...
+	return "";
+      }
     }
-    opath += ext;
 
     bool ok = Picsom()->MakeDirectory(opath, true);
     if (!ok) {
@@ -22461,6 +22894,8 @@ bool DataBase::ReWriteChangedDivisionFiles(bool cwd, bool zipped) {
   string DataBase::ImportedLabel(const string& fname, string& auxid) {
     string hdr = "DataBase::ImportedLabel() : ";
 
+    bool debug = true;
+    
     vector<string> li = SplitInSomething("+", false, labelimport);
     string import;
     bool skip = false;
@@ -22512,6 +22947,9 @@ bool DataBase::ReWriteChangedDivisionFiles(bool cwd, bool zipped) {
       return "";
     }
 
+    if (debug)
+      WriteLog(hdr+"["+fname+"] -> ["+lab+"]+["+auxid+"]");
+    
     return lab;
   }
 
@@ -22794,8 +23232,8 @@ bool DataBase::FixUnknownOrigins(size_t i) {
 
     map<string,string> m = min;
 
-    timespec_t now = TimeNow();
-    timespec_t mod = Picsom()->InverseOriginsDateString(m["date"]);
+    struct timespec now = TimeNow();
+    struct timespec mod = Picsom()->InverseOriginsDateString(m["date"]);
     string nowblob = SqlTimeBlob(now), modblob = SqlTimeBlob(mod);
     string user = Picsom()->UserName();
 
@@ -22958,35 +23396,38 @@ bool DataBase::FixUnknownOrigins(size_t i) {
 
     Tac("InsertOriginsInfo");  // a bit premature...
 
+    int width = 0, height = 0, frames = 1;
+    sscanf(dim.c_str(), "%dx%dx%d@%f", &width, &height, &frames, &framerate);
+    map<string,string> m;
+    m["indexz"]    = ToStr(idx);
+    m["label"]     = label;
+    m["type"]      = TargetTypeString(tt);
+    m["file"]      = name;
+    m["url"]       = urlin;
+    m["page"]      = pagin;
+    m["mime"]      = typ;
+    m["colors"]    = col;
+    m["width"]     = ToStr(width);
+    m["height"]    = ToStr(height);
+    m["frames"]    = ToStr(frames); // should be == nframes
+    m["framerate"] = ToStr(framerate);
+    m["bytes"]     = ToStr(len);
+    m["auxid"]     = aux;
+    m["md5"]       = csm;
+    m["date"]      = date==""?"-":date;
+    m["data"]      = data;
+
     bool do_pipe = Picsom()->IsSlave() &&
       Picsom()->SlavePipe().find("objectinfo")!=string::npos;
 
-    if (UseSql()||do_pipe) {
-      int width = 0, height = 0, frames = 1;
-      sscanf(dim.c_str(), "%dx%dx%d@%f", &width, &height, &frames, &framerate);
-      map<string,string> m;
-      m["indexz"]    = ToStr(idx);
-      m["label"]     = label;
-      m["type"]      = TargetTypeString(tt);
-      m["file"]      = name;
-      m["url"]       = urlin;
-      m["page"]      = pagin;
-      m["mime"]      = typ;
-      m["colors"]    = col;
-      m["width"]     = ToStr(width);
-      m["height"]    = ToStr(height);
-      m["frames"]    = ToStr(frames); // should be == nframes
-      m["framerate"] = ToStr(framerate);
-      m["bytes"]     = ToStr(len);
-      m["auxid"]     = aux;
-      m["md5"]       = csm;
-      m["date"]      = date==""?"-":date;
-      m["data"]      = data;
+    if (do_pipe)
+      return SlaveSendOriginsInfo(m, xml);
+    
+    if (UseSql())
+      return UpdateOriginsInfoSql(idx, m);
 
-      return do_pipe ? SlaveSendOriginsInfo(m, xml) :
-	UpdateOriginsInfoSql(idx, m);
-    }
-
+    origins_entry_cache_map[idx] = m;
+    
     string url = urlin, pag = pagin;
     EscapeWhiteSpace(url);
     EscapeWhiteSpace(pag);
@@ -23109,11 +23550,11 @@ bool DataBase::FixUnknownOrigins(size_t i) {
     }
 
     if (calculate_checksum && insertobjectsrealinfo) {
+      chk.clear();
 #ifdef HAVE_GCRYPT_H
       string data = FileToString(fname);
       NGram::NGramData::shadigest_vect_t hash
 	= NGram::NGramData::hashsum(data, GCRY_MD_MD5);
-      chk.clear();
       for (size_t i=0; i<hash.size(); i++) {
 	unsigned char c = hash[i];
 	for (size_t j=0; j<2; j++) {
@@ -23751,7 +24192,7 @@ void DataBase::InitializeDefaultAspects() {
   /////////////////////////////////////////////////////////////////////////////
 
   bool DataBase::SqlStoreFile(const string& name, const string& data,
-			      const timespec_t& modtime) const {
+			      const struct timespec& modtime) const {
     string hdr = "DataBase::SqlStoreFile() : ";
     
     if (!UseSql())
@@ -23760,7 +24201,7 @@ void DataBase::InitializeDefaultAspects() {
     if (SqlMode()!=2)
       return ShowError(hdr+"SQL opened read only");
 
-    timespec_t nowtime = TimeNow();
+    struct timespec nowtime = TimeNow();
     string nowblob = SqlTimeBlob(nowtime);
     string modblob = SqlTimeBlob(modtime);
     string user = Picsom()->UserName();
@@ -24926,8 +25367,8 @@ void DataBase::InitializeDefaultAspects() {
       if (rstr.find('.')==string::npos)
 	rstr += ".0";
       
-      timespec_t now = TimeNow();
-      timespec_t mod = Picsom()->InverseOriginsDateString(hash["date"]);
+      struct timespec now = TimeNow();
+      struct timespec mod = Picsom()->InverseOriginsDateString(hash["date"]);
       string nowblob = SqlTimeBlob(now), modblob = SqlTimeBlob(mod);
       string user = Picsom()->UserName();
 
@@ -25082,7 +25523,7 @@ void DataBase::InitializeDefaultAspects() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  string DataBase::SqlTimeBlob(const timespec_t& t) {
+  string DataBase::SqlTimeBlob(const struct timespec& t) {
     string s((char*)&t, sizeof(t));
     return SqlBlob(s);
   }

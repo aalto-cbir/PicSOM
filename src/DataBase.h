@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: DataBase.h,v 2.509 2016/12/19 09:03:48 jorma Exp $
+// -*- C++ -*-  $Id: DataBase.h,v 2.520 2017/08/09 13:18:35 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -46,9 +46,22 @@
 #pragma GCC diagnostic pop
 #endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
 
+#if defined(HAVE_THC_H)
+#include <THC.h>
+#endif // defined(HAVE_THC_H)
+
 #ifdef HAVE_JSON_JSON_H
 #include <json/json.h>
 #endif // HAVE_JSON_JSON_H
+
+#ifdef HAVE_ZIP_H
+#include <zip.h>
+#if (LIBZIP_VERSION_MAJOR==0)
+typedef struct zip zip_t;
+typedef struct zip_file zip_file_t;
+typedef struct zip_stat zip_stat_t;
+#endif // LIBZIP_VERSION_MAJOR==0
+#endif // HAVE_ZIP_H
 
 #ifdef PICSOM_USE_PYTHON
 #undef _POSIX_C_SOURCE
@@ -61,7 +74,7 @@
 
 namespace picsom {
   static string DataBase_h_vcid =
-    "@(#)$Id: DataBase.h,v 2.509 2016/12/19 09:03:48 jorma Exp $";
+    "@(#)$Id: DataBase.h,v 2.520 2017/08/09 13:18:35 jormal Exp $";
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -86,8 +99,8 @@ namespace picsom {
   typedef struct {
     string name; ///
     size_t size;
-    timespec_t moddate;
-    timespec_t insdate;
+    struct timespec moddate;
+    struct timespec insdate;
     string user;
     bool exists;
   } sql_file_info;
@@ -561,7 +574,7 @@ namespace picsom {
     size_t Size() const { return _objects.size(); }
 
     /// Clears all info about objects.
-    void ClearObjects() { _objects.clear(); }
+    void ClearObjects();
 
     /// Adds one new object in the database.
     object_info& AddObject(const string& l, target_type t);
@@ -1367,6 +1380,10 @@ namespace picsom {
     /// Returns indices oof video (segment) middle frames.
     ground_truth GroundTruthMiddleFrame(target_type, const string&,
 					const string&, const vector<string>&);
+
+    /// Returns objects by their auxid.
+    ground_truth GroundTruthAuxid(target_type, const string&, const string&,
+				  const string&, const vector<string>&);
 
     /// Performs some straightforward expansions, etc.
     ground_truth GroundTruthApplyOperations(target_type, const ground_truth&,
@@ -2259,7 +2276,7 @@ namespace picsom {
     bool SqlStoreFileFromFile(const string&, const string&) const;
 
     ///
-    bool SqlStoreFile(const string&, const string&, const timespec_t&) const;
+    bool SqlStoreFile(const string&, const string&, const struct timespec&) const;
 
     ///
     bool SqlRetrieveFileToFile(const string&, const string&) const;
@@ -2343,7 +2360,7 @@ namespace picsom {
     }
 
     /// A helper to create "x'00112233...'".
-    static string SqlTimeBlob(const timespec_t&);
+    static string SqlTimeBlob(const struct timespec&);
 
     ///
     string SqliteDBFile(bool);
@@ -2892,6 +2909,21 @@ namespace picsom {
     bool InsertRegularObject(upload_object_data&, XmlDom&);
 
     ///
+    bool InsertContainerFile(const string&, bool);
+    
+    ///
+    bool InsertContainerObjectsAndFile(upload_object_data&, XmlDom&);
+
+    ///
+    bool InsertContainerObjects(upload_object_data&, XmlDom&, string&);
+
+    ///
+    bool ContainsImages(const string&);
+
+    ///
+    bool TarToZip(const string&, const string&);
+    
+    ///
     bool InsertVideoSubObjects(size_t index, upload_object_data& info,
 			       int, float, bool, XmlDom&);
 
@@ -3354,7 +3386,7 @@ namespace picsom {
 				Segmentation*);
 
     ///
-    bool StoreDetectionResult(size_t, const string&, float);
+    bool StoreDetectionResult(size_t, const string&, float, bool);
 
     ///
     bool StoreDetectionResult(size_t, const string&, const vector<float>&,
@@ -4148,7 +4180,8 @@ namespace picsom {
 					  const vector<string>& a
 					  = vector<string>());
     ///
-    vector<pair<size_t,float> > FeatureFrameDifference(size_t, const string&, size_t, size_t);
+    vector<pair<size_t,float> > 
+    FeatureFrameDifference(size_t, const string&, size_t, size_t);
 
     ///
     bool ExtractFullTars() const { return extractfulltars; }
@@ -4156,6 +4189,18 @@ namespace picsom {
     ///
     void ExtractFullTars(bool v) { extractfulltars = v; }
 
+    ///
+    bool ExtractFullZips() const { return extractfullzips; }
+
+    ///
+    void ExtractFullZips(bool v) { extractfullzips = v; }
+
+    ///
+    void Concepts(const string& s) { concepts = s; }
+
+    ///
+    const string& Concepts() const { return concepts; }
+    
 #ifdef PICSOM_USE_PYTHON
     ///
     PyObject *PythonFeatureVector(const string&, size_t);
@@ -4422,7 +4467,7 @@ namespace picsom {
     vector<pair<string,string> > postponed;
 
     /// Time when access file was last read.
-    timespec_t access_read_time;
+    struct timespec access_read_time;
 
     /// True if call to Query::AddToXMLstatistics() is too slow
     bool no_statistics;
@@ -4793,6 +4838,14 @@ namespace picsom {
     bool extractfulltars;
 
     ///
+    bool extractfullzips;
+
+#ifdef HAVE_ZIP_H
+    ///
+    map<string,zip_t*> zipfiles;
+#endif // HAVE_ZIP_H
+    
+    ///
     map<string,bin_data> bindetections;
 
     ///
@@ -4885,6 +4938,9 @@ namespace picsom {
     map<string,pair<pair<istream*,size_t>,pair<size_t,size_t> > >
         numpy_feature_info;
 
+    ///
+    string concepts;
+    
 #ifdef HAVE_JSON_JSON_H
     ///
     map<size_t,Json::Value> coco_json;

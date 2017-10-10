@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Analysis.C,v 2.1147 2016/12/19 09:04:00 jorma Exp $
+// -*- C++ -*-  $Id: Analysis.C,v 2.1166 2017/10/09 13:01:30 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -60,6 +60,16 @@
 static string foo = string(license)+string(dblicense);
 #endif // HAVE_WN_H
 
+#if defined(HAVE_THC_H) && defined(PICSOM_USE_TORCH)
+extern "C" {
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+#include <luaT.h>
+}
+#include <THDiskFile.h>
+#endif // HAVE_THC_H && PICSOM_USE_TORCH
+
 // #include <klt.h>
 
 #include <unordered_map>
@@ -103,7 +113,7 @@ static string foo = string(license)+string(dblicense);
 
 namespace picsom {
   static const string Analysis_C_vcid =
-    "@(#)$Id: Analysis.C,v 2.1147 2016/12/19 09:04:00 jorma Exp $";
+    "@(#)$Id: Analysis.C,v 2.1166 2017/10/09 13:01:30 jormal Exp $";
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -3107,6 +3117,10 @@ namespace picsom {
       func = &Analysis::AnalyseWord2VecTest;
       db_needed = tt_needed = features_needed = ifile_preferred = false;
     }
+    else if (method_x=="translatetest") {
+      func = &Analysis::AnalyseTranslateTest;
+      db_needed = tt_needed = features_needed = ifile_preferred = false;
+    }
     else if (method_x=="sparqltest") {
       func = &Analysis::AnalyseSparqlTest;
       tt_needed = features_needed = ifile_preferred = false;
@@ -3546,6 +3560,12 @@ namespace picsom {
       ifile_preferred = features_needed = false;
     }
 #endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
+#if defined(HAVE_THC_H) && defined(PICSOM_USE_TORCH)
+    else if (method_x=="torchtest") {
+      func = &Analysis::AnalyseTorchTest;
+      ifile_preferred = features_needed = false;
+    }
+#endif // HAVE_THC_H && PICSOM_USE_TORCH
     else if (method_x=="mathtest") {
       func = &Analysis::AnalyseMathTest;
       ifile_preferred = db_needed = tt_needed = features_needed = false;
@@ -3578,8 +3598,8 @@ namespace picsom {
       func = &Analysis::AnalyseUpdateVideoInfo;
       ifile_preferred = tt_needed = features_needed = false;
     }
-    else if (method_x=="testbindata") {
-      func = &Analysis::AnalyseTestBinData;
+    else if (method_x=="bindatatest") {
+      func = &Analysis::AnalyseBinDataTest;
       db_needed = ifile_preferred = tt_needed = features_needed = false;
     }
     else if (method_x=="bindata") {
@@ -3883,7 +3903,7 @@ namespace picsom {
       int stime = atoi(args[0].substr(1,args[0].length()-2).c_str());
       if (stime > 0) {
         WriteLog("dummy sleeping "+ToStr(stime)+" seconds...");
-        timespec_t ts = { 0, 1000*stime };
+        struct timespec ts = { 0, 1000*stime };
         nanosleep(&ts, NULL);      
       }
     }
@@ -4861,6 +4881,31 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  Analysis::analyse_result Analysis::AnalyseTranslateTest(const vector<string>&
+							  args) {
+    string err = "AnalyseTranslateTest() : ";
+
+    WriteLog("AnalyseTranslateTest");
+
+    if (args.size()<4)
+      return ShowError(err+"4+ arguments needed, eg. "
+		       "<yandex> <en> <fi> <hello world>");
+
+    list<string> s;
+    for (size_t i=3; i<args.size(); i++)
+      s.push_back(args[i]);
+
+    list<string> t = Picsom()->Translate(args[0], args[1], args[2], s);
+
+    for (auto is=s.begin(), it=t.begin(); is!=s.end() && it!=t.end();
+	 is++, it++)
+      cout << "\"" << *is << "\" => \"" << *it << "\"" << endl;
+
+    return t.size()==s.size();
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   Analysis::analyse_result Analysis::AnalyseSlaveTest(const vector<string>&
                                                       /*args*/) {
     string err = "AnalyseSlaveTest() : ";
@@ -5599,7 +5644,7 @@ namespace picsom {
     set<size_t> buck;
 
     target_type tt = target_no_target;
-    timespec_t now = TimeNow();
+    struct timespec now = TimeNow();
     for (size_t i=0; i<n; i++) {
       // string lab = "00000000"+ToStr(i/f);
       // lab.erase(0, lab.size()-8);
@@ -5639,7 +5684,7 @@ namespace picsom {
       map.insert(map_list.begin(), map_list.end());
     }
 
-    timespec_t end = TimeNow();
+    struct timespec end = TimeNow();
     float secf = TimeDiff(end, now);
     WriteLog("Testing "+string(test_set?"object_set::add() ":"")
 	     +(test_deque?"deque::push_back() ":"")
@@ -5916,11 +5961,15 @@ namespace picsom {
 						    args) {
     string msg = "AnalyseDisplay() : ";
 
+    bool show_info = true, show_auxid = true;
+    float fontsize = 15;
+    
     WriteLog("AnalyseDisplay");
 
     map<target_type,string> prog;
     // prog[target_image] = "eog";
-    prog[target_image] = "display";
+    // prog[target_image] = "display";
+    prog[target_image] = "*picsom::imagefile*";
     prog[target_video] = "mplayer";
 
     DataBase *db = GetDataBase();
@@ -5974,8 +6023,39 @@ namespace picsom {
 
       for (auto i=prog.begin(); i!=prog.end(); i++)
 	if (db->ObjectsTargetTypeContains(o, i->first)) {
-	  string cmd = i->second+" "+f;
-	  Picsom()->ExecuteSystem(cmd, true, true, true);
+	  if (i->second=="*picsom::imagefile*") {
+	    try {
+	      imagedata img = imagefile(f).frame(0), out;
+	      if (show_info) {
+		string text = db->Label(o)+" #"+ToStr(o);
+		if (show_auxid) {
+		  map<string,string> oi = db->ReadOriginsInfoSql(o);
+		  string auxid = oi["auxid"];
+		  if (auxid!="")
+		    text += " "+auxid;
+		}
+		imagedata txt = imagefile::render_text(text, fontsize);
+		txt.force_three_channel();
+		txt.convert(imagedata::pixeldata_float);
+		out = imagedata(img.width(), img.height()+txt.height()+4,
+				img.count(), img.type());
+		out.copyAsSubimage(txt, 5, 2);
+		out.copyAsSubimage(img, 0, txt.height()+4);
+	      } else
+		out = img;
+
+	      char key = 'x';
+	      imagefile::display(out, &key);
+	      cout << "KEY " << key << " " << db->Label(o) << endl;
+
+	    } catch (const string& etxt) {
+	      return ShowError(msg+"reading and displaying <"+f+
+			       "> failed: "+etxt);
+	    }
+	  } else {
+	    string cmd = i->second+" "+f;
+	    Picsom()->ExecuteSystem(cmd, true, true, true);
+	  }
 	  break;
 	}
     }
@@ -23490,9 +23570,11 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
   Analysis::AnalyseDetectorPerformance(const vector<string>& args) {
     string msg = "AnalyseDetectorPerformance() : ";
 
-    bool write_png = false;
+    bool show_val = verbose&2, write_png = verbose&4, disp = verbose&32;
     // size_t maxn_per_class = 20, maxn_overall = 100;
     size_t maxn_per_class = 397, maxn_overall = 397;
+    size_t n_examp_f = verbose&8  ? query->MaxQuestions() : 0;
+    size_t n_examp_c = verbose&16 ? query->MaxQuestions() : 0;
 
     if (args.size()==0)
       return ShowError(msg+"argument(s) needed");
@@ -23537,8 +23619,9 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 	};
       
     set<string> dt_min { "eer", "his" };
-
+    set<string> iset;
     map<string,map<string,multimap<float,string> > > perf;
+    analyse_result res;
 
     for (auto d=detcls.begin(); d!=detcls.end(); d++) {
       map<string,double> meas_sum, meas_ext;
@@ -23550,8 +23633,6 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 	else
 	  meas_ext[m->second] = 1000; // min
       }
-      // double auc_max = 0, auc_avg = 0;
-      // double eer_min = 1, eer_avg = 0;
 
       for (auto c=classes.begin(); c!=classes.end(); c++) {
 	string detstr = detections[0];
@@ -23566,8 +23647,12 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 
 	vector<float> e;
 	vector<vector<float> > val { e, e, e };
-	multimap<float,size_t> rr;
+	multimap<float,size_t> rr, rr_pos, rr_neg;
+	size_t hittot = 0;
 	for (auto i=idxs.begin(); i!=idxs.end(); i++) {
+	  if (gt[*i]==1)
+	    hittot++;
+
 	  bool dummy = true;
 	  map<string,vector<float> > dets
 	    = db->RetrieveDetectionData(*i, detstr, true, dummy);
@@ -23579,14 +23664,32 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 			     "> dets.begin()->second.size()="+
 			     ToStr(dets.begin()->second.size()));
 	  float r = dets.begin()->second[0];
-	  rr.insert(make_pair(r, *i));
-	  
+
+	  if (n_examp_c+n_examp_f)
+	    iset.insert(db->Label(*i));
 	  val[0].push_back(r);
-	  if (gt[*i]==1)
+	  rr.insert(make_pair(r, *i));
+	  if (gt[*i]==1) {
 	    val[1].push_back(r);
-	  else
+	    rr_pos.insert(make_pair(r, *i));
+	  } else {
 	    val[2].push_back(r);
+	    rr_neg.insert(make_pair(r, *i));
+	  }
+
+	  if (show_val)
+	    cout << *d << " " << *c << " #" << *i << " " << (int)gt[*i]
+		 << " " << r << endl;
 	}
+
+	if (d==detcls.begin())
+	  cout << *c << " pos=" << val[1].size() << " neg=" << val[2].size()
+	       << " tot=" << val[0].size() << endl;
+
+	ShowExamples(rr_pos, true,  n_examp_c, db, "true positives",  disp);
+	ShowExamples(rr_neg, false, n_examp_c, db, "true negatives",  disp);
+	ShowExamples(rr_pos, false, n_examp_f, db, "false negatives", disp);
+	ShowExamples(rr_neg, true,  n_examp_f, db, "false positives", disp);
 
 	size_t hs = 100, hd = 50;
 	vector<vector<float> >  histall;
@@ -23628,12 +23731,21 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 	fvhistpos.CalculateSelfDot();
 	fvhistneg.CalculateSelfDot();
 
-	vector<float> hits;
-	for (auto i=rr.rbegin(); i!=rr.rend(); i++)
-	  hits.push_back(gt[i->second]==1 ? 1.0 : 0.0);
-	analyse_result res;
+	vector<float> hits, pvec, rvec;
+	size_t tot = 0, hitsum = 0;
+	for (auto i=rr.rbegin(); i!=rr.rend(); i++) {
+	  bool hit = gt[i->second]==1;
+	  hits.push_back(hit ? 1.0 : 0.0);
+	  hitsum += hit;
+	  tot++;
+	  pvec.push_back(hitsum/float(tot));
+	  rvec.push_back(hitsum/float(hittot));
+	}
+
 	res.rescount = 1;
 	res.set_roc_from_hits(hits, val[1].size(), idxs.size(), 0);
+	res.precision = pvec;
+	res.recall    = rvec;
 
 	for (auto m=dt.begin(); m!=dt.end(); m++) {
 	  double dd = -1;
@@ -23661,15 +23773,6 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 	      meas_ext[m->second] = dd; // min!
 	  }
 	}
-
-	// cout << hdr << "AUC " << res.roc_auc << endl;
-	// cout << hdr << "EER " << res.roc_eer << endl;
-	// perf[*c]["AUC"].insert(make_pair( res.roc_auc, *d));
-	// perf[*c]["EER"].insert(make_pair(-res.roc_eer, *d));
-	// auc_avg += res.roc_auc;
-	// eer_avg += res.roc_eer;
-	// if (res.roc_auc>auc_max) auc_max = res.roc_auc;
-	// if (res.roc_eer<eer_min) eer_min = res.roc_eer;
       }
 
       for (auto m=dt.begin(); m!=dt.end(); m++) {
@@ -23681,14 +23784,6 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 	perf[""][m->second+"_avg"].insert(make_pair(sav, *d));
 	perf[""][m->second+minmax].insert(make_pair(sdd, *d));
       }
-
-      // auc_avg /= classes.size();
-      // eer_avg /= classes.size();
-      // perf[""]["AUC_avg"].insert(make_pair( auc_avg, *d));
-      // perf[""]["EER_avg"].insert(make_pair(-eer_avg, *d));
-      // perf[""]["AUC_max"].insert(make_pair( auc_max, *d));
-      // perf[""]["EER_min"].insert(make_pair(-eer_min, *d));
-
     }
 
     string hdr = "PERF SUMMARY ";
@@ -23718,7 +23813,50 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
       }
     }
 
-    return true;
+    if (iset.size()) {
+      cout << "LATEX %";
+      for (auto i=iset.begin(); i!=iset.end(); i++)
+	cout << " " << *i;
+      cout << endl;
+    }
+
+    return res;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  void Analysis::ShowExamples(const multimap<float,size_t>& rr, bool rev,
+			      size_t n, DataBase *db, const string& s,
+			      bool disp) {
+    //string msg = "ShowExamples() : ";
+
+    cout << "LATEX \\examplesection{" << s << "}" << endl;
+    size_t c = 0;
+    auto i = rr.begin();
+    auto j = rr.rbegin();
+    while (c++<n) {
+      if (i==rr.end())
+	break;
+      if (j==rr.rend())
+	break;
+
+      size_t idx = rev ? j->second : i->second;
+      float  val = rev ? j->first  : i->first;
+      cout << "LATEX \\examplevalue{" << c << "}{"
+	   << db->Label(idx) << "}{" << val << "}{}" << endl;
+
+      if (disp) {
+	imagedata img = db->ImageData(idx);
+	char key = '?';
+	cout << ">>> " << s << " " << db->Label(idx) << " " << val << " <<<"
+	     << endl;
+	imagefile::display(img, &key);
+	cout << "KEY " << key << " " << db->Label(idx) << endl;
+      }
+      
+      i++;
+      j++;
+    }
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -23882,7 +24020,6 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 	    WriteHistogramImage(hist[*i], hdp, false, ifname);
 	    ifname = "rel-"+*i+"-"+restr.label()+".png";
 	    WriteHistogramImage(hist[*i], hdp, true, ifname);
-
 	  }
 	}
       }
@@ -26738,19 +26875,26 @@ Analysis::analyse_result Analysis::AnalysePost(const vector<string>& a) {
   if (!a.size())
     return ShowError(err+"missing arguments");
 
+  if (verbose>1) {
+    GnuPlot::Debug(1);
+    GnuPlotData::Keep(true);
+  }
+    
   string cmd = a[0];
   size_t esp  = cmd.find('=');
   string spec = esp==string::npos ? "" : cmd.substr(esp+1);
   if (esp!=string::npos)
     cmd.erase(esp);
 
-  if (cmd=="-help" || (cmd!="-plot" && cmd!="-dir" && cmd!="-show")) {
+  if (cmd=="-help" || (cmd!="-plot" && cmd!="-plotpdf" &&
+		       cmd!="-dir" && cmd!="-show")) {
     cout << endl
          << "analyse=post : " << endl
          << "  -help ...          : this message" << endl
          << "  -dir xxx ...       : dir dump of xxx ..." << endl
          << "  -show=spec xxx ... : show stored values of xxx ..." << endl
          << "  -plot=spec xxx ... : plot something" << endl
+         << "  -plotpdf=spec xxx ... : plot something" << endl
          << endl;
     return true;
   }
@@ -26772,6 +26916,12 @@ Analysis::analyse_result Analysis::AnalysePost(const vector<string>& a) {
   if (cmd=="-show")
     ok = Show(ar_all, spec, ar_all.rescount==0?"*":"");
 
+  gnuplot_extra.clear();
+  if (cmd=="-plotpdf") {
+    cmd = "-plot";
+    gnuplot_extra.push_back("pdf");
+  }
+  
   if (cmd=="-plot")
     ok = Plot(ar_all, spec, ar_all.rescount==0?"*":"");
 
@@ -26807,8 +26957,8 @@ bool Analysis::Show(const analyse_result& r, const string& a,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool Analysis::Plot(const analyse_result& r, const string& ain,
-                    const string& istr) {
+bool Analysis::Plot(const analyse_result& r, const string& ain, 
+		    const string& istr) {
   string err = "Plot() : ";
 
   string a = ain!="" ? ain : plot;
@@ -26910,7 +27060,6 @@ bool Analysis::PlotShow(const analyse_result& r, const string& sin,
     if (s!="")
       cmd.push_front(s);
 
-    // GnuPlot::Debug(99);
     GnuPlot gp(cmd);
     PlotCommandCommon2(gp, x_0, x_1, y_0, y_1);
 
@@ -27028,6 +27177,8 @@ list<string> Analysis::PlotCommandCommon1(float tic, float xltic) const {
   if (filename!="")
     cmd.push_back(filename);
 
+  cmd.insert(cmd.end(), gnuplot_extra.begin(), gnuplot_extra.end());
+  
   // cmd.push_back("set size 500,500");
   cmd.push_back("set ytics "+ToStr(tic));
   cmd.push_back("set xtics "+ToStr(xltic));
@@ -27079,6 +27230,12 @@ bool Analysis::PlotAdd(GnuPlot& gp, const analyse_result& r, const string& t,
   vector<string> dv = SplitInSomething(".", false, d);
   vector<string> sv = SplitInSomething(".", false, spec);
 
+  if (!Picsom()->Quiet()) {
+    cout << "t=[" << t << "] d=[" << d << "] spec=[" << spec 
+	 << "] dv.size()=" << dv.size() << " sv.size()="
+	 << sv.size() << endl;
+  }
+  
   bool dis = false, any = false;
   if (dv.size()>=sv.size()) {
     dis = true;
@@ -27275,7 +27432,8 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 	    v = v1+v2;
 	  }
 	  cout << ii << " " << n << " " << v << endl;
-	  CheckDB()->StoreDetectionResult(ii, n, v);
+	  bool incore = false;
+	  CheckDB()->StoreDetectionResult(ii, n, v, incore);
 	}
       }
 
@@ -28208,7 +28366,8 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       if (val<0 || val>1)
 	return ShowError(err+"detection value out of bounds in <"+line+">");
 
-      if (!CheckDB()->StoreDetectionResult(idx, detections.front(), val))
+      bool incore = false;
+      if (!CheckDB()->StoreDetectionResult(idx, detections.front(), val, incore))
 	return ShowError(err+"storing detection value failed for <"+line+">");
 
       n++;
@@ -28288,8 +28447,8 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
   /////////////////////////////////////////////////////////////////////////////
 
   Analysis::analyse_result 
-  Analysis::AnalyseTestBinData(const vector<string>& a) {
-    string msg = "Analysis::AnalyseTestBinData() : ";
+  Analysis::AnalyseBinDataTest(const vector<string>& a) {
+    string msg = "Analysis::AnalyseBinDataTest() : ";
 
     size_t l = 100, n = 100;
     if (a.size())
@@ -29078,6 +29237,8 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
   Analysis::AnalyseFeatureTest(const vector<string>& argv) {
     string err = "AnalyseFeatureTest() : ";
 
+    bool incore_img = true;
+
     size_t maxcomp = 100;
 
     if (!argv.size())
@@ -29091,13 +29252,22 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
     list<incore_feature_t> incore;
     for (size_t i=0; i<argv.size(); i++) {
       const string& arg = argv[i];
+      if (arg=="noincore") {
+	incore_img = false;
+	continue;
+      }
+      if (arg=="incore") {
+	incore_img = true;
+	continue;
+      }
 
       imagedata imgdata;
+      int iidx = -1;
+
       if (FileExists(arg))
 	imgdata = imagefile(arg).frame(0);
 
       else {
-	int iidx = -1;
 	if (arg[0]=='#')
 	  iidx = atoi(arg.substr(1).c_str());
 	else 
@@ -29106,25 +29276,25 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 	if (iidx<0)
 	  return ShowError(err+"<"+arg+"> is neither a label nor filename");
 
-	if (db->ObjectsTargetType(iidx)==target_image)
+	if (incore_img && db->ObjectsTargetType(iidx)==target_image)
 	  imgdata = db->ImageData(db->LabelIndex(arg));
+      }
 
-	if (!imgdata.empty()) {
-	  string type = "picsom::imagedata*";
-	  idatalist.push_back(imgdata);
-	  stringstream ss;
-	  ss << (void*)&*idatalist.rbegin();
-	  incore.push_back(make_pair(make_pair(type, ss.str()),
-				     vector<float>()));
+      if (!imgdata.empty()) {
+	string type = "picsom::imagedata*";
+	idatalist.push_back(imgdata);
+	stringstream ss;
+	ss << (void*)&*idatalist.rbegin();
+	incore.push_back(make_pair(make_pair(type, ss.str()),
+				   vector<float>()));
 
-	} else {
-	  string type = "string::filename*";
-	  fnamelist.push_back(db->ObjectPathEvenExtract(iidx));
-	  stringstream ss;
-	  ss << (void*)&*fnamelist.rbegin();
-	  incore.push_back(make_pair(make_pair(type, ss.str()),
-				     vector<float>()));
-	}
+      } else {
+	string type = "string::filename*";
+	fnamelist.push_back(db->ObjectPathEvenExtract(iidx));
+	stringstream ss;
+	ss << (void*)&*fnamelist.rbegin();
+	incore.push_back(make_pair(make_pair(type, ss.str()),
+				   vector<float>()));
       }
     }
 
@@ -29135,14 +29305,16 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       VectorIndex& vi = CheckQuery()->vectorIndex(m);
       // VectorIndex vi(db, f, f, dirstr, "", NULL);
 
-      cout << err << vi.LongName() << " has " << vi.DataSetSize()
-           << " items, with vector length " << vi.VectorLength() << endl;
+      WriteLog(err+vi.LongName()+" has "+ToStr(vi.DataSetSize())+
+	       " items, with vector length "+ToStr(vi.VectorLength()));
 
       vector<size_t> idx;
       set<string> done_segm;
       XmlDom xml;
       vi.CalculateFeatures(idx, incore, done_segm, xml, NULL);
       for (auto i=incore.begin(); i!=incore.end(); i++) {
+	cout << "[" << i->first.first << "][" << i->first.second << "] "
+	     << i->second.size() << " :";
 	for (size_t j=0; (maxcomp==0 || j<maxcomp) && j<i->second.size(); j++)
 	  cout << " " << i->second[j];
 	cout << endl;
@@ -29356,9 +29528,64 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 
   /////////////////////////////////////////////////////////////////////////////
 
+  extern "C" void openblas_set_num_threads(int);
+
+  void *caffe_instance(void *ps) {
+    PicSOM *pp = (PicSOM*)ps;
+    Query *q = pp->NewQuery();
+    Analysis a(pp, NULL, q, vector<string>());
+    int ok = 0;
+    q->SetAnalysis(&a);
+    q->Interpret("database", "caffe", ok, NULL);
+    q->Interpret("features", "c_in12_rn50_pool5o_d_c", ok, NULL);
+
+    vector<string> argv { "girl.jpeg" };
+    a.AnalyseFeatureTest(argv);
+    delete q;
+    return NULL;
+  }
+
+  void run_caffe_instance(PicSOM *ps)  {
+    pthread_t p;
+    pthread_create(&p, NULL, caffe_instance, ps);    
+  }
+  
+  
   Analysis::analyse_result Analysis::AnalyseTest(const vector<string>& argv) {
     string msg = "AnalyseTest() : ";
 
+#if defined(HAVE_JSON_JSON_H)
+    DataBase* db = CheckDB();
+    string zipf = db->ExpandPath("download/1.2/image_data.json.zip");
+    string indata = Picsom()->UnZip(zipf);
+    ifstream istr(indata);
+    Json::Value doc;
+    istr >> doc;
+    return true;
+#endif // HAVE_JSON_JSON_H
+
+    //openblas_set_num_threads(1);
+    DataBase::DebugFeatures(1);
+    for (size_t n=0;; n++) {
+      caffe_instance(Picsom());
+      continue;
+      if (n<10)
+	run_caffe_instance(Picsom());
+      //NanoSleep(0.1);
+      NanoSleep(10);
+    }
+      
+#if 0
+    ifstream istr("girl.jpeg");
+    stringstream ss;
+    ss << istr.rdbuf();
+    string str = ss.str();
+    imagefile ifile = imagefile::unstringify(str, "image/jpeg");
+    imagedata img = ifile.frame(0);
+    imagefile::display(img);
+#endif // 0
+    
+#if 0
     FloatVector *v = GetDataBase()->FeatureData("fasterRcnn_spatMapFeat3+3GaussScaleDet",
 					      0, true);
 
@@ -29369,7 +29596,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
     v = GetDataBase()->FeatureData("frcnn80detP3+3SpatGaussScaleP6grRBFsun397", 
 				   0, true);
     delete v;
-
+#endif // 0
 
     bool all = true;
     set<string> todo;
@@ -31703,7 +31930,7 @@ script_exp_t Analysis::ScriptExpand(const list<string>& scr,
   /////////////////////////////////////////////////////////////////////////////
 
   script_exp_t Analysis::ScriptDefaultMacros() const {
-    timespec_t tt;
+    struct timespec tt;
     SetTimeNow(tt);
     tm mytime;
     tm *time = localtime_r(&tt.tv_sec, &mytime);
@@ -32133,6 +32360,8 @@ list<string> Analysis::ScriptSolveScriptPath(const script_exp_t& scr) const {
 
     insert_objects_textline.clear();
 
+    db->SqlBeginTransaction();
+    
     for (size_t i=0; i<argv.size(); i++) {
       //WriteLog("A "+string(ret?"ret==true":"ret==false"));
 
@@ -32267,6 +32496,8 @@ list<string> Analysis::ScriptSolveScriptPath(const script_exp_t& scr) const {
 
       ret = false;
     }
+
+    db->SqlEndTransaction();
 
     WriteOutTextLineData();
 
@@ -32487,13 +32718,30 @@ list<string> Analysis::ScriptSolveScriptPath(const script_exp_t& scr) const {
     }
 
     if (op=="class" || op=="class ordered") { // **class**
-      bool ordered = op=="class ordered", hasval = false;
+      bool ordered = op=="class ordered", hasval = false, ishashindex = false;
       ground_truth gt(db->Size(), -1);
       list<pair<size_t,double> > ord;
       string equation;
 
       if (argv.size()>1) {
-	int idx = db->LabelIndexGentle(argv[1], true);
+	int idx = -1;
+	if (argv[1][0]=='#' && argv[1].length()>1 &&
+	    argv[1].find_first_not_of("0123456789", 1)==string::npos) {
+	  ishashindex = true;
+	  idx = atoi(argv[1].substr(1).c_str());
+	} else
+	  idx = db->LabelIndexGentle(argv[1], true);
+
+	if (idx<0 && argv[1].substr(0, 2)=="//") { // $auxid(...)
+	  ground_truth t = db->GroundTruthExpression(argv[1]);
+	  vector<size_t> gto = t.indices(1);
+	  if (gto.size()!=1) {
+	    return ShowError(msg+"\""+argv[1]+"\" expands to "+
+			     ToStr(gto.size())+" objects");
+	  }
+	  idx = gto[0];
+	}
+	
 	if (idx>=0) {
 	  if (!ordered)
 	    gt[idx] = 1;
@@ -32522,7 +32770,7 @@ list<string> Analysis::ScriptSolveScriptPath(const script_exp_t& scr) const {
 	}
 
 	string comm;
-	if (!ismetaline && argv.size()>1 && argv[1][0]=='#')
+	if (!ishashindex && !ismetaline && argv.size()>1 && argv[1][0]=='#')
 	  for (size_t i=1; i<argv.size(); i++)
 	    comm += (i>1?" ":"")+argv[i];
 
@@ -32783,7 +33031,8 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 
     string file = filect, ct, ctype, url;
     bool delete_original = false;
-
+    bool insert_zipped_images = true;
+    
     if (filect.substr(0, 7) == "http://" ||
 	filect.substr(0, 8) == "https://") {
       url = filect;
@@ -32866,7 +33115,17 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
     uid.date     = PicSOM::OriginsDateStringNow(true);
     uid.nofile   = nofile;
     uid.keywords = SplitInCommas(classname);
-  
+
+    if ((ct=="application/zip" || ct=="application/x-tar") &&
+	insert_zipped_images) {
+      if (!db->ContainsImages(file)) {
+	WriteLog("   Container file <", file, 
+		 "> doesn't contained images, skipping.");
+	return false;
+      }
+      uid.use    = "container-regular";
+    }
+    
     list<string> featlist, detectlist, segmentlist;
     if (extractfeatures)
       featlist = query->IndexFullNames();
@@ -39518,6 +39777,124 @@ string Analysis::MatlabFileName(int feat, int lev,
     return true;
   }
 #endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
+
+  /////////////////////////////////////////////////////////////////////////////
+
+#if defined(HAVE_THC_H) && defined(PICSOM_USE_TORCH)
+
+  // env LD_LIBRARY_PATH=/share/apps/easybuild/software/Qt/4.8.7-GCC-5.3.0/lib qlua
+  // > require 'torch'; require 'image'; require 'qttorch'
+  // > t = torch.FloatTensor(3,256,256)
+  // > image.display(t)
+
+  Analysis::analyse_result Analysis::AnalyseTorchTest(const vector<string>&) {
+    string msg = "Analysis::AnalyseTorchTest() : ";
+    list<imagedata> imgl;
+    //size_t nimg = 1;
+    //Tic("AnalyseTorchTest");
+    //DataBase *db = CheckDB();
+    //Tac("AnalyseTorchTest");
+
+    lua_State *L = lua_open();
+    luaL_openlibs(L);
+
+    list<string> require      { "torch", "paths", "xlua", "optim", "nn"
+	// , "image", "qttorch"
+	};
+    list<string> require_cuda { "cutorch", "cudnn", "cunn" };
+    // migh also require "image" but ... 
+    // module 'qt' not found:No LuaRocks module found for qt
+
+    for (auto i=require.begin(); i!=require.end(); i++) {
+      string s = "require '"+*i+"'";
+      if (luaL_dostring(L, s.c_str()))
+	return ShowError(msg+"luaL_dostring() failed : <"+s+">");
+    }
+
+    if (Picsom()->GpuDeviceId()>-1)
+      for (auto i=require_cuda.begin(); i!=require_cuda.end(); i++) {
+	string s = "require '"+*i+"'";
+	if (luaL_dostring(L, s.c_str()))
+	  return ShowError(msg+"luaL_dostring() failed : <"+s+">");
+      }
+
+    picsom::imagedata img = picsom::imagefile("girl.jpg").frame(0);
+    cout << img.info() << endl; 
+    picsom::scalinginfo si(img.width(), img.height(), 256, 256);
+    img.rescale(si, 1);
+    cout << img.info() << endl; 
+    
+    vector<size_t> vsize, vstride;
+    vector<float> vx = img.get_ordered_float("cyx", vsize, vstride);
+
+    THFloatStorage *s = THFloatStorage_newWithData(vx.data(), vx.size());
+    THFloatTensor *t = THFloatTensor_newWithStorage3d(s, 0, vsize[0], vstride[0],
+						      vsize[1], vstride[1],
+						      vsize[2], vstride[2]);
+
+    luaT_pushudata(L, t, "torch.FloatTensor");
+    lua_setglobal(L, "t");
+    //luaL_dostring(L, "image.display(t)"); for(;;);
+    //luaL_dostring(L, "print(t)");
+
+    if (luaL_dostring(L, "model = torch.load('/scratch/cs/imagedb/picsom/databases/torch/"
+		      "torch/models/alexnet_BWN/alexnet_BWN.t7')"))
+      return ShowError(msg+"luaL_dostring() failed C");
+
+    // if (luaL_dostring(L, "print(model)"))
+    //   return ShowError(msg+"luaL_dostring() failed D");
+
+    luaL_dostring(L, "ct = t:cuda()");
+    luaL_dostring(L, "print(ct)");
+    luaL_dostring(L, "ct = t:cuda()");
+    //luaL_dostring(L, "print(ct)");
+
+    luaL_dostring(L, "co = model:forward(ct)");
+    luaL_dostring(L, "cutorch.synchronize()");
+    luaL_dostring(L, "o = co:float()");
+    luaL_dostring(L, "print(o)");
+
+    lua_getglobal(L, "o");
+    void *p = luaT_checkudata(L, -1, "torch.FloatTensor");
+    cout << p << endl;
+    THFloatTensor *o = (THFloatTensor*)p;
+    THFloatStorage *v = THFloatTensor_storage(o);
+    size_t vo = THFloatTensor_storageOffset(o);
+    size_t vd = THFloatTensor_nDimension(o);
+    cout << v << " " << vo << " " << vd << endl;
+    for (size_t i=0; i<vd; i++)
+      cout << " " << i << " " << THFloatTensor_size(o, i)
+	   << " " << THFloatTensor_stride(o, i) << endl;
+
+    float *d = THFloatStorage_data(v)+THFloatTensor_storageOffset(o);
+    vector<double> esum(THFloatTensor_size(o, 0));
+    for (size_t i=0; i<(size_t)THFloatTensor_size(o, 1); i++) {
+      cout << i;
+      for (size_t j=0; j<(size_t)THFloatTensor_size(o, 0); j++) {
+	size_t ij = j*THFloatTensor_stride(o, 0)+i*THFloatTensor_stride(o, 1);
+	cout << " " << ij << "/" << d[ij];
+	esum[j] += exp(d[ij]);
+      }
+      cout << endl;
+    }
+    cout << "***";
+    for (size_t j=0; j<(size_t)THFloatTensor_size(o, 0); j++)
+      cout << " " << esum[j];
+    cout << endl;
+
+    lua_close(L);
+
+    // THCState *state = THCState_alloc();
+    // THCudaInit(state);
+    // cout << "THCState_getNumDevices() = " << THCState_getNumDevices(state) << endl;
+    // cout << "THCState_getNumStreams() = " << THCState_getNumStreams(state) << endl;
+
+    // THFile *file = THDiskFile_new("test.t7", "r", 0);
+    // cout << "THDiskFile_name() = " << THDiskFile_name(file) << endl;
+
+    return true;
+  }
+#endif // HAVE_THC_H && PICSOM_USE_TORCH
 
   /////////////////////////////////////////////////////////////////////////////
 

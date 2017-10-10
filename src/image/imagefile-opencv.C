@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.21 2016/01/13 09:33:49 jorma Exp $
+// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.25 2017/05/24 13:47:14 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -21,10 +21,12 @@
 #include <tiffio.h>
 
 namespace picsom {
-  static const string implhead = "imagefile-opencv";
-  int imagefile::_debug_impl = 0;
-  bool imagefile::_keep_tmp_files = false;
+  int    imagefile::_debug_impl     = 0;
+  bool   imagefile::_keep_tmp_files = false;
+  string imagefile::_tmp_dir        = "/var/tmp";
+
   static bool do_throw = true;
+  static const string implhead = "imagefile-opencv";
 
   // map<imagedata::pixeldatatype,string> imagedata::pixeldatatype_map;
 
@@ -34,7 +36,7 @@ namespace picsom {
 
   const string& imagefile::impl_version() {
     static string v =
-      "$Id: imagefile-opencv.C,v 1.21 2016/01/13 09:33:49 jorma Exp $";
+      "$Id: imagefile-opencv.C,v 1.25 2017/05/24 13:47:14 jormal Exp $";
     return v;
   }
 
@@ -550,16 +552,13 @@ namespace picsom {
       cout << "now in " << implhead << "::write_impl(" << fname
 	   << ", " << fmt << ")" << endl;
 
- if(fmt=="image/tiff" && nframes()>1)
-      data(this)->use_libtiff=true;
+    if (fmt=="image/tiff" && nframes()>1)
+      data(this)->use_libtiff = true;
 
-    if (data(this)->use_libtiff){
+    if (data(this)->use_libtiff) {
+      TIFF *out = TIFFOpen(fname.c_str(), "w");
 
-
-      TIFF *out= TIFFOpen(fname.c_str(), "w");
-
-      for(int framenr=0;framenr<nframes();framenr++){
-
+      for(int framenr=0; framenr<nframes(); framenr++) {
 	imagedata img = frame(framenr);
 
 	if (img.type()!=imagedata::pixeldata_uint16)
@@ -577,20 +576,20 @@ namespace picsom {
 	TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
 	TIFFSetField(out, TIFFTAG_COMPRESSION, COMPRESSION_PACKBITS);
 
-	if(framenr==0){
+	if (framenr==0) {
 	  TIFFSetField(out, TIFFTAG_IMAGEDESCRIPTION, description().c_str());
 	}
 
 	size_t linebytes = img.width()*sizeof(uint16);
 	unsigned char *buf = NULL;
 	if (TIFFScanlineSize(out)==(int)linebytes)
-	  buf =(unsigned char *)_TIFFmalloc(linebytes);
+	  buf = (unsigned char*)_TIFFmalloc(linebytes);
 	else
-	  buf = (unsigned char *)_TIFFmalloc(TIFFScanlineSize(out));
+	  buf = (unsigned char*)_TIFFmalloc(TIFFScanlineSize(out));
 
 	TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(out, img.width()*sizeof(uint16)));
 
-	int l=img.width()*img.height();
+	int l = img.width()*img.height();
 	const uint16 *iptr=img.raw_uint16(l);
 
 	//Now writing image to the file one strip at a time
@@ -681,10 +680,65 @@ namespace picsom {
 
   ///--------------------------------------------------------------------------
 
-  void imagefile::display_impl(const imagedata& d, const displaysettings&) {
+  static cv::Mat imagedata2cvmat(const imagedata& d, int t) {
+    cv::Mat mat(d.height(), d.width(), t);
+    if (t==CV_32FC3) {
+      imagedata a = d;
+      a.convert(imagedata::pixeldata_float);
+      a.force_three_channel();
+      for (size_t x=0; x<a.width(); x++)
+	for (size_t y=0; y<a.height(); y++) {
+	  vector<float> v = a.get_float(x, y);
+	  float t = v[0];
+	  v[0] = v[2];
+	  v[2] = t;
+	  a.set(x, y, v);
+	}
+      vector<float> dv = a.get_float();
+      float *p = &mat.at<float>(0);
+      memcpy(p, &dv[0], 4*dv.size());
+      
+    } else {
+      cerr << "imagefile-opencv::imagedata2cvmat() : type=" << t
+	   << " not implemented" << endl;
+    }
+    
+    return mat;
+  }
+
+  ///--------------------------------------------------------------------------
+
+  static void display_impl_int(const imagedata& d, 
+			       const imagefile::displaysettings&,
+			       char *k) {
+    string wname = "picsom::imagefile";
+    cv::namedWindow(wname, 1);
+    cv::Mat mat = imagedata2cvmat(d, CV_32FC3);
+    cv::imshow(wname, mat);
+    char c = (char)cv::waitKey(0);
+    if (k)
+      *k = c;
+    // cout << "Key <" << c << "> hit" << endl;
+  }
+
+  ///--------------------------------------------------------------------------
+
+  static void display_impl_ext(const imagedata& d, 
+			       const imagefile::displaysettings&, char*) {
     string fmt = "image/png";
     string cmd = "eog %s";
-    display_tmpfile(d, fmt, cmd);
+    imagefile::display_tmpfile(d, fmt, cmd);
+  }
+
+  ///--------------------------------------------------------------------------
+
+  void imagefile::display_impl(const imagedata& d, const displaysettings& s,
+			       char *k) {
+    bool use_int = true;
+    if (use_int)
+      display_impl_int(d, s, k);
+    else
+      display_impl_ext(d, s, k);
   }
 
   ///--------------------------------------------------------------------------

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Util.C,v 2.64 2016/12/05 17:43:14 jorma Exp $
+// -*- C++ -*-  $Id: Util.C,v 2.68 2017/10/05 12:39:11 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -12,6 +12,10 @@
 
 #include <cmath>
 #include <limits>
+
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif // HAVE_DLFCN_H
 
 #ifdef __linux__
 #include <execinfo.h>
@@ -35,7 +39,7 @@
 
 namespace picsom {
   static const string Util_C_vcid =
-  "@(#)$Id: Util.C,v 2.64 2016/12/05 17:43:14 jorma Exp $";
+  "@(#)$Id: Util.C,v 2.68 2017/10/05 12:39:11 jormal Exp $";
 
   static bool do_abort = false;
   static int locate_file_debug = 0;
@@ -444,7 +448,7 @@ namespace picsom {
   /////////////////////////////////////////////////////////////////////////////
 
   const char *TimeStampP() {
-    timespec_t tt;
+    struct timespec tt;
     SetTimeNow(tt);
     tm mytime;
     tm *time = localtime_r(&tt.tv_sec, &mytime);
@@ -936,6 +940,7 @@ namespace picsom {
       replace["/m/fs/project0/imagedb/"] = "/share/imagedb/";
       replace["/m/fs/project/imagedb/"]  = "/share/imagedb/";
       replace["/m/fs/home/"]             = "/home/";
+      replace["/m/cs/scratch/imagedb/"]  = "/m/cs/project/imagedb/";
     }
 
     if (p.substr(0, 1)=="/")
@@ -943,9 +948,21 @@ namespace picsom {
 
     char tmp[1024];
     string ret = getcwd(tmp, sizeof tmp);
-    if (ret.substr(ret.size()-1, 1)!="/")
-      ret += "/";
-    ret += p;
+    if (ret[ret.size()-1]=='/')
+      ret.erase(ret.size()-1);
+
+    string s = p;
+    while (s.substr(0, 3)=="../") {
+      size_t a = ret.rfind('/');
+      if (a==string::npos) {
+	ShowError("FullPath("+p+") failed");
+	return "";
+      }
+      ret.erase(a);
+      s.erase(0, 3);
+    }
+
+    ret += "/"+s;
 
     for (map<string,string>::const_iterator i = replace.begin();
 	 i!=replace.end(); i++)
@@ -991,6 +1008,10 @@ namespace picsom {
       { "text/html",                ".htm", ".HTM" },
       { "application/json",         ".json",".JSON"},
       { "application/x-cogain",     ".cogain",".COGAIN"},
+      { "application/zip",          ".zip", ".ZIP"},
+      { "application/x-tar",        ".tar", ".TAR"},
+      { "application/x-tar",        ".tar.gz",".TAR.GZ"},
+      { "application/x-tar",        ".tgz", ".TGZ"},
       { NULL, NULL, NULL }
     };
 
@@ -1323,6 +1344,7 @@ namespace picsom {
 #ifdef HAVE_MAGIC_H
     const bool debug = false;
     const char* mime = NULL;
+    // file -Liz
     magic_t m = magic_open( MAGIC_SYMLINK | MAGIC_MIME | MAGIC_COMPRESS );
     if (m && !magic_load(m, NULL))
       mime = magic_file(m, fname.c_str());
@@ -1440,7 +1462,7 @@ namespace picsom {
 
     return make_pair(mt, compress);
 #else
-    WarnOnce("libmagic is not availbale, some functionality is missing.");
+    WarnOnce("libmagic is not available, some functionality is missing.");
     string tmp = fname;
     return make_pair("", "");
 #endif // HAVE_MAGIC_H
@@ -1653,6 +1675,22 @@ namespace picsom {
       ShowError(msg+"impossible escape from a closed loop");
 
     return nan;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string OpenBlasVersion() {
+#ifdef HAVE_DLFCN_H
+    void *p = dlsym(RTLD_DEFAULT, "openblas_get_config");
+    if (!p)
+      return "";
+    
+    char*(*ogc)() = (char*(*)()) p;
+    char *s = (*ogc)();
+    return s;
+#else
+    return "";
+#endif // HAVE_DLFCN_H
   }
 
 } // namespace picsom

@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: TicTac.h,v 2.9 2015/10/01 10:02:21 jorma Exp $
+// -*- C++ -*-  $Id: TicTac.h,v 2.10 2017/04/28 07:46:07 jormal Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science and Technology
@@ -8,7 +8,8 @@
 #ifndef _TICTAC_H_
 #define _TICTAC_H_
 
-#include <missing-c-utils.h>
+//#include <missing-c-utils.h>
+#include <picsom-config.h>
 
 #ifdef HAVE_SYS_TIMES_H
 #include <sys/times.h>
@@ -73,7 +74,7 @@ public:
   /// Prints the summary.
   void Summary(bool cum = true, bool diff = true, ostream& os = cout) {
     tms now_cpu;
-    timespec_t now_real;
+    struct timespec now_real;
     SetTimes(now_real, now_cpu);
 
     tm *time = localtime(&now_real.tv_sec);
@@ -99,7 +100,7 @@ public:
 	 << endl << "**" << endl;
 
     int maxtictacs, usersum, systsum, ttw;
-    timespec_t rsum;
+    struct timespec rsum;
     CalculateSums(true, maxtictacs, rsum, usersum, systsum, ttw);
     os << "  ";
     for (int j=ttw-1; j>=0; j--)
@@ -129,17 +130,17 @@ public:
   /// Prints time usage summary.
   void CommonSummary(bool cum, ostream& os = cout) {
     tms now_cpu;
-    timespec_t now_real;
+    struct timespec now_real;
     SetTimes(now_real, now_cpu);
 
     tms& cpunow     = stopped&&cum ? stop_cpu  : now_cpu;
-    timespec_t& realnow = stopped&&cum ? stop_real : now_real;
+    struct timespec& realnow = stopped&&cum ? stop_real : now_real;
 
     tms& cputhen     = cum ? start_cpu  : last_cpu;
-    timespec_t& realthen = cum ? start_real : last_real;
+    struct timespec& realthen = cum ? start_real : last_real;
 
     int maxtictacs, usersum, systsum, ttw;
-    timespec_t rsum;
+    struct timespec rsum;
     CalculateSums(true, maxtictacs, rsum, usersum, systsum, ttw);
     
     if (!cum) {
@@ -150,7 +151,7 @@ public:
     int udiff   = cpunow.tms_utime-cputhen.tms_utime;
     int sdiff   = cpunow.tms_stime-cputhen.tms_stime;
     int div     = udiff+sdiff;
-    timespec_t rdiff = { realnow.tv_sec-realthen.tv_sec,
+    struct timespec rdiff = { realnow.tv_sec-realthen.tv_sec,
 			 realnow.tv_nsec-realthen.tv_nsec };
 
     char cd = cum?'C':'D';
@@ -183,7 +184,7 @@ public:
   }
 
   /// Calculates sums and maximums.
-  void CalculateSums(bool cum, int& maxtictacs, timespec_t& realsum,
+  void CalculateSums(bool cum, int& maxtictacs, struct timespec& realsum,
 		     int& usersum, int& systsum, int& ttw) {
     realsum.tv_nsec = realsum.tv_sec = 0;
     usersum = systsum = 0;
@@ -286,14 +287,14 @@ public:
     user = udiff/tic;
     sys  = sdiff/tic;
 
-    timespec_t rdiff = { stop_real.tv_sec -start_real.tv_sec,
+    struct timespec rdiff = { stop_real.tv_sec -start_real.tv_sec,
 			 stop_real.tv_nsec-start_real.tv_nsec };
     ttentry::normalize(rdiff);
     real = rdiff.tv_sec+rdiff.tv_nsec/1000000000.0;
   }
     
   /// Sets a pair of times.
-  static void SetTimes(timespec_t& real, tms& cpu) {
+  static void SetTimes(struct timespec& real, tms& cpu) {
     times(&cpu);
     clock_gettime(CLOCK_REALTIME, &real);
   }
@@ -326,7 +327,7 @@ protected:
       int tacs;
 
       /// Cumulative wall clock time.
-      timespec_t real;
+      struct timespec real;
 
       /// Cumulative user mode CPU usage.
       int user;
@@ -372,7 +373,7 @@ protected:
 
     /// Increments the cumulative times relative to previously-set timestamp.
     void increment_times() {
-      timespec_t tac_real;
+      struct timespec tac_real;
       tms tac_cpu;
       SetTimes(tac_real, tac_cpu);
 
@@ -408,8 +409,8 @@ protected:
       }
     }
 
-    /// Normalizes timespec_t.
-    static void normalize(timespec_t& t) {
+    /// Normalizes struct timespec.
+    static void normalize(struct timespec& t) {
       const long nano = 1000000000;
       while (t.tv_nsec<0) {
 	t.tv_nsec += nano;
@@ -474,7 +475,7 @@ protected:
     int level;
 
     /// Wall clock time of last Tic().
-    timespec_t tic_real;
+    struct timespec tic_real;
 
     /// CPU usage of last Tic().
     tms tic_cpu;
@@ -585,7 +586,7 @@ protected:
 
   /// Prints one line of summary.
   bool PrintLine(int ch, bool skipz, ostream& os, int ttw, int tics, int tacs,
-		 const timespec_t& real, int user, int system,
+		 const struct timespec& real, int user, int system,
 		 int ch_user, int ch_system, int div, const char *n) {
     if (skipz && !tics)
       return false;
@@ -706,13 +707,13 @@ protected:
   tms stop_cpu;
 
   /// Start wall clock.
-  timespec_t start_real;
+  struct timespec start_real;
 
   /// Last display wall clock.
-  timespec_t last_real;
+  struct timespec last_real;
 
   /// Stop wall clock.
-  timespec_t stop_real;
+  struct timespec stop_real;
 
   /// Separator string between function names.
   string separator;

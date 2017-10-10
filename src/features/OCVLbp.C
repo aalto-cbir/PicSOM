@@ -1,13 +1,13 @@
-// -*- C++ -*-  $Id: OCVLbp.C,v 1.21 2014/04/16 09:25:24 jorma Exp $
+// -*- C++ -*-  $Id: OCVLbp.C,v 1.22 2017/03/10 09:48:11 jormal Exp $
 // 
-// Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
 
-#include <OCVLbp.h>
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#include <OCVLbp.h>
 
 #include <algorithm>
 #include <iostream>
@@ -15,7 +15,7 @@
 
 namespace picsom {
   static const string vcid =
-    "$Id: OCVLbp.C,v 1.21 2014/04/16 09:25:24 jorma Exp $";
+    "$Id: OCVLbp.C,v 1.22 2017/03/10 09:48:11 jormal Exp $";
 
   static OCVLbp list_entry(true);
   
@@ -706,4 +706,4 @@ namespace picsom {
 
 } // namespace picsom
 
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV

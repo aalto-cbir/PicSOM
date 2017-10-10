@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Analysis.h,v 2.483 2016/12/19 08:11:23 jorma Exp $
+// -*- C++ -*-  $Id: Analysis.h,v 2.490 2017/05/09 10:19:10 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -36,10 +36,11 @@ namespace picsom {
   using simple::ConfusionMatrix;
   using simple::FloatPointVector;
   using simple::GnuPlot;
+  using simple::GnuPlotData;
   using simple::DataSet;
 
   static const string Analysis_h_vcid =
-    "@(#)$Id: Analysis.h,v 2.483 2016/12/19 08:11:23 jorma Exp $";
+    "@(#)$Id: Analysis.h,v 2.490 2017/05/09 10:19:10 jormal Exp $";
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -373,6 +374,12 @@ namespace picsom {
     /// work horse
     static bool DoAnalyse(PicSOM*, const vector<string>&);
 
+    ///
+    int Verbose() const { return verbose; }
+    
+    ///
+    void Verbose(int v) { verbose = v; }
+    
     /// Returns true if cin can be read.
     bool HasCin() const { return has_cin; }
 
@@ -400,8 +407,8 @@ namespace picsom {
 
     /// Logs both in visual and matlab format.
     void DoubleLog(string& mat, const string& m1, const string& m2 = "",
-		  const string& m3 = "", const string& m4= "", 
-		  const string& m5 = "") const {
+		   const string& m3 = "", const string& m4= "", 
+		   const string& m5 = "") const {
       WriteLog(m1, m2, m3, m4, m5);
       mat += "% " + m1 + m2 + m3 + m4 + m5 + "\n";
     }
@@ -647,8 +654,8 @@ namespace picsom {
                     bool do_cont=false, set<string> skip_set = set<string>());
 
     bool PredictSVMalt(SVM* svmp, const ground_truth& rst, int n,
-                    const string& fnpre, const string& predict_str = "yes",
-                    bool do_cont=false, set<string> skip_set = set<string>());
+		       const string& fnpre, const string& predict_str = "yes",
+		       bool do_cont=false, set<string> skip_set = set<string>());
 
     ///
     bool SVMsetParam(const string& key, const string& val) {
@@ -869,17 +876,17 @@ namespace picsom {
 
     ///
     list<string> ListIntersection(const list<string>& a,
-                                 const list<string>& b) const {
+				  const list<string>& b) const {
       list<string> ret;
 
       if (!b.size())
-       return ret;
+	return ret;
 
       for (list<string>::const_iterator i=a.begin(); i!=a.end(); i++) {
-       list<string>::const_iterator pos = find(b.begin(), b.end(), *i);
-       // add to ret if element not found in b
-       if (pos!=b.end())
-         ret.push_back(*i);
+	list<string>::const_iterator pos = find(b.begin(), b.end(), *i);
+	// add to ret if element not found in b
+	if (pos!=b.end())
+	  ret.push_back(*i);
       }
       return ret;
     }
@@ -1057,6 +1064,9 @@ namespace picsom {
     ///
     analyse_result AnalyseCaffeConvertImageset(const vector<string>&);
 
+    //
+    analyse_result AnalyseTranslateTest(const vector<string>&);
+
     ///
     analyse_result AnalyseTfIdfTest(const vector<string>&);
     
@@ -1227,6 +1237,10 @@ namespace picsom {
     analyse_result AnalyseDetectorPerformance(const vector<string>&);
 
     ///
+    void ShowExamples(const multimap<float,size_t>&, bool, size_t,
+		      DataBase*, const string&, bool);
+
+    ///
     bool WriteHistogramImage(const vector<size_t>&, size_t, bool,
 			     const string&);
     ///
@@ -1369,13 +1383,13 @@ namespace picsom {
 
     ///
     static simple::FloatMatrix FillSparseValueMatrix(int rows, int cols,
-					     const sparse_pointset_t&,
-					     simple::FloatMatrix&);
+						     const sparse_pointset_t&,
+						     simple::FloatMatrix&);
 
     ///
     static int MapUsage(const simple::FloatMatrix&); 
 
-private:
+  private:
     static double identity_kernel(const double x) { return x; }
 
     static double gaussian_kernel_d;
@@ -1384,7 +1398,7 @@ private:
       return exp(-x*x/(2*gaussian_kernel_d*gaussian_kernel_d));
     }
 
-public:
+  public:
 
     ///
     static double AveragePairDistance(const simple::FloatMatrix& m) {
@@ -1393,7 +1407,7 @@ public:
 
     ///     
     static double AveragePairDistanceKernel(const simple::FloatMatrix& m,
-                  const string& funcname);
+					    const string& funcname);
                   
     ///
     static int Fragmentation(const simple::FloatMatrix&); 
@@ -1870,7 +1884,7 @@ public:
     ///
     float SelectThreshold_r0_common(const multimap<float,bool>&, bool);
 
-     ///
+    ///
     bool WriteOrderedClassFile(const list<pair<size_t,double> >&, 
 			       const string&, const string&, bool, bool);
 
@@ -2171,7 +2185,7 @@ public:
     analyse_result AnalyseUpdateVideoInfo(const vector<string>&);
 
     ///
-    analyse_result AnalyseTestBinData(const vector<string>&);
+    analyse_result AnalyseBinDataTest(const vector<string>&);
 
     ///
     analyse_result AnalyseBinData(const vector<string>&);
@@ -2476,7 +2490,7 @@ public:
 
     ///
     ground_truth_set GroundTruthExpressionListOld(const string& c,
-					       bool exp) const {
+						  bool exp) const {
       if (!GetDataBase())
 	return ground_truth_set();
       return GetDataBase()->GroundTruthExpressionListOld(c, exp);
@@ -2938,11 +2952,22 @@ public:
     analyse_result AnalyseCaffeTest(const vector<string>&);
 #endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
 
+#if defined(HAVE_THC_H) && defined(PICSOM_USE_TORCH)
+    ///
+    analyse_result AnalyseTorchTest(const vector<string>&);
+#endif // HAVE_THC_H && PICSOM_USE_TORCH
+
     ///
     const PicSOM::detection_stat_t& DetectionStat() const {
       return detection_stat;
     }
 
+    ///
+    const string& Classname() const { return classname; }
+    
+    ///
+    vector<string> Detections() const { return detections; }
+    
     ///
     vector<string> ExpandDetectionsWithClasses(const vector<string>&,
 					       const list<string>&,
@@ -3500,6 +3525,9 @@ public:
     ///
     string plot;
 
+    ///
+    vector<string> gnuplot_extra;
+    
     ///
     string scoredump;
 

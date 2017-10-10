@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Query.h,v 2.333 2016/11/02 11:56:28 jorma Exp $
+// -*- C++ -*-  $Id: Query.h,v 2.335 2017/04/28 07:46:07 jormal Exp $
 // 
 // Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -39,7 +39,7 @@ namespace picsom {
   using simple::RandVar;
 
   static const string Query_h_vcid =
-    "@(#)$Id: Query.h,v 2.333 2016/11/02 11:56:28 jorma Exp $";
+    "@(#)$Id: Query.h,v 2.335 2017/04/28 07:46:07 jormal Exp $";
 
   /**
      documentation missing
@@ -78,7 +78,7 @@ namespace picsom {
    
    @short A class implementing query processing in the PicSOM engine. 
 
-   @version $Id: Query.h,v 2.333 2016/11/02 11:56:28 jorma Exp $
+   @version $Id: Query.h,v 2.335 2017/04/28 07:46:07 jormal Exp $
 
 */
 
@@ -470,7 +470,7 @@ namespace picsom {
 
     ///
     bool AddVisitedLink(const string& u, const string& m, size_t s,
-			const timespec_t& t) {
+			const struct timespec& t) {
       visited_links.push_back(visited_link_t(u, m, s, t));
       return true;
     }
@@ -2641,10 +2641,10 @@ namespace picsom {
     }
 
     /// Returns last access time, possibly recursively.
-    timespec_t LastModificationTime(bool = false) const;
+    struct timespec LastModificationTime(bool = false) const;
 
     /// Returns last access time, possibly recursively.
-    timespec_t LastAccessTime(bool = false) const;
+    struct timespec LastAccessTime(bool = false) const;
 
     /// Sets last modification time.
     void SetLastModificationTimeNow() { SetTimeNow(last_modification); }
@@ -2653,10 +2653,10 @@ namespace picsom {
     void SetLastAccessTimeNow() { SetTimeNow(last_access); }
 
     /// Gives saved_time.
-    timespec_t SavedTime() const { return saved_time; }
+    struct timespec SavedTime() const { return saved_time; }
 
     /// Returns true if saved_time is more recent than given time.
-    bool SavedAfter(const timespec_t& t) const {
+    bool SavedAfter(const struct timespec& t) const {
       return MoreRecent(saved_time, t);
     }
 
@@ -3575,7 +3575,7 @@ namespace picsom {
       map<string,float> relevance;
 
       ///
-      list<map<string,string>> detections;
+      list<map<string,string> > detections;
 
       ///
       vector<uiart::GazeData>& coorddata(bool pointer, int eye,
@@ -3616,7 +3616,7 @@ namespace picsom {
       }
 
       ///
-      seen_object_t(const string& o, const timespec_t& s, const timespec_t& e) :
+      seen_object_t(const string& o, const struct timespec& s, const struct timespec& e) :
 	object(o), start(s), end(e) { }
 
       ///
@@ -3632,7 +3632,7 @@ namespace picsom {
       string object;
 
       ///
-      timespec_t start, end, gaze_first, gaze_last;
+      struct timespec start, end, gaze_first, gaze_last;
 
     }; // class seen_object_t 
 
@@ -3640,7 +3640,7 @@ namespace picsom {
     class seen_word_t {
     public:
       ///
-      seen_word_t(const string& w, const timespec_t& s, const timespec_t& e,
+      seen_word_t(const string& w, const struct timespec& s, const struct timespec& e,
 		  const string& i, float x, float y) :
 	word(w), start(s), end(e), image(i), image_x(x), image_y(y) { }
 
@@ -3657,7 +3657,7 @@ namespace picsom {
       string word;
 
       ///
-      timespec_t start, end;
+      struct timespec start, end;
 
       ///
       string image;
@@ -3672,7 +3672,7 @@ namespace picsom {
     public:
       ///
       visited_link_t(const string& u, const string& m, size_t s,
-		     const timespec_t& t) :
+		     const struct timespec& t) :
 	url(u), type(m), size(s), time(t) { }
 
       ///
@@ -3692,7 +3692,7 @@ namespace picsom {
       size_t size;
 
       ///
-      timespec_t time;
+      struct timespec time;
 
     }; // class visited_link_t 
 
@@ -3988,6 +3988,11 @@ namespace picsom {
     ///
     bool IncludeMinimal() const { return include_minimal; }
 
+    ///
+    const vector<string>& QueryDetections() const { 
+      return querydetections; 
+    }
+    
   protected:
     ///
     vector<Index::State*> index_data;
@@ -4162,16 +4167,16 @@ namespace picsom {
     ground_truth restriction;
 
     /// Creation time.
-    timespec_t start;
+    struct timespec start;
 
     /// Last access time.
-    timespec_t last_access;
+    struct timespec last_access;
 
     /// Last modification time.
-    timespec_t last_modification;
+    struct timespec last_modification;
 
     /// Time when written to disk.
-    timespec_t saved_time;
+    struct timespec saved_time;
 
     /// True if read from disk.
     bool from_disk;
@@ -4644,6 +4649,9 @@ namespace picsom {
     ///
     map<string,list<vector<string> > > sparql_query_cache;
 
+    ///
+    vector<string> querydetections;
+    
   };  // class Query
 
   class NewtonOpt {

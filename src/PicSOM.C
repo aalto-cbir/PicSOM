@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: PicSOM.C,v 2.554 2016/12/19 08:09:12 jorma Exp $
+// -*- C++ -*-  $Id: PicSOM.C,v 2.570 2017/08/16 07:18:07 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -98,6 +98,10 @@ static string foo = string(license)+string(dblicense);
 #include <json/json.h>
 #endif // HAVE_JSON_JSON_H
 
+#ifdef HAVE_THRIFT_THRIFT_H
+//#include <thrift/version.h>
+#endif // HAVE_THRIFT_THRIFT_H
+
 #if defined(PICSOM_HAVE_OCTAVE) && defined(PICSOM_USE_OCTAVE)
 // config.h conflicts:
 #undef PACKAGE_BUGREPORT
@@ -156,6 +160,12 @@ extern "C" {
 #include <Python.h>
 #endif // PICSOM_USE_PYTHON
 
+#if defined(HAVE_THC_H) && defined(PICSOM_USE_TORCH)
+extern "C" {
+#include <luajit.h>
+}
+#endif // HAVE_THC_H && PICSOM_USE_TORC
+
 #ifndef CODEFLAGS
 #define CODEFLAGS "--unknown--"
 #endif // CODEFLAGS
@@ -165,7 +175,7 @@ extern "C" {
 
 namespace picsom {
   const string PicSOM_C_vcid =
-    "@(#)$Id: PicSOM.C,v 2.554 2016/12/19 08:09:12 jorma Exp $";
+    "@(#)$Id: PicSOM.C,v 2.570 2017/08/16 07:18:07 jormal Exp $";
 
   int PicSOM::debug_times  = 0;
   int PicSOM::debug_mem    = 0;
@@ -434,6 +444,8 @@ namespace picsom {
       SetUpListenConnection(false /*expect_slaves*/,
 			    false /*expect_slaves*/, "/");
 
+    ReadSecrets();
+
     PossiblyShowDebugInformation("After PicSOM construction");
   }
 
@@ -625,7 +637,19 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  int PicSOM::Main(int argc, const char **argv) {
+  int PicSOM::Main(int argc, const char **argv, PicSOM **pp) {
+    vector<string> args;
+    for (int i=0; i<argc; i++)
+      args.push_back(argv[i]);
+
+    return Main(args, pp);
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  int PicSOM::Main(const vector<string>& args, PicSOM **pp) {
+    if (pp)
+      *pp = NULL;
     // vector<string> aa; 
     // PicSOM picsomx(aa);
     // Analysis ana(&picsomx, NULL, NULL, vector<string>());
@@ -653,63 +677,59 @@ namespace picsom {
     // errout << "STARTING"<< endl;
 
     // Simple::TrapAfterError(true);
+
+
     try {
-      if (argc > 1) {
-	const char *a = argv[1];
+      vector<string> psargs { args[0] };
+      size_t ai = 1;
+      string mode;
       
-	if (*a == '-' && strlen(a)==2) {
-	  char mode = a[1];
-	
-	  if (mode=='f' || mode=='s' || mode=='r' || mode=='p') {
-	    // remove the mode parameter and set first item
-	    // in argv to the command itself
-	    argc--;
-	    argv[1] = argv[0];
-	    argv++;
-	  }
-
-	  switch (mode) {
-	  case 'f': {
-	    // this sets videofile::_local_bin and Feature::picsomroot
-	    vector<string> aa { "*dummy*executable*", "-q" }; 
-	    PicSOM picsomx(aa);
-	    return Feature::Main(argc, argv);
-	    break;
-	  }
-	    
-	  case 's':
-	    return Segmentation::Main(argc,(char **)argv);
-	    break;
-
-#ifdef HAS_IMGROBOT_INTERNAL
-	  case 'r':
-	    return ImgRobot::Main(argc,(char **)argv);
-	    break;
-#endif // HAS_IMGROBOT_INTERNAL
-	  case 'p':
-	  case 'c':
-	  case 'i':
-	  case 'a':
-	  case 'v':
-	  case 'q':
-	    // normal picsom
-	    break;
-	  case 'h':
-	  case '?':
-	  case 'H':
-	    return Usage(argv[0]);
-	  default:
-	    return Usage(argv[0], "Unknown PicSOM Mode");
-	  }
-	}
+      if (args.size()>1) {
+	const string& a = args[1];
+      
+	if (a[0]=='-' && a.size()==2)
+	  mode = a.substr(1);
       }
-      vector<string> args;
-      for (size_t i=0; i<(size_t)argc; i++)
-	args.push_back(argv[i]);
+      
+      if (mode=="f" || mode=="s" || mode=="r" || mode=="p")
+	ai = 2;	// remove the mode parameter
 
-      PicSOM picsom(args); 
+      for (; ai<args.size(); ai++)
+	psargs.push_back(args[ai]);
 
-      int r = picsom.Execute(0, NULL);
+      if (mode=="f") {
+	// this sets videofile::_local_bin and Feature::picsomroot
+	vector<string> aa { "*dummy*executable*", "-q" }; 
+	PicSOM picsomx(aa);
+	return Feature::Main(psargs);
+      }
+	    
+      if (mode=="s")
+	return Segmentation::Main(psargs);
+      
+      if (mode=="r") {
+#ifdef HAS_IMGROBOT_INTERNAL
+	return ImgRobot::Main(0, NULL);
+#else
+	return Usage(args[0], "imgrobot not included");
+#endif // HAS_IMGROBOT_INTERNAL
+      }
+      
+      if (mode=="h" || mode=="H" || mode=="?")
+	return Usage(args[0]);
+
+      if (mode!="p" && mode!="c" && mode!="i" && mode!="a" && 
+	  mode!="v" && mode!="q" && mode!="")
+	return Usage(args[0], "Unknown PicSOM Mode");
+      
+      PicSOM *p = new PicSOM(psargs); 
+      if (pp) {
+	*pp = p;
+	return 0;
+      }
+
+      int r = p->Execute(0, NULL);
+      delete p;
 
       Connection::ShutdownSSL();
 
@@ -760,6 +780,7 @@ namespace picsom {
 #endif //  HAVE_DECL_ENVIRON
 
     set<string> vars;
+    vars.insert("CUDA_VISIBLE_DEVICES");
     vars.insert("JOB_ID");
     vars.insert("JOB_NAME");
     vars.insert("QUEUE");
@@ -1256,7 +1277,7 @@ bool PicSOM::DoSshForwarding(int p) {
       cmd << "[" << slave.command[i] << "]";
 
     bool started   = !IsTimeZero(slave.started);
-    timespec_t now = TimeNow();
+    struct timespec now = TimeNow();
     size_t s_used  = started ? TimeDiff(now, slave.started) : 0;
     int    s_left  = slave.max_time-s_used;
     int    s_leftx = s_left>0 ? s_left : -s_left;
@@ -1469,7 +1490,7 @@ bool PicSOM::DoSshForwarding(int p) {
     
     // triton defaults are: 00:15:00       2000 (M)   smallmem
     set<string> sbatch_keys { "time", "mem-per-cpu", "partition", "qos",
-	"N", "n", "exclusive", "debug" };
+	"N", "n", "exclusive", "constraint", "gres", "debug" };
     set<string> condor_keys { "request_memory" };
     list<pair<string,string>> sbatch_keyval;
     map<string,string> condor_keyval;
@@ -2099,8 +2120,8 @@ bool PicSOM::DoSshForwarding(int p) {
     set<string> waited_keys;
 
     // static bool first_call = true;
-    static timespec_t prev_update = TimeZero();
-    timespec_t now, when_next = prev_update;
+    static struct timespec prev_update = TimeZero();
+    struct timespec now, when_next = prev_update;
     SetTimeNow(now);
     when_next.tv_sec += updatetime;
     bool updated = false;
@@ -2119,7 +2140,7 @@ bool PicSOM::DoSshForwarding(int p) {
       bool unlock = true;
 
       SetTimeNow(now);
-      timespec_t old = now;
+      struct timespec old = now;
       old.tv_sec -= updatetime;
       bool ter = j->status=="terminated" || j->status=="limbo";
       bool spa = !ter && MoreRecent(j->spare, now);
@@ -2983,7 +3004,7 @@ bool PicSOM::DoSshForwarding(int p) {
 	IsTimeZero(slave.task_finished))
       return true;
 
-    timespec_t now = TimeNow();
+    struct timespec now = TimeNow();
     double s_used  = TimeDiff(now, slave.started);
     double s_left  = slave.max_time-s_used;
     double s_last  = TimeDiff(slave.task_finished, slave.task_started);
@@ -3270,7 +3291,7 @@ bool PicSOM::DoSshForwarding(int p) {
   /////////////////////////////////////////////////////////////////////////////
 
   double PicSOM::CpuUsage() {
-    static timespec_t time_was;
+    static struct timespec time_was;
     static tms cpu_was;
     static double tck = TicTac::TickSize();
     static bool first = true;
@@ -3282,7 +3303,7 @@ bool PicSOM::DoSshForwarding(int p) {
     }
 
     double r = -1;
-    timespec_t time_is;
+    struct timespec time_is;
     tms cpu_is;
     TicTac::SetTimes(time_is, cpu_is);
 
@@ -3397,7 +3418,7 @@ bool PicSOM::DoSshForwarding(int p) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  string PicSOM::OriginsDateString(const timespec_t& tt, bool nsec) {
+  string PicSOM::OriginsDateString(const struct timespec& tt, bool nsec) {
     char tmp[1024] = "??????";
     tm *time = localtime(&tt.tv_sec);
     if (time) {
@@ -3411,15 +3432,15 @@ bool PicSOM::DoSshForwarding(int p) {
   /////////////////////////////////////////////////////////////////////////////
 
   string PicSOM::OriginsDateStringNow(bool nsec) {
-    timespec_t tt;
+    struct timespec tt;
     SetTimeNow(tt);
     return OriginsDateString(tt, nsec);
   }
 
   /////////////////////////////////////////////////////////////////////////////
 
-  timespec_t PicSOM::InverseOriginsDateString(const string& s) {
-    timespec_t ts = { 0, 0 };
+  struct timespec PicSOM::InverseOriginsDateString(const string& s) {
+    struct timespec ts = { 0, 0 };
 
     string digit = "0123456789";
     bool is_short = s.size()==14 && s.find_first_not_of(digit)==string::npos;
@@ -3458,7 +3479,7 @@ bool PicSOM::DoSshForwarding(int p) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  string XSdateTime(const timespec_t& tt) {
+  string XSdateTime(const struct timespec& tt) {
     tm *time = localtime(&tt.tv_sec);
     if (!time)
       return "failed("+TimeDotString(tt)+")";
@@ -3471,7 +3492,7 @@ bool PicSOM::DoSshForwarding(int p) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  string TimeString(const timespec_t& tt, bool msec) {
+  string TimeString(const struct timespec& tt, bool msec) {
     tm *time = localtime(&tt.tv_sec);
     if (!time)
       return "failed("+TimeDotString(tt)+")";
@@ -3489,7 +3510,7 @@ bool PicSOM::DoSshForwarding(int p) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  timespec_t PicSOM::InverseTimeStringOld(const char *str) {
+  struct timespec PicSOM::InverseTimeStringOld(const char *str) {
     tm date;
 
     if (strlen(str)==17) {
@@ -3535,7 +3556,7 @@ bool PicSOM::DoSshForwarding(int p) {
     } else
       ShowError("PicSOM::InverseTimeString(", str, ") unknow format");
 
-    timespec_t ts;
+    struct timespec ts;
     ts.tv_sec = mktime(&date);
     ts.tv_nsec = 0;
 
@@ -3706,7 +3727,7 @@ bool PicSOM::DoSshForwarding(int p) {
 	Makes execution less noisy, ie. all logging is sinked.
       */
       if (astr=="-q") {
-	quiet = true;
+	Quiet(true);
 	continue;
       }
     
@@ -5406,7 +5427,7 @@ void PicSOM::ShowUsage(bool error) {
       c = SelectInput();
       if (!c) {
 	if (n==1 && soap_server) {
-	  timespec_t snap = { 1, 0 };
+	  struct timespec snap = { 1, 0 };
 	  nanosleep(&snap, NULL);
 	}
 	continue;  // used to be return true
@@ -5660,7 +5681,7 @@ void PicSOM::WriteLogCommon(const char *a, const char *b,
   if (IsOpen(*(ofstream*)&log))
     out = (ofstream*)&log;
   
-  timespec_t tt;
+  struct timespec tt;
   SetTimeNow(tt);
   tm mytime;
   tm *time = localtime_r(&tt.tv_sec, &mytime);
@@ -5733,7 +5754,7 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     if (pre)
       WriteLog("Executing system("+cmd+")");
 
-    timespec_t start = TimeNow();
+    struct timespec start = TimeNow();
     int r = system(cmd.c_str());
     
     if (ok && !r)
@@ -5782,6 +5803,8 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
   int PicSOM::SolveGpuDevice() {
     // obs!  should obey SLURM_JOB_GPUS GPU_DEVICE_ORDINAL CUDA_VISIBLE_DEVICES
 
+    double utilization_limit = 50; // percent
+    
     string smi = "/usr/bin/nvidia-smi";
     if (!FileExists(smi))
       return -1;
@@ -5811,13 +5834,19 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 
     int id = -1;
     for (size_t i=0; id==-1 && i<gpu.size(); i++)
-      if (gpu[i]<=0.0)
+      if (gpu[i]<=utilization_limit)
 	id = i;
 
     string res = ToStr(gpu.size())+" Nvidia GPUs found";
     if (gpu.size())
       res += ", utilization: "+ToStr(gpu);
     res += ", selected: "+ToStr(id);
+
+    const map<string,string>& e = Environment();
+    if (e.find("CUDA_VISIBLE_DEVICES")!=e.end()) {
+      res += ", CUDA_VISIBLE_DEVICES="+e.at("CUDA_VISIBLE_DEVICES");
+      id = 0;
+    }
 
     WriteLog(res);
 
@@ -6005,6 +6034,15 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     SetVersionData("ObjectDetection", ObjectDetection::Version());
 #endif //  PICSOM_USE_OD
 
+#if defined(CUDA_VERSION)
+    int cdv = 0, crv = 0;
+    cudaDriverGetVersion(&cdv);
+    cudaRuntimeGetVersion(&crv);
+    ostringstream cudastr;
+    cudastr << CUDA_VERSION << " (" << cdv << "," << crv << ")";
+    SetVersionData("CUDA", cudastr.str());
+#endif // CUDA_VERSION
+
     vector<string> pieces;
 #if defined(CAFFE_VERSION) && defined(PICSOM_USE_CAFFE)
     pieces.push_back("caffe_" CAFFE_VERSION);
@@ -6012,14 +6050,23 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 #ifdef GOOGLE_PROTOBUF_VERSION
     pieces.push_back("protobuf_"+ToStr(GOOGLE_PROTOBUF_VERSION));
 #endif // GOOGLE_PROTOBUF_VERSION
+#if defined(TH_INDEX_BASE)
+    pieces.push_back("torch");
+#endif // defined(TH_INDEX_BASE)
 #ifdef INTEL_MKL_VERSION
     char mklvers[100];
     MKL_Get_Version_String(mklvers, sizeof mklvers);
     pieces.push_back("intel_mkl_"+ToStr(INTEL_MKL_VERSION)+" ("+mklvers+")");
 #endif // INTEL_MKL_VERSION
+    string ob = OpenBlasVersion();
+    if (ob!="")
+      pieces.push_back("OpenBlas "+ob);
 #ifdef PICSOM_USE_CSOAP
     pieces.push_back("csoap");
 #endif // PICSOM_USE_CSOAP
+#ifdef THRIFT_VERSION
+    pieces.push_back("Thrift_" THRIFT_VERSION " ()");
+#endif // THRIFT_VERSION
 #ifdef MAD_VERSION
     pieces.push_back("mad_" MAD_VERSION " ("+string(mad_version)+")");
 #endif // MAD_VERSION
@@ -6108,6 +6155,10 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     pieces.push_back("jsoncpp_"+string(JSONCPP_VERSION_STRING));
 #endif // HAVE_JSON_JSON_H
 
+#ifdef HAVE_ZIP_H
+    pieces.push_back("libzip_" LIBZIP_VERSION);
+#endif // HAVE_ZIP_H
+
     string piecestr = JoinWithString(pieces, ", ");
     for (size_t split=60; piecestr.size()>split; split+=60) {
       size_t p = piecestr.rfind(", ", split);
@@ -6128,6 +6179,10 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     }
     SetVersionData("Python", string(PY_VERSION)+" ("+pythonv+")");
 #endif // PY_VERSION
+
+#ifdef LUAJIT_VERSION_SYM
+    SetVersionData("LuaJIT", string(stringize(LUAJIT_VERSION_SYM))+" ()");
+#endif // LUAJIT_VERSION_SYM
 
 #ifdef TF_VERSION_STRING
     SetVersionData("TensorFlow", string(TF_VERSION_STRING)+" ("+")");
@@ -6546,6 +6601,22 @@ bool PicSOM::AddToXMLanalysis(XmlDom& xml, const Analysis *ana,
 	    sysarchitecture.c_str(),
 	    linuxdistr.c_str(), getpid(), thrid, gpudevice, Development());
     WriteLog(tmp);
+
+#ifdef CUDA_VERSION
+    int cc = 0;
+    cudaGetDeviceCount(&cc);
+    WriteLog("CUDA devicecount="+ToStr(cc));
+    for (int ci=0; ci<cc; ci++) {
+      struct cudaDeviceProp cprop;
+      cudaGetDeviceProperties(&cprop, ci);
+      ostringstream cstr;
+      cstr << "\"" << cprop.name << "\" mem=" << cprop.totalGlobalMem
+	   << " cab=" << cprop.major << "." << cprop.minor
+	   << " mpc=" << cprop.multiProcessorCount;
+      WriteLog(" #"+ToStr(ci)+" : "+cstr.str());
+    }
+#endif // CUDA_VERSION
+    
     string cwd = Cwd();
     WriteLog("cwd="+(cwd==""?"(null)":cwd));
     WriteLog("cmdline=", cmdline_str);
@@ -6564,6 +6635,7 @@ bool PicSOM::AddToXMLanalysis(XmlDom& xml, const Analysis *ana,
       WriteLog("allowed databases=", astr);
     }
 
+    // displays environment
     for (map<string,string>::const_iterator i=env.begin(); i!=env.end(); i++)
       WriteLog("${"+i->first+"}="+i->second);
   }
@@ -8797,7 +8869,7 @@ bool PicSOM::ExpungeOldQueries() {
   RwLockWriteQueryList();
 
   for (int i=Nqueries()-1; i>=0; i--) {
-    timespec_t t = GetQuery(i)->LastAccessTime(true);
+    struct timespec t = GetQuery(i)->LastAccessTime(true);
     if (!MoreRecent(t, expunge_time) && GetQuery(i)->SavedAfter(t)) {
       ostringstream msg;
       msg << "Expunged last access=" << TimeString(t)
@@ -9075,6 +9147,12 @@ string PicSOM::FindExecutable(const string& dir, const string& name,
 
     if (s=="application/x-empty")
       return target_no_target;
+
+    if (s=="application/zip")
+      return target_imageset;
+
+    if (s=="application/x-tar")
+      return target_imageset;
 
     Simple::ShowError("MIMEtypeToTargetType() : unable to convert <", s, ">"); 
 
@@ -9961,11 +10039,11 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
     float fsec = float(buf.size())/32000;
     //int  sec = (int)floor(1.0+fsec);
 
-    timespec_t ts;
+    struct timespec ts;
     SetTimeNow(ts);
 
     for (int i=0; i<6; i++) {
-      timespec_t te = ts;
+      struct timespec te = ts;
       TimeAdd(te, fsec);
       FeedSpeechRecognizer(buf, f+"-"+ToStr(i), ts, te);
       //cout << TimeStamp() << hdr << "starting to sleep for " << sec
@@ -10008,7 +10086,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
   bool PicSOM::SpeechRecognizerAcceptsData() const {
     int fixed_time = 0; // 20;  // seconds
 
-    timespec_t t;
+    struct timespec t;
     ZeroTime(t);
 
     if (TimesEqual(t, speech_recognizer_start_time))
@@ -10031,8 +10109,8 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
   /////////////////////////////////////////////////////////////////////////////
 
   bool PicSOM::FeedSpeechRecognizer(const string& data, const string& qid,
-				    const timespec_t& stime,
-				    const timespec_t& etime) {
+				    const struct timespec& stime,
+				    const struct timespec& etime) {
     string hdr = "PicSOM::FeedSpeechRecognizer() : ";
 
     if (!speech_recognizer)
@@ -10081,7 +10159,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	  return ShowError(hdr+"waited too long");
 
 	cout << TimeStamp() << hdr << "waiting for pipe" << endl;
-        timespec_t snap = { 0, 100*1000000 }; // 100 ms
+        struct timespec snap = { 0, 100*1000000 }; // 100 ms
 	nanosleep(&snap, NULL);
  	nwaits++;
       }
@@ -10148,7 +10226,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
       mtype[16] = "M_MESSAGE";
     }
 
-    timespec_t ztime;
+    struct timespec ztime;
     ZeroTime(ztime);
     speech_data_entry_t new_result("", ztime, ztime);
 
@@ -10225,10 +10303,10 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	      if (debug>2)
 		cout << " <" << s << "><" << e << "><" << rec << ">";
 
-	      timespec_t stime = speech_zero_time;
+	      struct timespec stime = speech_zero_time;
 	      TimeAdd(stime, s*tmul);
 
-	      timespec_t etime = stime;
+	      struct timespec etime = stime;
 	      if (e!=-1) {
 		etime = speech_zero_time;
 		TimeAdd(etime, e*tmul);
@@ -10294,7 +10372,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
   
   /////////////////////////////////////////////////////////////////////////////
 
-  PicSOM::speech_data_entry_t *PicSOM::FindSpeechData(const timespec_t& t,
+  PicSOM::speech_data_entry_t *PicSOM::FindSpeechData(const struct timespec& t,
 						      bool strict) {
     speech_data_entry_t *approx = NULL;
     double mind = numeric_limits<double>::max();
@@ -10652,7 +10730,9 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
     if (temp_dir_personal=="") {
       temp_dir_personal
 	= TempDirRoot()+"/"+UserName()+"-picsom-"+ToStr(getpid());
-      MkDirHier(temp_dir_personal, mode);
+      string imgtmp = temp_dir_personal+"/tmp";
+      MkDirHier(imgtmp, mode);
+      imagefile::tmp_dir(imgtmp);
     }
     if (d=="")
       return temp_dir_personal;
@@ -10665,30 +10745,191 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
   
   /////////////////////////////////////////////////////////////////////////////
 
-  //void PicSOM::RegisterFakeRestCaCallback(const string& cb) {
-  //  fake_rest_ca_callbacks.push_back(cb);
-  //}
+  list<string> PicSOM::Translate(const string& meth, const string& src,
+				 const string& dst, const list<string>& txt) {
+    if (meth=="yandex")
+      return TranslateYandex(src, dst, txt);
+
+    return list<string>();
+  }
   
   /////////////////////////////////////////////////////////////////////////////
-  /*
-  void PicSOM::MakeFakeRestCaCallbacks() {
-    string msg = "PicSOM::MakeFakeRestCaCallbacks() : ";
 
-    while (1) {
-      if (fake_rest_ca_callbacks.empty())
-	return;
+  list<string> PicSOM::TranslateYandex(const string& src, const string& dst,
+				       const list<string>& input) {
+    string msg = "PicSOM::TranslateYandex("+src+","+dst+") : ";
 
-      string cb = fake_rest_ca_callbacks.front(), dstr, ctype;
-      fake_rest_ca_callbacks.erase(fake_rest_ca_callbacks.begin());
+    bool debug = false;
 
-      bool ok = Connection::DownloadString(this, cb, dstr, ctype, 5);
-      if (!ok)
-	ShowError(msg+"DownloadString() failed");
-      else
-	WriteLog(msg+"cb=["+cb+"] dstr=["+dstr+"] ctype=["+ctype+"]");
+    static set<string> dirset;
+
+    list<string> ret, empty;
+    string key = GetSecret("yandex_translate", true);
+    if (key!="") {
+      list<pair<string,string> > hdrs { 
+	make_pair("Accept", "*/*"),
+        make_pair("Content-Type", "application/x-www-form-urlencoded"),
+	make_pair("Connection", "close") 
+      };
+      if (dirset.empty()) {
+	string url = "https://translate.yandex.net/api/v1.5/tr/getLangs?key="+
+	  key+"&ui=en", txt, ctype;
+	if (!Connection::DownloadString(this, "POST", url, hdrs, "",
+					txt, ctype)) {
+	  ShowError(msg+"POST <"+url+"> failed A");
+	  return empty;
+	}
+	if (ctype!="text/xml; charset=utf-8") {
+	  ShowError(msg+"content-type <"+ctype+"> not handled A");
+	  return empty;
+	}
+	XmlDom xml = XmlDom::FromString(txt);
+	XmlDom Langs = xml.Root();
+	XmlDom dirs  = Langs.FirstElementChild();
+	XmlDom strng = dirs.FirstElementChild();
+	while (strng) {
+	  string frmto = strng.FirstChildContent();
+	  if (debug)
+	    cout << "Lang/dirs/string <" << frmto << ">" << endl;
+	  if (frmto=="")
+	    break;
+	  dirset.insert(frmto);
+	  strng = strng.NextElement();
+	}
+      }
+      string dir = src+"-"+dst;
+      if (dirset.find(dir)==dirset.end()) {
+	ShowError(msg+"dir <"+dir+"> not handled");
+	return empty;
+      }
+      string cntnt;
+      for (auto i=input.begin(); i!=input.end(); i++)
+	cntnt += string(cntnt==""?"":"&")+"text="+*i;
+      string url = "https://translate.yandex.net/api/v1.5/tr/translate?key="+
+      key+"&lang="+dir, txt, ctype;
+
+      if (!Connection::DownloadString(this, "POST", url, hdrs, cntnt,
+				      txt, ctype)) {
+	ShowError(msg+"POST <"+url+"> failed B");
+	return empty;
+      }
+      if (ctype!="text/xml; charset=utf-8") {
+	ShowError(msg+"content-type <"+ctype+"> not handled B");
+	return empty;
+      }
+      XmlDom xml = XmlDom::FromString(txt);
+      XmlDom Translation = xml.Root(); // code="200" should be checked
+      XmlDom text  = Translation.FirstElementChild();
+      while (text) {
+	string dsttxt = text.FirstChildContent();
+	if (debug)
+	  cout << "Translation/text <" << dsttxt << ">" << endl;
+	if (dsttxt=="")
+	  break;
+	ret.push_back(dsttxt);
+	text = text.NextElement();
+      }
     }
+
+    return ret;
   }
-  */
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool PicSOM::ReadSecrets() {
+    bool debug = false;
+
+    secrets.clear();
+    string s = FileToString(Path()+"/secrets.txt")+"\n"+
+      FileToString(UserHomeDir()+"/picsom/secrets.txt");
+
+    vector<string> l =  SplitInSomething("\n", true, s);
+    for (auto i=l.begin(); i!=l.end(); i++) {
+      string s = *i;
+      size_t p = s.find('#');
+      if (p!=string::npos)
+	s.erase(p);
+      if (s.find('=')!=string::npos) {
+	pair<string,string> kv = SplitKeyEqualValueNew(s);
+	secrets[kv.first] = kv.second;
+	if (debug)
+	  cout << "Added secret <" << kv.first << ">=<" << kv.second << ">"
+	       << endl;
+      }
+    }
+
+    return true;
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  string PicSOM::GetSecret(const string& k, bool angry) const {
+    if (secrets.find(k)!=secrets.end())
+      return secrets.at(k);
+
+    if (angry)
+      ShowError("Secret for key <"+k+"> not found");
+
+    return "";
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  string PicSOM::UnZip(const string& z, const string& s, const string& d) {
+    string msg = "Unzip("+z+","+s+","+d+") : ";
+    
+#ifdef HAVE_ZIP_H
+    size_t bufsize = 100*1024*1024;
+    string buf(bufsize, ' ');
+
+    int flags = 0;
+    int ierr = 0;
+    zip_t *x = zip_open(z.c_str(), flags, &ierr);
+    if (!x) {
+      ShowError(msg+"zip_open() failed");
+      return "";
+    }
+    string ss = s;
+    if (ss=="") {
+      const char *fn = zip_get_name(x, 0, 0);
+      if (!fn) {
+        ShowError(msg+"zip_get_name() failed");
+        return "";
+      }
+      ss = fn;
+    }
+
+    static size_t nn = 0;
+    string dd = d;
+    if (dd=="")
+      dd = TempDirPersonal()+"/unzip-files/"+ToStr(nn++)+"/"+ss;
+    MakeDirectory(dd, true);
+
+    WriteLog(msg+"extracting to <"+dd+">");
+
+    ofstream of(dd);
+
+    zip_file_t *f = zip_fopen(x, ss.c_str(), 0);
+
+    for (;;) {
+      int n = zip_fread(f, &buf[0], bufsize);
+      if (n>0)
+	of.write(&buf[0], n);
+      if (n<=0)
+	break;
+    }
+
+    zip_fclose(f);
+    zip_close(x);
+
+    return dd;
+
+#else
+    ShowError(msg+"ZIP not available");
+    return "";
+#endif // HAVE_ZIP_H
+  }
+  
   /////////////////////////////////////////////////////////////////////////////
 
   // bool PicSOM::() {

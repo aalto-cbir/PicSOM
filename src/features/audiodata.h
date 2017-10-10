@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: audiodata.h,v 1.14 2013/11/04 15:16:25 jorma Exp $
+// -*- C++ -*-  $Id: audiodata.h,v 1.15 2017/04/28 07:48:19 jormal Exp $
 // 
 // Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -10,7 +10,8 @@
 #ifndef _AUDIODATA_H
 #define _AUDIODATA_H
 
-#include <missing-c-utils.h>
+// #include <missing-c-utils.h>
+#include <picsom-config.h>
 
 #include <stdio.h>
 #include <complex>

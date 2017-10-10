@@ -1,8 +1,17 @@
+// -*- C++ -*-  $Id: OCVBoV.C,v 1.3 2017/03/10 09:10:16 jormal Exp $
+// 
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
+// 
+
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
+
 #include <OCVBoV.h>
 
 namespace picsom {
   static const string vcid =
-    "$Id: OCVBoV.C,v 1.2 2012/08/28 13:59:08 jorma Exp $";
+    "$Id: OCVBoV.C,v 1.3 2017/03/10 09:10:16 jormal Exp $";
 
   static OCVBoV list_entry(true);
 
@@ -281,6 +290,9 @@ namespace picsom {
   /////////////////////////////////////////////////////////////////////////////
   
   /////////////////////////////////////////////////////////////////////////////
-  
 
-}
+} // namespace picsom
+
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
+
+

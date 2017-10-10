@@ -1,3 +1,33 @@
+2017-05-24  jormal  <jormal@cs-170>
+
+	* imagefile.h 1.55: Summary: Added unlink_tmp_file().
+
+	* imagefile-opencv.C 1.25, imagefile.h 1.54:
+	Summary: Added _tmp_dir etc.
+
+	* imagefile.h 1.53:
+	Summary: Added move contructor to facilitate unstringify().
+
+2017-04-28  jormal  <jormal@cs-170>
+
+	* imagedata.h 1.111: Changed to go without missg-c-utils.[ch].
+
+2017-01-27  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagedata.h 1.110: Added get_ordered_float() and to_index(x,y,c).
+
+2017-01-09  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imageapp.C 1.36: Added test for display().
+
+	* imagefile-opencv.C 1.24, imagefile.h 1.52:
+	Summary: display() now return hit key.
+
+2017-01-04  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
+
+	* imagefile-opencv.C 1.23:
+	Summary: Added imagedata2cvmat() and display_impl_int().
+
 2016-10-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
 
 	* imagedata.h 1.109: Summary: Minor changes to mage gcc 6.2.0 happy.

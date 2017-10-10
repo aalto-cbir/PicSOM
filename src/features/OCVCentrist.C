@@ -1,13 +1,13 @@
-// -*- C++ -*-  $Id: OCVCentrist.C,v 1.18 2016/10/25 08:12:36 jorma Exp $
+// -*- C++ -*-  $Id: OCVCentrist.C,v 1.19 2017/03/10 09:10:23 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
 
-#include <OCVCentrist.h>
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
 
-#ifdef HAVE_OPENCV2_CORE_CORE_HPP
+#include <OCVCentrist.h>
 
 #include <algorithm>
 #include <iostream>
@@ -15,7 +15,7 @@
 
 namespace picsom {
   static const string vcid =
-    "$Id: OCVCentrist.C,v 1.18 2016/10/25 08:12:36 jorma Exp $";
+    "$Id: OCVCentrist.C,v 1.19 2017/03/10 09:10:23 jormal Exp $";
 
   static OCVCentrist list_entry(true);
   
@@ -1749,5 +1749,6 @@ namespace picsom {
 
 } // namespace picsom
 
-#endif // HAVE_OPENCV2_CORE_CORE_HPP
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
+
 

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Query.C,v 2.634 2016/11/02 14:53:44 jorma Exp $
+// -*- C++ -*-  $Id: Query.C,v 2.639 2017/05/09 10:20:29 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -22,7 +22,7 @@ namespace picsom {
   using namespace std;
 
   static const string Query_C_vcid =
-    "@(#)$Id: Query.C,v 2.634 2016/11/02 14:53:44 jorma Exp $";
+    "@(#)$Id: Query.C,v 2.639 2017/05/09 10:20:29 jormal Exp $";
 
   static string splitchars = " \t\r\n/";
 
@@ -452,6 +452,8 @@ namespace picsom {
       add_classfeatures = source.add_classfeatures;
       commonsfile = source.commonsfile;
       classfeaturesfile = source.classfeaturesfile;
+
+      querydetections = source.querydetections;
       
       classaugment = source.classaugment;
 
@@ -929,27 +931,27 @@ namespace picsom {
       return true;
     }
 
-    if (key=="limitrelevance"){
+    if (key=="limitrelevance") {
       limitrelevance = IsAffirmative(valstr);
       return true;
     }
 
-    if (key=="bordercompensation"){
+    if (key=="bordercompensation") {
       bordercompensation = IsAffirmative(valstr);
       return true;
     }
 
-    if (key=="relativescores"){
+    if (key=="relativescores") {
       relativescores = IsAffirmative(valstr);
       return true;
     }
 
-    if(key=="readnbr"){
+    if (key=="readnbr") {
       readnbr = IsAffirmative(valstr);
       return true;
     }
 
-    if (key=="canbeshownlogic"){
+    if (key=="canbeshownlogic") {
       if (valstr=="and") {
         can_be_shown_and = true;
         return true;
@@ -1400,12 +1402,41 @@ namespace picsom {
 	  res = ShowError(h+"setup="+valstr+" is empty");
 	else {
           for (script_exp_t::const_iterator i=script.begin();
-               i!=script.end(); i++)
-            if (!Interpret(i->first, i->second, res, conn) || res!=1) {
-              ShowError(h+"setup="+valstr+" failed with <"+i->first+
+               i!=script.end(); i++) {
+	    bool r = Interpret(i->first, i->second, res, conn);
+	    if (r && res==1)
+	      continue;
+            if (r && res!=1) {
+              ShowError(h+" QUERY setup="+valstr+" failed with <"+i->first+
                         ">=<"+i->second+">");
               break;
             }
+	    if (analysis) {
+	      r = analysis->Interpret(i->first, i->second, res);
+	      if (r && res==1)
+		continue;
+		
+	      if (r && res!=1) {
+		ShowError(h+" ANALYSIS setup="+valstr+" failed with <"+i->first+
+			  ">=<"+i->second+">");
+		break;
+	      }
+	    }
+	    if (GetDataBase()) {
+	      r = GetDataBase()->Interpret(i->first, i->second, res);
+	      if (r && res==1)
+		continue;
+		
+	      if (r && res!=1) {
+		ShowError(h+" DATABASE setup="+valstr+" failed with <"+i->first+
+			  ">=<"+i->second+">");
+		break;
+	      }
+	    }
+	    ShowError(h+" QUERY/ANALYSIS/DATABASE setup="+valstr+
+		      " failed with <"+i->first+">=<"+i->second+">");
+	    break;
+	  }
         }
       }
       return true;
@@ -1445,6 +1476,11 @@ namespace picsom {
       return true;
     }
 
+    if (key=="querydetections") {
+      querydetections = SplitInCommasObeyParentheses(valstr);
+      return true;
+    }
+    
     if (key=="initialset_pre") { 
       initialset_pre = valstr;
       SetStageFunction("initial_set", "select_from_pre", true);
@@ -2005,6 +2041,7 @@ namespace picsom {
     if (txtq=="")
       return true;
 
+    DataBase *db = CheckDB();
     vector<string> log;
     set<string> common_classes_pos, common_classes_neg;
 
@@ -2085,7 +2122,8 @@ namespace picsom {
 
         if (check_commons_classes) {
           // CheckCommons(orig_word, found_classes);
-          CheckConcepts("svmdb#lscom-demo", orig_word, found_classes);
+          // CheckConcepts("svmdb#lscom-demo", orig_word, found_classes);
+          CheckConcepts(db->Concepts(), orig_word, found_classes);
         }
 
         if (found_classes.size()) {
@@ -2157,7 +2195,6 @@ namespace picsom {
     textsearchspec_t tsp = TextSearchParams();
 
     implicit_textquery = newtextquery;
-    DataBase * db = GetDataBase();
     if (tsp.textfield!="")
       for (size_t i=0; i<NseenObjects(); i++)
 	if (seenobject[i].Value()>0) {
@@ -2892,7 +2929,7 @@ namespace picsom {
     multimap<float,pair<string,string> > objrel;
 
     if (seen_objects.size()) {
-      timespec_t last = TimeZero(), gaze_first = last, gaze_last = last;
+      struct timespec last = TimeZero(), gaze_first = last, gaze_last = last;
       for (auto i=seen_objects.begin(); i!=seen_objects.end(); i++) {
 	if (DebugInfo())
 	  WriteLog(msg+"    SEEN : \""+i->first+"\" : "+i->second.str());
@@ -3152,7 +3189,7 @@ namespace picsom {
 
     xmlNodePtr n = AddTag(prnt, ns, "inrun", InRun()?"yes":"no");
     if (InRun()) {
-      timespec_t now;
+      struct timespec now;
       SetTimeNow(now);
       float s = now.tv_sec-last_modification.tv_sec;
       s += (now.tv_nsec-last_modification.tv_nsec)*1e-9;
@@ -15374,13 +15411,13 @@ bool Query::PropagateBySegmentHierarchy() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  timespec_t Query::LastAccessTime(bool recurse) const {
+  struct timespec Query::LastAccessTime(bool recurse) const {
     if (!recurse || !Nchildren())
       return last_access;
 
-    timespec_t t = last_access;
+    struct timespec t = last_access;
     for (size_t i=0; i<Nchildren(); i++) {
-      timespec_t c = Child(i)->LastAccessTime(true);
+      struct timespec c = Child(i)->LastAccessTime(true);
       if (MoreRecent(c, t))
         t = c;
     }
@@ -15390,13 +15427,13 @@ bool Query::PropagateBySegmentHierarchy() {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  timespec_t Query::LastModificationTime(bool recurse) const {
+  struct timespec Query::LastModificationTime(bool recurse) const {
     if (!recurse || !Nchildren())
       return last_modification;
 
-    timespec_t t = last_modification;
+    struct timespec t = last_modification;
     for (size_t i=0; i<Nchildren(); i++) {
-      timespec_t c = Child(i)->LastModificationTime(true);
+      struct timespec c = Child(i)->LastModificationTime(true);
       if (MoreRecent(c, t))
         t = c;
     }
@@ -16879,7 +16916,7 @@ double Query::HannVectorValue(double i, double len, double) {
 
       pmcopy["timestamp"] = timestamp;
       uiart::TimeSpec uats = AjaxTimeSpec(timestamp);
-      timespec_t ts = uats.Ts();
+      struct timespec ts = uats.Ts();
 
       erf_image_data& eid_image = ErfImageData(toc_image);
       eid_image.label = toc_image;
@@ -19610,9 +19647,8 @@ double Query::HannVectorValue(double i, double len, double) {
 
     bool debug = true, save = true, fake = true, only_one = false;
 
-    string apikey = "AIzaSyAQYldUvPpHWEOx1UfDna6GA1XdSg7cH34"; // obs!
-    string cx = "014141179952337231122:sf3dv13t6le";           // obs!
-    //https://code.google.com/apis/console/#project:1014344100183:billing
+    string apikey = Picsom()->GetSecret("google_api", true);
+    string cx     = Picsom()->GetSecret("google_cx",  true);
 
     bool image = spec.find("image")!=string::npos;
 
@@ -19709,7 +19745,7 @@ double Query::HannVectorValue(double i, double len, double) {
 	     << " is being run and waited..." << endl;
 #endif // PICSOM_USE_PTHREADS
 
-      timespec_t snap = { 0, 1000 };
+      struct timespec snap = { 0, 1000 };
       nanosleep(&snap, NULL);      
     }
 

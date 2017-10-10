@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: TimeUtil.h,v 2.22 2016/12/08 15:01:02 jorma Exp $
+// -*- C++ -*-  $Id: TimeUtil.h,v 2.23 2017/04/28 07:46:08 jormal Exp $
 // 
 // Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
@@ -8,7 +8,8 @@
 #ifndef _PICSOM_TIMEUTIL_H_
 #define _PICSOM_TIMEUTIL_H_
 
-#include <missing-c-utils.h>
+//#include <missing-c-utils.h>
+#include <picsom-config.h>
 
 #include <string>
 #include <vector>
@@ -35,31 +36,33 @@ using namespace std;
 #include <sys/stat.h>
 #endif // HAVE_SYS_STAT_H
 
+#include <math.h>
+
 namespace picsom {
   static const string Time_h_vcid =
-    "@(#)$Id: TimeUtil.h,v 2.22 2016/12/08 15:01:02 jorma Exp $";
+    "@(#)$Id: TimeUtil.h,v 2.23 2017/04/28 07:46:08 jormal Exp $";
 
   /**
      DOCUMENTATION MISSING
   */
 
   /// Clears timespec.
-  inline void SetTimeZero(timespec_t& t) { memset(&t, 0, sizeof t); }
+  inline void SetTimeZero(struct timespec& t) { memset(&t, 0, sizeof t); }
 
   /// Clears timespec.
-  inline timespec_t TimeZero() { 
-    timespec_t t;
+  inline struct timespec TimeZero() { 
+    struct timespec t;
     SetTimeZero(t);
     return t;
   }
 
   ///
-  inline bool IsTimeZero(const timespec_t& t) {
+  inline bool IsTimeZero(const struct timespec& t) {
     return t.tv_sec==0 && t.tv_nsec==0;
   }
 
   /// Sets timespec from file's modification time.
-  inline void SetTime(timespec_t& t, const string& f) {
+  inline void SetTime(struct timespec& t, const string& f) {
     SetTimeZero(t);
     struct stat st;
     if (!stat(f.c_str(), &st))
@@ -74,7 +77,7 @@ namespace picsom {
   }
 
   /// Sets timespec.
-  inline void SetTimeNow(timespec_t& t) {
+  inline void SetTimeNow(struct timespec& t) {
     // #ifdef sgi
     clock_gettime(CLOCK_REALTIME, &t);
     // #else
@@ -83,15 +86,15 @@ namespace picsom {
   }
 
   /// Returns current time.
-  inline timespec_t TimeNow() {
-    timespec_t t;
+  inline struct timespec TimeNow() {
+    struct timespec t;
     SetTimeNow(t);
     return t;
   }
 
   /// Replacement for Simple::TimeStampP().
   inline string TimeStamp() {
-    timespec_t tt;
+    struct timespec tt;
     SetTimeNow(tt);
     tm mytime;
     tm *time = localtime_r(&tt.tv_sec, &mytime);
@@ -104,13 +107,13 @@ namespace picsom {
   }
 
   /// Time in string. (Implementation in PicSOM.C)
-  string TimeString(const timespec_t& t, bool = false);
+  string TimeString(const struct timespec& t, bool = false);
 
   /// xs:dateTime. (Implementation in PicSOM.C)
-  string XSdateTime(const timespec_t& t);
+  string XSdateTime(const struct timespec& t);
 
   /// Time in string.
-  inline string TimeDotString(const timespec_t& ts) {
+  inline string TimeDotString(const struct timespec& ts) {
     ostringstream tmp;
     tmp << "00000000" << ts.tv_nsec;
     string nsstr = tmp.str();
@@ -122,8 +125,8 @@ namespace picsom {
   }
 
   /// Time from string.
-  inline timespec_t TimeFromDotString(const string& s) {
-    timespec_t ts = TimeZero();
+  inline struct timespec TimeFromDotString(const string& s) {
+    struct timespec ts = TimeZero();
     size_t p = s.find('.');
     if (p==string::npos)
       return ts;
@@ -135,7 +138,7 @@ namespace picsom {
   }
 
   ///
-  inline void TimeNormalize(timespec_t& ts) {
+  inline void TimeNormalize(struct timespec& ts) {
     while (ts.tv_nsec>1000000000) {
       ts.tv_nsec -= 1000000000;
       ts.tv_sec += 1;
@@ -147,7 +150,7 @@ namespace picsom {
   }
 
   ///
-  inline void TimeAdd(timespec_t& ts, double t) {
+  inline void TimeAdd(struct timespec& ts, double t) {
     long s  = long(floor(t));
     long ns = long(1000000000.0*(t-s));
     ts.tv_sec  += s;
@@ -156,12 +159,12 @@ namespace picsom {
   }
 
   /// Returns true if times are equal.
-  inline bool TimesEqual(const timespec_t& f, const timespec_t& l) {
+  inline bool TimesEqual(const struct timespec& f, const struct timespec& l) {
     return f.tv_sec==l.tv_sec && f.tv_nsec==l.tv_nsec;
   }
 
   /// Returns true if former time is more recent than latter.
-  inline bool MoreRecent(const timespec_t& f, const timespec_t& l,
+  inline bool MoreRecent(const struct timespec& f, const struct timespec& l,
 			 string *d = NULL) {
     bool r = f.tv_sec>l.tv_sec ||
       (f.tv_sec==l.tv_sec && f.tv_nsec>l.tv_nsec);
@@ -172,17 +175,17 @@ namespace picsom {
   }
 
   /// Returns true if former time is more recent than latter.
-  inline bool MoreRecent(const time_t& f, const timespec_t& l, string*) {
+  inline bool MoreRecent(const time_t& f, const struct timespec& l, string*) {
     return f>l.tv_sec || (f==l.tv_sec && l.tv_nsec);
   }
 
   /// Returns true if modified time in stat is more recent than given time.
-  inline bool MoreRecent(const struct stat& s, const timespec_t& l,
+  inline bool MoreRecent(const struct stat& s, const struct timespec& l,
 			 string *d = NULL) {
 #if defined(sgi)
     return MoreRecent(s.st_mtim, l, d); 
 #elif defined(__alpha)
-    timespec_t t = { s.st_mtime, 1000*s.st_umtime} ;
+    struct timespec t = { s.st_mtime, 1000*s.st_umtime} ;
     return MoreRecent(t, l, d);
 #else
     return MoreRecent(s.st_mtime, l, d);
@@ -190,15 +193,15 @@ namespace picsom {
   }
 
   /// Returns true if given time is more recent than given number of seconds.
-  inline bool MoreRecent(const timespec_t& t, int s, string *d = NULL) {
-    timespec_t now; 
+  inline bool MoreRecent(const struct timespec& t, int s, string *d = NULL) {
+    struct timespec now; 
     SetTimeNow(now); 
     now.tv_sec-=s;
     return MoreRecent(t, now, d);
   }
 
   /// Returns true if modified time of given file is more recent than given.
-  inline bool MoreRecent(const string& fname, const timespec_t& l,
+  inline bool MoreRecent(const string& fname, const struct timespec& l,
 			 string *d = NULL) {
     if (d)
       *d = "";
@@ -209,20 +212,20 @@ namespace picsom {
   /// Returns true if modified time of 1st file is more recent than 2nd's.
   inline bool MoreRecent(const string& f1, const string& f2,
 			 string *d = NULL) {
-    timespec_t t1, t2;
+    struct timespec t1, t2;
     SetTime(t1, f1);
     SetTime(t2, f2);
     return MoreRecent(t1, t2, d);
   }
   
   /// Returns difference of the two times in seconds.
-  inline double TimeDiff(const timespec_t& a, const timespec_t& b) {
+  inline double TimeDiff(const struct timespec& a, const struct timespec& b) {
     return a.tv_sec-b.tv_sec+(a.tv_nsec-b.tv_nsec)*1.0e-9;
   }
 
   /// Return modification time of a file.
-  inline timespec_t FileModTime(const string& f) {
-    timespec_t ts;
+  inline struct timespec FileModTime(const string& f) {
+    struct timespec ts;
     memset(&ts, 0, sizeof ts);
 
     struct stat st;

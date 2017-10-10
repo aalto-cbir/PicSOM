@@ -1,4 +1,4 @@
-// -*- C++ -*-    $Id: imagedata.h,v 1.109 2016/10/25 08:15:41 jorma Exp $
+// -*- C++ -*-    $Id: imagedata.h,v 1.111 2017/04/28 07:49:29 jormal Exp $
 
 /**
    \file imagedata.h
@@ -9,8 +9,8 @@
    independent storage for pixel based images.
    
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.109 $
-   $Date: 2016/10/25 08:15:41 $
+   $Revision: 1.111 $
+   $Date: 2017/04/28 07:49:29 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -19,7 +19,8 @@
 #ifndef _imagedata_h_
 #define _imagedata_h_
 
-#include <missing-c-utils.h>
+//#include <missing-c-utils.h>
+#include <picsom-config.h>
 
 #include <vector>
 #include <map>
@@ -75,7 +76,7 @@ namespace picsom {
     /// Version control identifier of the imagedata.h file.
     static const string& version() {
       static const string v =
-	"$Id: imagedata.h,v 1.109 2016/10/25 08:15:41 jorma Exp $";
+	"$Id: imagedata.h,v 1.111 2017/04/28 07:49:29 jormal Exp $";
       return v;
     }
 
@@ -349,6 +350,9 @@ namespace picsom {
     //    vector<T> get<T>() const;
     //    void      set(const vector<T>&);
     // 
+    //    vector<T> get_ordered_T(const string&) const;
+    //    vector<T> get_ordered<T>(const string&) const;
+    // 
     // 2) These methods access one pixel as a vector:
     //    vector<T> get_T(size_t, size_t) const;
     //    vector<T> get<T>(size_t, size_t) const;
@@ -376,11 +380,37 @@ namespace picsom {
     vector<float>             get_float()  const { __id__get_all(float);  }
     vector<double>            get_double() const { __id__get_all(double); }
     vector<unsigned char>     get_uchar()  const { __id__get_all(uchar);  }
-    vector<uint16_t>    get_uint16() const { __id__get_all(uint16); }
-    vector<uint32_t>     get_uint32() const { __id__get_all(uint32); }
+    vector<uint16_t>          get_uint16() const { __id__get_all(uint16); }
+    vector<uint32_t>          get_uint32() const { __id__get_all(uint32); }
     vector<complex<float> >   get_scmplx() const { __id__get_all(scmplx); }
     vector<complex<double> >  get_dcmplx() const { __id__get_all(dcmplx); }
     //@}
+
+    vector<float> get_ordered_float(const string& s,
+				    vector<size_t>& size,
+				    vector<size_t>& stride) const {
+      ensure_type("get_ordered_float", pixeldata_float);
+      if (s=="" || s=="yxc") {
+	size   = vector<size_t> { _height, _width, _count };
+	stride = vector<size_t> { _width*_count, _count, 1 };
+	return _vec_float;
+      }
+      if (s=="cyx") {
+	const float *d = _vec_float.data();
+	vector<float> v(_vec_float.size());
+	size_t i=0;
+	for (size_t c=0; c<_count; c++)
+	  for (size_t y=0; y<_height; y++)
+	    for (size_t x=0; x<_width; x++, i++)
+	      v[i] = d[to_index(x, y, c)];
+	size   = vector<size_t> { _count, _height, _width };
+	stride = vector<size_t> { _height*_width, _width, 1 };
+	return v;
+      }
+      size.clear();
+      stride.clear();
+      return vector<float>();
+    }
 
     /// Implements "set(const vector<T>&)" functions which set it all
     /// in one call
@@ -2675,6 +2705,14 @@ namespace picsom {
     */
     int to_index_w_count(int x, int y) const {
       return _count*to_index_w_width(x, y, _width);
+    }
+
+    /** Converts the given coordinates to an index with pixel count accounted.
+	\param x,y,c the coordinates and channel to convert
+	\returns a one-dimensional index
+    */
+    int to_index(int x, int y, int c) const {
+      return to_index_w_count(x, y)+c;
     }
 
     /// A canonical datatype through which some transformations are performed.

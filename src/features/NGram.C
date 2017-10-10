@@ -1,10 +1,16 @@
-// $Id: NGram.C,v 1.16 2013/06/26 07:13:59 jorma Exp $	
+// -*- C++ -*-  $Id: NGram.C,v 1.18 2017/04/04 09:58:00 jormal Exp $
+// 
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
+// 
 
 #include <NGram.h>
+#ifdef HAVE_GCRYPT_H
 
 namespace picsom {
   static const char *vcid =
-    "$Id: NGram.C,v 1.16 2013/06/26 07:13:59 jorma Exp $";
+    "$Id: NGram.C,v 1.18 2017/04/04 09:58:00 jormal Exp $";
 
 static NGram list_entry(true);
 
@@ -335,6 +341,7 @@ Feature::featureVector NGram::NGramData::WordNGramResult() const {
 
 } // namespace picsom
 
+#endif // HAVE_GCRYPT_H
 
 // Local Variables:
 // mode: font-lock

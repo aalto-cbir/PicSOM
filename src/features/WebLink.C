@@ -1,10 +1,16 @@
-// $Id: WebLink.C,v 1.8 2008/09/29 10:22:40 markus Exp $	
+// -*- C++ -*-  $Id: WebLink.C,v 1.9 2017/03/10 09:12:58 jormal Exp $
+// 
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
+// 
 
+#ifdef HAVE_GCRYPT_H
 #include <WebLink.h>
 
 namespace picsom {
   static const char *vcid =
-    "$Id: WebLink.C,v 1.8 2008/09/29 10:22:40 markus Exp $";
+    "$Id: WebLink.C,v 1.9 2017/03/10 09:12:58 jormal Exp $";
 
 static WebLink list_entry(true);
 
@@ -193,6 +199,7 @@ void WebLink::WebLinkData::AddSha1Indexes(Feature::featureVector &v,
 }
 //=============================================================================
 
+#endif // HAVE_GCRYPT_H
 
 // Local Variables:
 // mode: font-lock

@@ -1,4 +1,4 @@
-// $Id: Caffe.C,v 1.29 2016/12/19 08:14:35 jorma Exp $	
+// $Id: Caffe.C,v 1.33 2017/06/20 08:12:50 jormal Exp $	
 
 #include <Caffe.h>
 
@@ -11,13 +11,13 @@
 
 namespace picsom {
   static const char *vcid =
-    "$Id: Caffe.C,v 1.29 2016/12/19 08:14:35 jorma Exp $";
+    "$Id: Caffe.C,v 1.33 2017/06/20 08:12:50 jormal Exp $";
 
   static Caffe list_entry(true);
 
   RwLock Caffe::caffemaplock;
 
-  map<string,Caffe::caffe_t> Caffe::caffemap;
+  map<string,pair<Caffe::caffe_t,bool> > Caffe::caffemap;
 
   //===========================================================================
 
@@ -164,12 +164,20 @@ blocks = 256x256+avg(512x512:3x3)
 
   //===========================================================================
 
+  extern "C" int openblas_get_num_threads();
+  extern "C" int openblas_get_num_procs();
+  
   bool Caffe::ProcessRegionNew(const Region& ri, const vector<float>& v,
 			       Data *dst) {
+
+    // size_t max_instances = 4;
+    
     vector<float>& d = ((CaffeData*)dst)->datavec;
 
     string msg = "Caffe::ProcessRegion() "+ThreadIdentifierUtil()+" : ";
-
+    msg += ToStr(openblas_get_num_threads())+"+"+ToStr(openblas_get_num_procs())
+      +" ";
+    
     if (FrameVerbose())
       cout << msg << "d.size()=" << d.size() << endl;
 
@@ -196,9 +204,6 @@ blocks = 256x256+avg(512x512:3x3)
     if (resizex=="")
       resizex = "256x256";
 
-    //if (windowsize!="227x227")
-    //  throw msg+"only windowsize=227x227 is currently supported";
-
     if (windowsize=="")
       throw msg+"windowsize should be set";
 
@@ -207,7 +212,8 @@ blocks = 256x256+avg(512x512:3x3)
     size_t wx = atoi(wsize.at(0).c_str());
     size_t wy = atoi(wsize.at(0).c_str());
     if (wx!=wy)
-      throw msg+ToStr(wx)+"!="+ToStr(wy)+": only square windows are currently supported";
+      throw msg+ToStr(wx)+"!="+ToStr(wy)+
+	": only square windows are currently supported";
 
     using caffe::Caffe;
     using caffe::Net;
@@ -228,15 +234,26 @@ blocks = 256x256+avg(512x512:3x3)
     if (use_gpu) {
       Caffe::SetDevice(gpudevice);
       Caffe::set_mode(Caffe::GPU);
-    } else
+      if (MethodVerbose())
+	cout << msg << "using GPU device " << gpudevice << endl;
+    } else {
       Caffe::set_mode(Caffe::CPU);
-
+      if (MethodVerbose())
+	cout << msg << "using CPU device" << endl;
+    }
+    
     ProcessBlocksString(img.width(), img.height());
     vector<fv_tree_node*> leaves = BlocksLeaves();
     size_t n_leaves = leaves.size();
 
-    string mapkeyname = model_name+" n_leaves="+ToStr(n_leaves);
     caffemaplock.LockRead();
+
+    static size_t instance = 0;
+    //instance++;
+    
+    string mapkeyname = model_name+" n_leaves="+ToStr(n_leaves)+
+      " instance="+ToStr(instance);
+
     auto cmi = caffemap.find(mapkeyname);
     caffemaplock.UnlockRead();
     if (cmi==caffemap.end()) {
@@ -273,8 +290,8 @@ blocks = 256x256+avg(512x512:3x3)
 	if (!StringToFile(protocontout, prototxttmp))
 	  throw msg+"writing in <"+prototxttmp+"> failed";
 
-	string logtxt = "Loading caffe ["+prototxtorig+"] with "+ToStr(n_leaves)+
-	  " leaves and [model] and [mean.png]";
+	string logtxt = "Loading caffe ["+prototxtorig+"] with "+
+	  ToStr(n_leaves)+" leaves and [model] and [mean.png]";
 
 	vector<size_t> caffe2dbmap;
 	if (FileSize(map)>0) {
@@ -292,7 +309,17 @@ blocks = 256x256+avg(512x512:3x3)
 	if (debug3)
 	  FLAGS_logtostderr = 1;
 
-	imagedata mimg = imagefile(mean).frame(0);
+	imagedata mimg;
+	if (FileExists(mean))
+	  mimg = imagefile(mean).frame(0);
+	else {
+	  imagedata itmp(wx, wy, 3, imagedata::pixeldata_float);
+	  vector<float> v = itmp.get_float();
+	  for (size_t vi=0; vi<v.size(); vi++)
+	    v[vi] = 0.5;
+	  itmp.set(v);
+	  mimg = itmp;
+	}
 
 	if (!mean_is_rgb) { // == is_bgr
 	  size_t width = mimg.width(), height = mimg.height();
@@ -313,9 +340,9 @@ blocks = 256x256+avg(512x512:3x3)
 
 	caffe_t caffe(mapkeyname, prototxtorig, model, mean,
 		      netp, mimg, caffe2dbmap);
-	caffemap[mapkeyname] = caffe;
+	caffemap[mapkeyname] = make_pair(caffe, true);
 	cmi = caffemap.find(mapkeyname);
-	Net<float>& cnet = *cmi->second.net;
+	Net<float>& cnet = *cmi->second.first.net;
 	cnet.CopyTrainedLayersFrom(model);
 
 	Unlink(prototxttmp);
@@ -338,7 +365,7 @@ blocks = 256x256+avg(512x512:3x3)
       caffemaplock.UnlockWrite();
     }
 
-    Net<float>& cnet = *cmi->second.net;
+    Net<float>& cnet = *cmi->second.first.net;
 
 #ifdef HAS_CAFFE_COLORCONVERT
     caffe::TransformationParameter_CS cs = cnet.input_color_space();
@@ -397,7 +424,8 @@ blocks = 256x256+avg(512x512:3x3)
 	cout << msg << li << " : " << recipe.str() << endl;
 
       const pair<imagedata,imagedata>& ipair
-	= CreateBlocksImage(img, cmi->second.mimg, recipe.imgsrc, imgsrcmap);
+	= CreateBlocksImage(img, cmi->second.first.mimg, 
+			    recipe.imgsrc, imgsrcmap);
 
       imagedata ipiece = ipair.first.subimage( recipe.ulx, recipe.uly,
 					       recipe.lrx, recipe.lry);
@@ -449,9 +477,13 @@ blocks = 256x256+avg(512x512:3x3)
 	     sizeof(float)*input_blobs[0]->count());
       break;
     case Caffe::GPU:
+#ifdef HAVE_CUDA_RUNTIME_H
       cudaMemcpy(input_blobs[0]->mutable_gpu_data(), &dataall[0],
 		 sizeof(float)*input_blobs[0]->count(),
 		 cudaMemcpyHostToDevice);
+#else
+      LOG(FATAL) << "Caffe::GPU without HAVE_CUDA_RUNTIME_H.";
+#endif // HAVE_CUDA_RUNTIME_H
       break;
     default:
       LOG(FATAL) << "Unknown Caffe mode.";
@@ -490,9 +522,13 @@ blocks = 256x256+avg(512x512:3x3)
 	     sizeof(float)*output_blobs[0]->count());
       break;
     case Caffe::GPU:
+#ifdef HAVE_CUDA_RUNTIME_H
       cudaMemcpy(outarr, output_blobs[0]->gpu_data(),
 		 sizeof(float)*output_blobs[0]->count(),
 		 cudaMemcpyDeviceToHost);
+#else
+      LOG(FATAL) << "Caffe::GPU without HAVE_CUDA_RUNTIME_H.";
+#endif // HAVE_CUDA_RUNTIME_H
       break;
     default:
       LOG(FATAL) << "Unknown Caffe mode.";
@@ -525,8 +561,6 @@ blocks = 256x256+avg(512x512:3x3)
       	v = vector<float>(rv, rv+output_blobs[0]->channels());
 
       } else { // layer_no>0
-	if (use_gpu)
-	  ShowError(msg+"use_gpu with layer_no>0");
 
 	if (false && debug4) {
 	  const string output_prefix = "proto";
@@ -584,7 +618,8 @@ blocks = 256x256+avg(512x512:3x3)
 	for (size_t ii=0; ii<v.size(); ii++) {
 	  int cfy = fpclassify(v[ii]);
 	  if (cfy==FP_NAN || cfy==FP_INFINITE) {
-	    cerr << "ERROR: NaN or Inf in index " << ii << "/" << v.size() << endl;
+	    cerr << msg << "ERROR: NaN or Inf in index "
+		 << ii << "/" << v.size() << endl;
 	    // and then????
 	    break;
 	  }
@@ -921,7 +956,7 @@ blocks = 256x256+avg(512x512:3x3)
    // }
 
       if (MethodVerbose())
-	cout << "Created blocks image \"" << spec << "\" "
+	cout << msg << "Created blocks image \"" << spec << "\" "
 	     << imgpair.first.info() << " from " << imgin.info() << " and "
 	     << imgpair.second.info() << " from " << mimg.info() << endl;
       
@@ -1024,453 +1059,461 @@ blocks = 256x256+avg(512x512:3x3)
   
   //===========================================================================
 
-  bool Caffe::ProcessRegionOld(const Region& ri, const vector<float>& v,
-			    Data *dst) {
-    vector<float>& d = ((CaffeData*)dst)->datavec;
+//   bool Caffe::ProcessRegionOld(const Region& ri, const vector<float>& v,
+// 			    Data *dst) {
+//     vector<float>& d = ((CaffeData*)dst)->datavec;
 
-    string msg = "Caffe::ProcessRegion() : ";
+//     string msg = "Caffe::ProcessRegion() : ";
 
-    if (FrameVerbose())
-      cout << msg << "d.size()=" << d.size() << endl;
+//     if (FrameVerbose())
+//       cout << msg << "d.size()=" << d.size() << endl;
 
-    if (d.size()!=v.size()) {
-      char tmp[100];
-      sprintf(tmp, "d.size()=%d v.size()=%d", (int)d.size(), (int)v.size());
-      throw msg+"data size mismatch "+tmp;
-    }
+//     if (d.size()!=v.size()) {
+//       char tmp[100];
+//       sprintf(tmp, "d.size()=%d v.size()=%d", (int)d.size(), (int)v.size());
+//       throw msg+"data size mismatch "+tmp;
+//     }
 
-    if (!ri.isA("rectangular")) {
-      throw msg+"region is not rectangular";
-    }
+//     if (!ri.isA("rectangular")) {
+//       throw msg+"region is not rectangular";
+//     }
 
-    rectangularRegion rr = *(rectangularRegion*)&ri;
-    imagedata img(rr.width(), rr.height(), 3, imagedata::pixeldata_float);
-    img.set(v);
+//     rectangularRegion rr = *(rectangularRegion*)&ri;
+//     imagedata img(rr.width(), rr.height(), 3, imagedata::pixeldata_float);
+//     img.set(v);
 
-    list<imagedata> ilist { img };
+//     list<imagedata> ilist { img };
 
-    string name = model_name;
-    if (name=="")
-      throw msg+"model name not set";
+//     string name = model_name;
+//     if (name=="")
+//       throw msg+"model name not set";
 
-    string fusionx = fusion;
-    if (fusionx=="")
-      fusionx = "amean";
+//     string fusionx = fusion;
+//     if (fusionx=="")
+//       fusionx = "amean";
 
-    string resizex = resize;
-    if (resizex=="")
-      resizex = "256x256";
+//     string resizex = resize;
+//     if (resizex=="")
+//       resizex = "256x256";
 
-    bool keep_aspect = false;
-    size_t width = atoi(resizex.c_str()), height = 0;
-    size_t p = resizex.find("x");
-    if (p!=string::npos)
-      height = atoi(resizex.substr(p+1).c_str());
-    if (resizex.find("a")!=string::npos)
-      keep_aspect = true;
+//     bool keep_aspect = false;
+//     size_t width = atoi(resizex.c_str()), height = 0;
+//     size_t p = resizex.find("x");
+//     if (p!=string::npos)
+//       height = atoi(resizex.substr(p+1).c_str());
+//     if (resizex.find("a")!=string::npos)
+//       keep_aspect = true;
 
-    if (layer!="fc6")
-      throw msg+"only layer==fc6 is currently supported";
+//     if (layer!="fc6")
+//       throw msg+"only layer==fc6 is currently supported";
       
-    size_t level = 3; // obs!  this should come from layer="fc6"
+//     size_t level = 3; // obs!  this should come from layer="fc6"
 
-    using caffe::Net;
-    using caffe::Blob;
-    using caffe::Caffe;
+//     using caffe::Net;
+//     using caffe::Blob;
+//     using caffe::Caffe;
 
-    //Tic("RunCaffe()");
+//     //Tic("RunCaffe()");
 
-    bool debug3 = FileVerbose();
-    bool debug4 = FrameVerbose();
-    bool mean_is_rgb = false;
+//     bool debug3 = FileVerbose();
+//     bool debug4 = FrameVerbose();
+//     bool mean_is_rgb = false;
 
-    int gpudevice = GpuDeviceId();
-    bool use_gpu = gpudevice>=0;
-    if (use_gpu) {
-      Caffe::SetDevice(gpudevice);
-      Caffe::set_mode(Caffe::GPU);
-    } else
-      Caffe::set_mode(Caffe::CPU);
+//     int gpudevice = GpuDeviceId();
+//     bool use_gpu = gpudevice>=0;
+//     if (use_gpu) {
+//       Caffe::SetDevice(gpudevice);
+//       Caffe::set_mode(Caffe::GPU);
+//     } else
+//       Caffe::set_mode(Caffe::CPU);
 
-    auto cmi = caffemap.find(name);
-    if (cmi==caffemap.end()) {
-      //Tic("RunCaffe() construct");
+//     auto cmi = caffemap.find(name);
+//     if (cmi==caffemap.end()) {
+//       //Tic("RunCaffe() construct");
 
-      string prototxt = name+"/prototxt";
-      string model    = name+"/model";
-      string mean     = name+"/mean.png";
-      string map      = name+"/idxmap.txt";
+//       string prototxt = name+"/prototxt";
+//       string model    = name+"/model";
+//       string mean     = name+"/mean.png";
+//       string map      = name+"/idxmap.txt";
       
-      string logtxt = "Loading caffe ["+prototxt+"] and [model] "
-	"and [mean.png]";
+//       string logtxt = "Loading caffe ["+prototxt+"] and [model] "
+// 	"and [mean.png]";
 
-      vector<size_t> caffe2dbmap;
-      if (FileExists(map)) {
-	logtxt += " and [idxmap.txt]";
-	string ss = FileToString(map);
-	vector<string> in = SplitInSomething("\n", false, ss);
-	for (auto i=in.begin(); i!=in.end(); i++)
-	  if ((*i)[0]>='0' && (*i)[0]<='9')
-	    caffe2dbmap.push_back(atoi(i->c_str()));
-      }
+//       vector<size_t> caffe2dbmap;
+//       if (FileExists(map)) {
+// 	logtxt += " and [idxmap.txt]";
+// 	string ss = FileToString(map);
+// 	vector<string> in = SplitInSomething("\n", false, ss);
+// 	for (auto i=in.begin(); i!=in.end(); i++)
+// 	  if ((*i)[0]>='0' && (*i)[0]<='9')
+// 	    caffe2dbmap.push_back(atoi(i->c_str()));
+//       }
 
 
-      logtxt += " with fusion=\""+fusionx+"\" resize=\""+resizex
-	+"\" layer=\""+layer+"\"";
+//       logtxt += " with fusion=\""+fusionx+"\" resize=\""+resizex
+// 	+"\" layer=\""+layer+"\"";
 
-      if (MethodVerbose())
-	cout << logtxt << endl;
+//       if (MethodVerbose())
+// 	cout << logtxt << endl;
 
-      if (debug3)
-	FLAGS_logtostderr = 1;
+//       if (debug3)
+// 	FLAGS_logtostderr = 1;
 
-#ifdef HAS_CAFFE_COLORCONVERT
-      Caffe::set_phase(Caffe::TEST);
-      Net<float> *netp = new Net<float>(prototxt);
-#else
-      Net<float> *netp = new Net<float>(prototxt, caffe::TEST);
-#endif
+// #ifdef HAS_CAFFE_COLORCONVERT
+//       Caffe::set_phase(Caffe::TEST);
+//       Net<float> *netp = new Net<float>(prototxt);
+// #else
+//       Net<float> *netp = new Net<float>(prototxt, caffe::TEST);
+// #endif
 
-      imagedata mimg = imagefile(mean).frame(0);
-      caffe_t caffe(name, prototxt, model, mean,
-		    netp, mimg, caffe2dbmap);
-      caffemap[name] = caffe;
-      cmi = caffemap.find(name);
-      Net<float>& cnet = *cmi->second.net;
-      cnet.CopyTrainedLayersFrom(model);
+//       imagedata mimg = imagefile(mean).frame(0);
+//       caffe_t caffe(name, prototxt, model, mean,
+// 		    netp, mimg, caffe2dbmap);
+//       caffemap[name] = caffe;
+//       cmi = caffemap.find(name);
+//       Net<float>& cnet = *cmi->second.net;
+//       cnet.CopyTrainedLayersFrom(model);
 
-      //Tac("RunCaffe() construct");
-    }
-    Net<float>& cnet = *cmi->second.net;
+//       //Tac("RunCaffe() construct");
+//     }
+//     Net<float>& cnet = *cmi->second.net;
 
-    list<vector<float> > emptyres, res;
+//     list<vector<float> > emptyres, res;
 
-    for (auto ilp = ilist.begin(); ilp!=ilist.end(); ) {
-      const vector<Blob<float>*>& input_blobs = cnet.input_blobs();
-      if (debug4)
-	cout << "input_blobs.size()=" << input_blobs.size() << endl;
-      if (input_blobs.size()!=1) {
-	throw ShowError(msg+"input_blobs.size()!=1");
-      }
+//     for (auto ilp = ilist.begin(); ilp!=ilist.end(); ) {
+//       const vector<Blob<float>*>& input_blobs = cnet.input_blobs();
+//       if (debug4)
+// 	cout << "input_blobs.size()=" << input_blobs.size() << endl;
+//       if (input_blobs.size()!=1) {
+// 	throw ShowError(msg+"input_blobs.size()!=1");
+//       }
 
-      size_t ss = 227, ds = 256-ss;
-      vector<float> dataten(10*3*ss*ss);
-      if (input_blobs[0]->count()%dataten.size()) {
-	throw ShowError(msg+"input_blobs[0]->count() mod dataten.size() != 0 : "+
-			ToStr(input_blobs[0]->count())+" vs "+
-			ToStr(dataten.size()));
-      }
+//       size_t ss = 227, ds = 256-ss;
+//       vector<float> dataten(10*3*ss*ss);
+//       if (input_blobs[0]->count()%dataten.size()) {
+// 	throw ShowError(msg+"input_blobs[0]->count() mod dataten.size() != 0 : "+
+// 			ToStr(input_blobs[0]->count())+" vs "+
+// 			ToStr(dataten.size()));
+//       }
 
-      size_t n_ten_blocks = input_blobs[0]->count()/dataten.size();
+//       size_t n_ten_blocks = input_blobs[0]->count()/dataten.size();
 
-      if (debug4)
-	cout << " input_blobs[0]->count()=" << input_blobs[0]->count()
-	     << " input_blobs[0]->num()=" << input_blobs[0]->num()
-	     << " input_blobs[0]->channels()=" << input_blobs[0]->channels()
-	     << " input_blobs[0]->width()=" << input_blobs[0]->width()
-	     << " input_blobs[0]->height()=" << input_blobs[0]->height()
-	     << " n_ten_blocks=" << n_ten_blocks
-	     << endl;
+//       if (debug4)
+// 	cout << " input_blobs[0]->count()=" << input_blobs[0]->count()
+// 	     << " input_blobs[0]->num()=" << input_blobs[0]->num()
+// 	     << " input_blobs[0]->channels()=" << input_blobs[0]->channels()
+// 	     << " input_blobs[0]->width()=" << input_blobs[0]->width()
+// 	     << " input_blobs[0]->height()=" << input_blobs[0]->height()
+// 	     << " n_ten_blocks=" << n_ten_blocks
+// 	     << endl;
       
-      vector<float> dataall(n_ten_blocks*dataten.size());
+//       vector<float> dataall(n_ten_blocks*dataten.size());
 
-      for (size_t iii=0; iii<n_ten_blocks && ilp!=ilist.end(); iii++, ilp++) {
-	//Tic("RunCaffe() imagedata");
+//       for (size_t iii=0; iii<n_ten_blocks && ilp!=ilist.end(); iii++, ilp++) {
+// 	//Tic("RunCaffe() imagedata");
 
-	// aspect ratio loss...
-	imagedata img = *ilp;
-	img.force_three_channel();
+// 	// aspect ratio loss...
+// 	imagedata img = *ilp;
+// 	img.force_three_channel();
 
-	if (!keep_aspect) {
-	  scalinginfo si(img.width(), img.height(), width, height);
-	  img.rescale(si, 1);
+// 	if (!keep_aspect) {
+// 	  scalinginfo si(img.width(), img.height(), width, height);
+// 	  img.rescale(si, 1);
 
-	} else {
-	  if (width!=height)
-	    throw ShowError(msg+"width!=height does not? work");
+// 	} else {
+// 	  if (width!=height)
+// 	    throw ShowError(msg+"width!=height does not? work");
 	    
-	  // center square...
-	  size_t iw = img.width(), ih = img.height();
-	  size_t wh = iw<ih ? iw : ih, x = 0, y = 0;
-	  if (iw>ih)
-	    x = (iw-ih)/2;
-	  else
-	    y = (ih-iw)/2;
-	  img = img.subimage(x, y, x+wh-1, y+wh-1);
-	  scalinginfo si(wh, wh, width, height);
-	  img.rescale(si, 1);
-	}
+// 	  // center square...
+// 	  size_t iw = img.width(), ih = img.height();
+// 	  size_t wh = iw<ih ? iw : ih, x = 0, y = 0;
+// 	  if (iw>ih)
+// 	    x = (iw-ih)/2;
+// 	  else
+// 	    y = (ih-iw)/2;
+// 	  img = img.subimage(x, y, x+wh-1, y+wh-1);
+// 	  scalinginfo si(wh, wh, width, height);
+// 	  img.rescale(si, 1);
+// 	}
 
-	float *ip = (float*)img.raw_float(width*height*3);
-	const float *mp = cmi->second.mimg.raw_float(width*height*3);
-	if (mean_is_rgb)
-	  for (size_t z=0; z<width*height*3; z++)
-	    ip[z] = 255*(ip[z]-mp[z]);
-	else // gbr
-	  for (size_t z=0; z<width*height*3; z+=3) {
-	    ip[z  ] = 255*(ip[z  ]-mp[z+2]); // R
-	    ip[z+1] = 255*(ip[z+1]-mp[z+1]); // G
-	    ip[z+2] = 255*(ip[z+2]-mp[z  ]); // B
-	  }
+// 	float *ip = (float*)img.raw_float(width*height*3);
+// 	const float *mp = cmi->second.mimg.raw_float(width*height*3);
+// 	if (mean_is_rgb)
+// 	  for (size_t z=0; z<width*height*3; z++)
+// 	    ip[z] = 255*(ip[z]-mp[z]);
+// 	else // gbr
+// 	  for (size_t z=0; z<width*height*3; z+=3) {
+// 	    ip[z  ] = 255*(ip[z  ]-mp[z+2]); // R
+// 	    ip[z+1] = 255*(ip[z+1]-mp[z+1]); // G
+// 	    ip[z+2] = 255*(ip[z+2]-mp[z  ]); // B
+// 	  }
 
-	float *p = &dataten[0];
-	for (size_t j=0; j<5; j++) {
-	  size_t dx = (j==0||j==2) ? 0 : ds;
-	  size_t dy = (j==0||j==1) ? 0 : ds;
-	  if (j==4)
-	    dx = dy = ds/2;
-	  if (debug4)
-	    cout << dx << " " << dy << " " << dx+ss-1 << " " << dy+ss-1 << endl;
-	  imagedata cut = img.subimage(dx, dy, dx+ss-1, dy+ss-1);
+// 	float *p = &dataten[0];
+// 	for (size_t j=0; j<5; j++) {
+// 	  size_t dx = (j==0||j==2) ? 0 : ds;
+// 	  size_t dy = (j==0||j==1) ? 0 : ds;
+// 	  if (j==4)
+// 	    dx = dy = ds/2;
+// 	  if (debug4)
+// 	    cout << dx << " " << dy << " " << dx+ss-1 << " " << dy+ss-1 << endl;
+// 	  imagedata cut = img.subimage(dx, dy, dx+ss-1, dy+ss-1);
 
-	  float *q = p+3*ss*ss;
-	  const float *cutp = cut.raw_float(ss*ss*3);
-	  for (size_t y=0, pxy=0; y<ss; y++) {
-	    size_t qxy = (y+1)*ss-1;
-	    for (size_t x=0; x<ss; x++, pxy++, qxy--) {
-	      int cuti =  3*(cut.width()*y+x); // cut.to_index_w_count(x, y);
-	      p[pxy]         = q[qxy]         = cutp[cuti+2]; // B
-	      p[pxy+ss*ss]   = q[qxy+ss*ss]   = cutp[cuti+1]; // G
-	      p[pxy+ss*ss*2] = q[qxy+ss*ss*2] = cutp[cuti  ]; // R
-	    }
-	  }
-	  p += 2*3*ss*ss;
-	}
-	//Tac("RunCaffe() imagedata");
+// 	  float *q = p+3*ss*ss;
+// 	  const float *cutp = cut.raw_float(ss*ss*3);
+// 	  for (size_t y=0, pxy=0; y<ss; y++) {
+// 	    size_t qxy = (y+1)*ss-1;
+// 	    for (size_t x=0; x<ss; x++, pxy++, qxy--) {
+// 	      int cuti =  3*(cut.width()*y+x); // cut.to_index_w_count(x, y);
+// 	      p[pxy]         = q[qxy]         = cutp[cuti+2]; // B
+// 	      p[pxy+ss*ss]   = q[qxy+ss*ss]   = cutp[cuti+1]; // G
+// 	      p[pxy+ss*ss*2] = q[qxy+ss*ss*2] = cutp[cuti  ]; // R
+// 	    }
+// 	  }
+// 	  p += 2*3*ss*ss;
+// 	}
+// 	//Tac("RunCaffe() imagedata");
 
-	memcpy(&dataall[iii*dataten.size()], &dataten[0],
-	       dataten.size()*sizeof(float));
-      }
+// 	memcpy(&dataall[iii*dataten.size()], &dataten[0],
+// 	       dataten.size()*sizeof(float));
+//       }
 
-      const float *arr = &dataall[0];
+//       const float *arr = &dataall[0];
 
-      /*
-	cout << "top left B first rows left" << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[q];
-	cout << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[227+q];
-	cout << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[2*227+q];
-	cout << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[3*227+q];
-	cout << endl;
+//       /*
+// 	cout << "top left B first rows left" << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[q];
+// 	cout << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[227+q];
+// 	cout << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[2*227+q];
+// 	cout << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[3*227+q];
+// 	cout << endl;
 
-	cout << "top left G first rows left" << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[51529+q];
-	cout << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[51529+227+q];
-	cout << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[51529+2*227+q];
-	cout << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[51529+3*227+q];
-	cout << endl;
+// 	cout << "top left G first rows left" << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[51529+q];
+// 	cout << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[51529+227+q];
+// 	cout << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[51529+2*227+q];
+// 	cout << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[51529+3*227+q];
+// 	cout << endl;
 
-	cout << "top left R last row right" << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[2*51529+q];
-	cout << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[2*51529+227+q];
-	cout << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[2*51529+2*227+q];
-	cout << endl;
-	for (size_t q=0; q<=10; q++)
-	cout << " " << arr[2*51529+3*227+q];
-	cout << endl;
-      */
+// 	cout << "top left R last row right" << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[2*51529+q];
+// 	cout << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[2*51529+227+q];
+// 	cout << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[2*51529+2*227+q];
+// 	cout << endl;
+// 	for (size_t q=0; q<=10; q++)
+// 	cout << " " << arr[2*51529+3*227+q];
+// 	cout << endl;
+//       */
 
-      //Tic("RunCaffe() outcopy");
+//       //Tic("RunCaffe() outcopy");
 
-      switch (Caffe::mode()) {
-      case Caffe::CPU:
-	memcpy(input_blobs[0]->mutable_cpu_data(), arr,
-	       sizeof(float) * input_blobs[0]->count());
-	break;
-      case Caffe::GPU:
-	cudaMemcpy(input_blobs[0]->mutable_gpu_data(), arr,
-		   sizeof(float) * input_blobs[0]->count(),
-		   cudaMemcpyHostToDevice);
-	break;
-      default:
-	LOG(FATAL) << "Unknown Caffe mode.";
-      }  // switch (Caffe::mode())
+//       switch (Caffe::mode()) {
+//       case Caffe::CPU:
+// 	memcpy(input_blobs[0]->mutable_cpu_data(), arr,
+// 	       sizeof(float) * input_blobs[0]->count());
+// 	break;
+//       case Caffe::GPU:
+// #ifdef HAVE_CUDA_RUNTIME_H
+// 	cudaMemcpy(input_blobs[0]->mutable_gpu_data(), arr,
+// 		   sizeof(float) * input_blobs[0]->count(),
+// 		   cudaMemcpyHostToDevice);
+// #else
+// 	LOG(FATAL) << "Caffe::GPU without HAVE_CUDA_RUNTIME_H.";
+// #endif // HAVE_CUDA_RUNTIME_H
+// 	break;
+//       default:
+// 	LOG(FATAL) << "Unknown Caffe mode.";
+//       }  // switch (Caffe::mode())
 
-      //Tac("RunCaffe() outcopy");
+//       //Tac("RunCaffe() outcopy");
 
-      //Tic("RunCaffe() forward");
-      //LOG(INFO) << "Start";
-      const vector<Blob<float>*>& output_blobs = cnet.ForwardPrefilled();
-      //LOG(INFO) << "End";
-      //Tac("RunCaffe() forward");
+//       //Tic("RunCaffe() forward");
+//       //LOG(INFO) << "Start";
+//       const vector<Blob<float>*>& output_blobs = cnet.ForwardPrefilled();
+//       //LOG(INFO) << "End";
+//       //Tac("RunCaffe() forward");
 
-      if (output_blobs.size()!=1) {
-	throw ShowError(msg+"output_blobs.size()!=1");
-      }
+//       if (output_blobs.size()!=1) {
+// 	throw ShowError(msg+"output_blobs.size()!=1");
+//       }
 
-      if (output_blobs[0]->num()!=10*(int)n_ten_blocks) {
-	throw ShowError(msg+"output_blobs[0]->num()!=10*n_ten_blocks");
-      }
+//       if (output_blobs[0]->num()!=10*(int)n_ten_blocks) {
+// 	throw ShowError(msg+"output_blobs[0]->num()!=10*n_ten_blocks");
+//       }
 
-      if (debug4)
-	cout << " output_blobs[0]->count()=" << output_blobs[0]->count()
-	     << " output_blobs[0]->num()=" << output_blobs[0]->num()
-	     << " output_blobs[0]->channels()=" << output_blobs[0]->channels()
-	     << " output_blobs[0]->width()=" << output_blobs[0]->width()
-	     << " output_blobs[0]->height()=" << output_blobs[0]->height()
-	     << endl;
+//       if (debug4)
+// 	cout << " output_blobs[0]->count()=" << output_blobs[0]->count()
+// 	     << " output_blobs[0]->num()=" << output_blobs[0]->num()
+// 	     << " output_blobs[0]->channels()=" << output_blobs[0]->channels()
+// 	     << " output_blobs[0]->width()=" << output_blobs[0]->width()
+// 	     << " output_blobs[0]->height()=" << output_blobs[0]->height()
+// 	     << endl;
 
-      float *outarr = new float[output_blobs[0]->count()];
+//       float *outarr = new float[output_blobs[0]->count()];
 
-      //Tic("RunCaffe() incopy");
+//       //Tic("RunCaffe() incopy");
 
-      switch (Caffe::mode()) {
-      case Caffe::CPU:
-	memcpy(outarr, output_blobs[0]->cpu_data(),
-	       sizeof(float) * output_blobs[0]->count());
-	break;
-      case Caffe::GPU:
-	cudaMemcpy(outarr, output_blobs[0]->gpu_data(),
-		   sizeof(float) * output_blobs[0]->count(),
-		   cudaMemcpyDeviceToHost);
-	break;
-      default:
-	LOG(FATAL) << "Unknown Caffe mode.";
-      }  // switch (Caffe::mode())
+//       switch (Caffe::mode()) {
+//       case Caffe::CPU:
+// 	memcpy(outarr, output_blobs[0]->cpu_data(),
+// 	       sizeof(float) * output_blobs[0]->count());
+// 	break;
+//       case Caffe::GPU:
+// #ifdef HAVE_CUDA_RUNTIME_H
+// 	cudaMemcpy(outarr, output_blobs[0]->gpu_data(),
+// 		   sizeof(float) * output_blobs[0]->count(),
+// 		   cudaMemcpyDeviceToHost);
+// #else
+// 	LOG(FATAL) << "Caffe::GPU without HAVE_CUDA_RUNTIME_H.";
+// #endif // HAVE_CUDA_RUNTIME_H
+// 	break;
+//       default:
+// 	LOG(FATAL) << "Unknown Caffe mode.";
+//       }  // switch (Caffe::mode())
       
-      //Tac("RunCaffe() incopy");
+//       //Tac("RunCaffe() incopy");
 
-      //Tic("RunCaffe() postprocess");
+//       //Tic("RunCaffe() postprocess");
 
-      for (size_t jj=0; jj<n_ten_blocks && res.size()<ilist.size(); jj++) {
-	if (level==0) {
-	  const string& fusion = fusionx;
-	  vector<float> resv(output_blobs[0]->channels());
-	  for (int ii=0; ii<output_blobs[0]->channels(); ii++) {
-	    if (debug4)
-	      cout << "i=" << ii;
-	    float sum = 0.0, max = 0.0;
-	    for (int j=0; j<output_blobs[0]->num(); j++) {
-	      size_t ij = jj*1000*10 + j*1000+ii;
-	      if (debug4)
-		cout << " " << outarr[ij];
-	      sum += outarr[ij];
-	      if (outarr[ij]>max)
-		max = outarr[ij];
-	    }
-	    sum /= output_blobs[0]->num();
-	    if (debug4)
-	      cout << "  " << sum << endl;
-	    resv[ii] = fusion=="amean" ? sum : fusion=="max" ? max : 0.0;
-	  }
+//       for (size_t jj=0; jj<n_ten_blocks && res.size()<ilist.size(); jj++) {
+// 	if (level==0) {
+// 	  const string& fusion = fusionx;
+// 	  vector<float> resv(output_blobs[0]->channels());
+// 	  for (int ii=0; ii<output_blobs[0]->channels(); ii++) {
+// 	    if (debug4)
+// 	      cout << "i=" << ii;
+// 	    float sum = 0.0, max = 0.0;
+// 	    for (int j=0; j<output_blobs[0]->num(); j++) {
+// 	      size_t ij = jj*1000*10 + j*1000+ii;
+// 	      if (debug4)
+// 		cout << " " << outarr[ij];
+// 	      sum += outarr[ij];
+// 	      if (outarr[ij]>max)
+// 		max = outarr[ij];
+// 	    }
+// 	    sum /= output_blobs[0]->num();
+// 	    if (debug4)
+// 	      cout << "  " << sum << endl;
+// 	    resv[ii] = fusion=="amean" ? sum : fusion=="max" ? max : 0.0;
+// 	  }
 	
-	  if (cmi->second.map.size()!=0) {
-	    if (cmi->second.map.size()!=resv.size()) {
-	      ShowError(msg+"dimensionality error in indexmap A");
-	      // return;
-	    }
+// 	  if (cmi->second.map.size()!=0) {
+// 	    if (cmi->second.map.size()!=resv.size()) {
+// 	      ShowError(msg+"dimensionality error in indexmap A");
+// 	      // return;
+// 	    }
 	  
-	    vector<float> tmp(output_blobs[0]->channels());
-	    for (size_t ti=0; ti<resv.size(); ti++) {
-	      size_t dst = cmi->second.map[ti];
-	      if (dst>=tmp.size()) {
-		ShowError(msg+"dimensionality error in indexmap B");
-		// return;
-	      }
-	      tmp[dst] = resv[ti];
-	    }
-	    resv = tmp;
-	  }
-	  res.push_back(resv);
+// 	    vector<float> tmp(output_blobs[0]->channels());
+// 	    for (size_t ti=0; ti<resv.size(); ti++) {
+// 	      size_t dst = cmi->second.map[ti];
+// 	      if (dst>=tmp.size()) {
+// 		ShowError(msg+"dimensionality error in indexmap B");
+// 		// return;
+// 	      }
+// 	      tmp[dst] = resv[ti];
+// 	    }
+// 	    resv = tmp;
+// 	  }
+// 	  res.push_back(resv);
 
-	} else { // level>0
-	  if (use_gpu)
-	    ShowError(msg+"use_gpu with level>0");
+// 	} else { // level>0
+// 	  if (use_gpu)
+// 	    ShowError(msg+"use_gpu with level>0");
 
-	  if (debug4) {
-	    const string output_prefix = "proto";
-	    const vector<string>& blob_names = cnet.blob_names();
-	    const vector<boost::shared_ptr<Blob<float> > >&
-	      blobs = cnet.blobs();
-	    for (int blobid = 0; blobid < (int)cnet.blobs().size(); ++blobid) {
-	      // Serialize blob
-	      cout << "Dumping " << blob_names[blobid] << " "
-		   << blobs[blobid]->channels() << "," << blobs[blobid]->num() 
-		   << endl;
-	      caffe::BlobProto output_blob_proto;
-	      blobs[blobid]->ToProto(&output_blob_proto);
-	      WriteProtoToBinaryFile(output_blob_proto, 
-				     output_prefix + "-binary-" +
-				     blob_names[blobid]);
-	      //WriteProtoToTextFile(output_blob_proto, 
-	      //			 output_prefix + "-text-" +
-	      //                          blob_names[blobid]);
-	    }
-	  }
+// 	  if (debug4) {
+// 	    const string output_prefix = "proto";
+// 	    const vector<string>& blob_names = cnet.blob_names();
+// 	    const vector<boost::shared_ptr<Blob<float> > >&
+// 	      blobs = cnet.blobs();
+// 	    for (int blobid = 0; blobid < (int)cnet.blobs().size(); ++blobid) {
+// 	      // Serialize blob
+// 	      cout << "Dumping " << blob_names[blobid] << " "
+// 		   << blobs[blobid]->channels() << "," << blobs[blobid]->num() 
+// 		   << endl;
+// 	      caffe::BlobProto output_blob_proto;
+// 	      blobs[blobid]->ToProto(&output_blob_proto);
+// 	      WriteProtoToBinaryFile(output_blob_proto, 
+// 				     output_prefix + "-binary-" +
+// 				     blob_names[blobid]);
+// 	      //WriteProtoToTextFile(output_blob_proto, 
+// 	      //			 output_prefix + "-text-" +
+// 	      //                          blob_names[blobid]);
+// 	    }
+// 	  }
 
-	  const string& fusion = fusionx;
-	  if (level>=cnet.blobs().size())
-	    ShowError(msg+"level>=cnet.blobs().size()");
-	  size_t elevel = cnet.blobs().size()-1-level;
-	  const vector<boost::shared_ptr<Blob<float> > >&
-	    blobs = cnet.blobs();
-	  caffe::BlobProto output_blob_proto;
-	  blobs[elevel]->ToProto(&output_blob_proto);
-	  auto feature_blob = blobs[elevel];
-	  size_t num_features = feature_blob->num();
-	  size_t dim_features = feature_blob->count() / num_features;
-	  vector<float> sum(dim_features), max = sum, center;
-	  for (size_t ff=0; ff<num_features; ff++) {
-	    float *feature_blob_data = feature_blob->mutable_cpu_data() +
-	      feature_blob->offset(ff);
-	    vector<float> resv(dim_features);
-	    memcpy(&resv[0], &feature_blob_data[0], 4*dim_features);
-	    if (fusion=="center") {
-	      if (num_features==10 && ff==8)
-		center = resv;
-	    } else if (fusion=="amean")
-	      for (size_t vi=0; vi<dim_features; vi++)
-		sum[vi] += resv[vi];
-	    else if (fusion=="max") {
-	      // cout << ff << " " << resv[42] << endl;
-	      for (size_t vi=0; vi<dim_features; vi++)
-		if (resv[vi]>max[vi])
-		  max[vi] = resv[vi];
-	    }
-	  }
-	  if (fusion=="center")
-	    res.push_back(center);
-	  else if (fusion=="amean") {
-	    for (size_t vi=0; vi<dim_features; vi++)
-	      sum[vi] /= num_features;
-	    res.push_back(sum);
-	  } else if (fusion=="max")
-	    res.push_back(max);
-	}
-      }
+// 	  const string& fusion = fusionx;
+// 	  if (level>=cnet.blobs().size())
+// 	    ShowError(msg+"level>=cnet.blobs().size()");
+// 	  size_t elevel = cnet.blobs().size()-1-level;
+// 	  const vector<boost::shared_ptr<Blob<float> > >&
+// 	    blobs = cnet.blobs();
+// 	  caffe::BlobProto output_blob_proto;
+// 	  blobs[elevel]->ToProto(&output_blob_proto);
+// 	  auto feature_blob = blobs[elevel];
+// 	  size_t num_features = feature_blob->num();
+// 	  size_t dim_features = feature_blob->count() / num_features;
+// 	  vector<float> sum(dim_features), max = sum, center;
+// 	  for (size_t ff=0; ff<num_features; ff++) {
+// 	    float *feature_blob_data = feature_blob->mutable_cpu_data() +
+// 	      feature_blob->offset(ff);
+// 	    vector<float> resv(dim_features);
+// 	    memcpy(&resv[0], &feature_blob_data[0], 4*dim_features);
+// 	    if (fusion=="center") {
+// 	      if (num_features==10 && ff==8)
+// 		center = resv;
+// 	    } else if (fusion=="amean")
+// 	      for (size_t vi=0; vi<dim_features; vi++)
+// 		sum[vi] += resv[vi];
+// 	    else if (fusion=="max") {
+// 	      // cout << ff << " " << resv[42] << endl;
+// 	      for (size_t vi=0; vi<dim_features; vi++)
+// 		if (resv[vi]>max[vi])
+// 		  max[vi] = resv[vi];
+// 	    }
+// 	  }
+// 	  if (fusion=="center")
+// 	    res.push_back(center);
+// 	  else if (fusion=="amean") {
+// 	    for (size_t vi=0; vi<dim_features; vi++)
+// 	      sum[vi] /= num_features;
+// 	    res.push_back(sum);
+// 	  } else if (fusion=="max")
+// 	    res.push_back(max);
+// 	}
+//       }
 
-      //Tac("RunCaffe() postprocess");
+//       //Tac("RunCaffe() postprocess");
 
-      delete outarr;
-    }
+//       delete outarr;
+//     }
 
-    if (res.size()!=1)
-      throw ShowError(msg+"res.size()!=1");
+//     if (res.size()!=1)
+//       throw ShowError(msg+"res.size()!=1");
 
-    d = res.front();
+//     d = res.front();
 
-    //Tac("RunCaffe()");
+//     //Tac("RunCaffe()");
 
-    return true;
-  }
+//     return true;
+//   }
 
   //===========================================================================
 

@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: RwLock.h,v 2.9 2015/05/07 07:33:47 jorma Exp $
+// -*- C++ -*-  $Id: RwLock.h,v 2.10 2017/04/28 07:46:07 jormal Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science and Technology
@@ -15,7 +15,7 @@ using simple::Simple;
 using namespace std;
 
 static const string RwLock_h_vcid =
-  "@(#)$Id: RwLock.h,v 2.9 2015/05/07 07:33:47 jorma Exp $";
+  "@(#)$Id: RwLock.h,v 2.10 2017/04/28 07:46:07 jormal Exp $";
 
 #ifdef SIMPLE_USE_PTHREADS
 #define PICSOM_USE_PTHREADS
@@ -156,8 +156,8 @@ namespace picsom {
 
   protected:
     /// 
-    static const timespec_t& emptytime() {
-      static timespec_t e;
+    static const struct timespec& emptytime() {
+      static struct timespec e;
       Simple::ZeroTime(e);
       return e;
     }
@@ -181,7 +181,7 @@ namespace picsom {
     string msg;
 
     ///
-    timespec_t when;
+    struct timespec when;
 
   };  // class RwLock
 #endif // PICSOM_USE_PTHREADS

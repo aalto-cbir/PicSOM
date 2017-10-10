@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: PicSOMserver.h,v 2.28 2012/08/20 08:41:11 jorma Exp $
+// -*- C++ -*-  $Id: PicSOMserver.h,v 2.29 2017/04/28 07:46:07 jormal Exp $
 // 
 // Copyright 1998-2012 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
@@ -9,8 +9,9 @@
 #define _PICSOMSERVER_H_
 #ifndef NO_PTHREADS
 
-#include <missing-c-utils.h>
+//#include <missing-c-utils.h>
 #include <XMLutil.h>
+#include <picsom-config.h>
 
 // #undef PICSOM_USE_CSOAP
 

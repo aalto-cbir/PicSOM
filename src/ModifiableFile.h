@@ -1,4 +1,4 @@
-// -*- C++ -*-	$Id: ModifiableFile.h,v 2.3 2007/08/28 10:00:59 jorma Exp $
+// -*- C++ -*-	$Id: ModifiableFile.h,v 2.4 2017/04/28 07:46:07 jormal Exp $
 
 // 
 // Copyright 1998-2007 PicSOM Development Group
@@ -15,7 +15,7 @@
 #include <Simple.h>
 
 static const string ModifiableFile_h_vcid =
-  "@(#)$Id: ModifiableFile.h,v 2.3 2007/08/28 10:00:59 jorma Exp $";
+  "@(#)$Id: ModifiableFile.h,v 2.4 2017/04/28 07:46:07 jormal Exp $";
 
 namespace picsom {
   /**
@@ -75,7 +75,7 @@ namespace picsom {
     string fname;
 
     /// Read time.
-    timespec_t rtime;
+    struct timespec rtime;
 
     /// True when calls to ZeroTimes() are traced.
     static bool debug_zerotimes;

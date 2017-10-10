@@ -1,10 +1,19 @@
+// -*- C++ -*-  $Id: OCVKeyPoint.C,v 1.4 2017/03/10 09:10:33 jormal Exp $
+// 
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
+// 
+
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
+
 #include <OCVKeyPoint.h>
 
 #include <opencv2/features2d/features2d.hpp>
 
 namespace picsom {
   static const string vcid =
-    "$Id: OCVKeyPoint.C,v 1.3 2012/11/05 15:59:59 jorma Exp $";
+    "$Id: OCVKeyPoint.C,v 1.4 2017/03/10 09:10:33 jormal Exp $";
 
   static OCVKeyPoint list_entry(true);
 
@@ -96,3 +105,6 @@ namespace picsom {
   }
     
 }
+
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
+

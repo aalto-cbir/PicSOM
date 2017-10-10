@@ -1,4 +1,4 @@
-// -*- C++ -*-    $Id: textdata.h,v 1.17 2016/02/18 07:32:12 jorma Exp $
+// -*- C++ -*-    $Id: textdata.h,v 1.18 2017/04/28 07:48:19 jormal Exp $
 
 /**
    \file textdata.h
@@ -10,8 +10,8 @@
    in a vector of wchar_t elements.
    
    \author Hannes Muurinen <hannes.muurinen@hut.fi>
-   $Revision: 1.17 $
-   $Date: 2016/02/18 07:32:12 $
+   $Revision: 1.18 $
+   $Date: 2017/04/28 07:48:19 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -20,7 +20,8 @@
 #ifndef _textdata_h_
 #define _textdata_h_
 
-#include <missing-c-utils.h>
+//#include <missing-c-utils.h>
+#include <picsom-config.h>
 
 #include <sstream>
 #include <vector>
@@ -70,7 +71,7 @@ namespace picsom {
     /// Version control identifier of the imagedata.h file.
     static const string& version() {
       static const string v =
-	"$Id: textdata.h,v 1.17 2016/02/18 07:32:12 jorma Exp $";
+	"$Id: textdata.h,v 1.18 2017/04/28 07:48:19 jormal Exp $";
       return v;
     }
 

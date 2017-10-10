@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Feature.C,v 1.253 2016/10/25 08:12:09 jorma Exp $
+// -*- C++ -*-  $Id: Feature.C,v 1.254 2017/02/01 15:25:17 jorma Exp $
 // 
 // Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -307,6 +307,14 @@ namespace picsom {
 	      else
 		opts.push_back("interestpoints=true");
 	      cmd += sp+astr;
+	      break;
+
+	    case 'g':
+	      if (astr=="-gpu") {
+		GpuDeviceId(0);
+		cmd += sp+astr;
+	      } else
+		goto switch_error;
 	      break;
 
             case 'v':
@@ -913,6 +921,7 @@ namespace picsom {
          << " [<-switches> ...] <feature> [<-o option=value> ...] <files> ..."
          << endl;
     cerr << "  <-switches>:" << endl;
+    cerr << "    -gpu : use GPU" << endl;
     cerr << "    -l  : list features" << endl;
     cerr << "    -lx : list features in XML format" << endl;
     cerr << "    -h  : help on feature's or features' options" << endl;

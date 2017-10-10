@@ -1,19 +1,25 @@
-## -*- C++ -*-  $Id: configure.ac,v 2.112 2016/12/19 21:11:40 jorma Exp $
+## -*- autoconf -*-  $Id: configure.ac,v 2.119 2017/06/14 08:56:17 jormal Exp $
 ## 
-## Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+## Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
 ## PO Box 15400, FI-00076 Aalto, FINLAND
 ## 
 
-AC_INIT(PicSOM, 0.34, picsom@ics.aalto.fi)
+AC_INIT(PicSOM, 0.35, picsom@ics.aalto.fi)
 AM_INIT_AUTOMAKE([subdir-objects])
+AC_LIBTOOL_DLOPEN
+AC_PROG_LIBTOOL
 
 AC_PREREQ(2.59)
 AC_COPYRIGHT(PicSOM Development Group)
-AC_REVISION($Revision: 2.112 $)
+AC_REVISION($Revision: 2.119 $)
+
+AC_CONFIG_MACRO_DIRS([m4])
+
+#AX_PREFIX_CONFIG_H(picsom-config.h)
+AC_CONFIG_HEADER([picsom-config.h])
 
 AC_CONFIG_SRCDIR([PicSOM.C])
-AC_CONFIG_HEADER([config.h])
 AC_CONFIG_FILES([Makefile])
 
 # Checks for programs.
@@ -26,6 +32,9 @@ AC_LANG(C++)
 #CXXFLAGS='-std=gnu++0x'
 #CXXFLAGS='-std=c++0x'
 
+LT_INIT([disable-static])
+AC_DISABLE_STATIC
+  
 # Checks for libraries.
 
 AX_LIB_MYSQL() 
@@ -49,7 +58,7 @@ AC_CHECK_HEADERS([netdb.h pwd.h detdb.h sys/resource.h sys/utsname.h \
 		  sys/socket.h netinet/in.h arpa/inet.h unistd.h \
 		  sys/loadavg.h sys/param.h sys/wait.h inttypes.h strings.h \
 		  sys/resource.h sys/stat.h sys/mman.h \
-		  glog/logging.h cuda_runtime.h])
+		  glog/logging.h dlfcn.h])
 
 # Headers found only in WIN32
 AC_CHECK_HEADERS([winsock2.h winreg.h basetsd.h io.h process.h ws2tcpip.h])
@@ -104,6 +113,9 @@ AC_CHECK_HEADERS([json/json.h],[],
 AC_CHECK_HEADERS([aspell.h],[],
         [warnings="$warnings|Aspell use disabled due to missing header."])
 
+AC_CHECK_HEADERS([zip.h],[],
+        [warnings="$warnings|libzip use disabled due to missing header."])
+
 AC_CHECK_HEADERS([flandmark_detector.h],[],
         [warnings="$warnings|libflandmark use disabled due to missing header."])
 
@@ -116,8 +128,17 @@ AC_CHECK_HEADERS([dense_trajectory_release_v1.2/DenseTrack.h],[],
 AC_CHECK_HEADERS([improved_trajectory_release/DenseTrackStab.h],[],
         [warnings="$warnings|improvedtrajectory use disabled due to missing header."])
 
+AC_CHECK_HEADERS([cuda_runtime.h],[],
+        [warnings="$warnings|CUDA use disabled due to missing header."])
+
 AC_CHECK_HEADERS([caffe/caffe.hpp caffe/data_transformer.hpp],[],
         [warnings="$warnings|Caffe use disabled due to missing header."])
+
+AC_CHECK_HEADERS([THC.h],[],
+        [warnings="$warnings|Torch use disabled due to missing header."])
+
+AC_CHECK_HEADERS([thrift/Thrift.h],[],
+        [warnings="$warnings|Trift use disabled due to missing header."])
 
 AC_CHECK_HEADERS([libavcodec/avcodec.h libavdevice/avdevice.h   \
 		  libavfilter/avfilter.h libavformat/avformat.h \
@@ -183,6 +204,7 @@ AC_CHECK_LIB(audiofile, main)
 AC_CHECK_LIB(fftw3,     main)
 
 AC_CHECK_LIB(sqlite3, sqlite3_open)
+AC_CHECK_LIB(zip,     zip_open)
 
 AC_CHECK_LIB(dl, dlopen)
 
@@ -314,6 +336,8 @@ AM_PATH_MYCSOAP(1.1.0, [AC_DEFINE(PICSOM_USE_CSOAP, 1)],[
 ])
 AM_CONDITIONAL([PICSOM_SOAP], [test x$havecsoap = xyes])
 
+AM_CONDITIONAL([PICSOM_STATIC], [test xno = xyes])
+
 AC_CHECK_LIB(avcodec,   main)
 AC_CHECK_LIB(avformat,  main)
 AC_CHECK_LIB(avutil,    main)
@@ -321,6 +345,8 @@ AC_CHECK_LIB(swscale,   main)
 
 AC_CHECK_LIB(caffe,     main)
 AC_CHECK_LIB(glog,      main)
+
+AC_CHECK_LIB(TH,        main)
 
 AH_TEMPLATE([PICSOM_HAVE_OCTAVE], [Defined if we have support for Octave])
 AM_PATH_MYOCTAVE(3.0.0, [AC_DEFINE(PICSOM_HAVE_OCTAVE, 1)],[
@@ -336,6 +362,7 @@ AM_PATH_MYOCTAVE(3.0.0, [AC_DEFINE(PICSOM_HAVE_OCTAVE, 1)],[
 # --enable-cbir=XXX
 
 CBIRALGORITHMS=""
+CBIRALGORITHMSLA=""
 AC_ARG_ENABLE([cbir],
 [AS_HELP_STRING([--enable-cbir],
   [Specify external CbirAlgorithms to be compiled and linked in PicSOM,
@@ -348,13 +375,16 @@ AC_ARG_ENABLE([cbir],
 	for cbir in $cbirs
 	do
 		cbiro=picsom-Cbir$cbir.'$(OBJEXT)'
+		cbiros=libpicsom_la-Cbir$cbir.lo
 		echo Enabling CbirAlgorithm Cbir$cbir
 		CBIRALGORITHMS="$CBIRALGORITHMS $cbiro"
+		CBIRALGORITHMSLA="$CBIRALGORITHMSLA $cbiros"
 	done
 	echo ""
   fi
 ])
 AC_SUBST([CBIRALGORITHMS])
+AC_SUBST([CBIRALGORITHMSLA])
 
 #------------------------------------------------------------------------------
 

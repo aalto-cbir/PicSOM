@@ -1,3 +1,12 @@
+2017-05-09  jormal  <jormal@cs-170>
+
+	* List.C 1.9: Summary: Added resetting of listsize in FullDelete().
+
+2017-04-28  jormal  <jormal@cs-170>
+
+	* TreeSOM.C 1.35, Simple.h 1.30:
+	Changed to go without missg-c-utils.[ch].
+
 2016-10-25  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
 
 	* Simple.C 1.21, Vector.h 1.21, Matrix.h 1.11:

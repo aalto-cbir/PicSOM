@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: PicSOM.h,v 2.296 2016/12/19 08:09:29 jorma Exp $
+// -*- C++ -*-  $Id: PicSOM.h,v 2.302 2017/08/16 07:18:08 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -103,7 +103,7 @@ namespace picsom {
   using simple::ListOf;
 
   static string PicSOM_h_vcid =
-    "@(#)$Id: PicSOM.h,v 2.296 2016/12/19 08:09:29 jorma Exp $";
+    "@(#)$Id: PicSOM.h,v 2.302 2017/08/16 07:18:08 jormal Exp $";
 
   extern const string PicSOM_C_vcid, picsom_C_vcid;
 
@@ -708,7 +708,7 @@ namespace picsom {
      @verbinclude cmdline-io.dox
    
      @short A class implementing the PicSOM engine. 
-     @version $Id: PicSOM.h,v 2.296 2016/12/19 08:09:29 jorma Exp $
+     @version $Id: PicSOM.h,v 2.302 2017/08/16 07:18:08 jormal Exp $
   */
   class PicSOM : public Simple {
   public:
@@ -733,10 +733,10 @@ namespace picsom {
 	"PicSOM", NULL }; return n; }
   
     /// Simple interface to C main().
-    static int Main(int argc, const char **argv);
+    static int Main(int argc, const char **argv, PicSOM** = NULL);
 
     /// Inner main().
-    // static int Main(const vector<string>&);
+    static int Main(const vector<string>&, PicSOM** = NULL);
 
     ///
     static int Usage(const string& prog, const string& msg="");
@@ -754,7 +754,7 @@ namespace picsom {
     static string ExtractVersion(const string&);
 
     /// Filled in by release/build script.
-    static string Release() { return "" "picsom-0.34" ; }
+    static string Release() { return "" "picsom-0.35" ; }
 
     ///
     static bool HasFeaturesInternal() { return has_features_internal; }
@@ -879,12 +879,6 @@ namespace picsom {
 #endif // PICSOM_USE_PTHREADS
 
     ///
-    //void RegisterFakeRestCaCallback(const string&);
-
-    ///
-    //void MakeFakeRestCaCallbacks();
-
-    ///
     bool OctaveInializeOnce();
 
     ///
@@ -987,7 +981,7 @@ namespace picsom {
 	n_tasks_par(0), n_tasks_tot(0), n_tasks_fin(0),
 	pending_threads(0), running_threads(0), max_time(0),
 	conn(NULL), status_requested(false) {
-	timespec_t ts;
+	struct timespec ts;
 	Simple::ZeroTime(ts);
 	submitted = started = task_started = task_finished =
 	  updated = spare = ts;
@@ -1004,7 +998,7 @@ namespace picsom {
 	n_tasks_par(0), n_tasks_tot(0), n_tasks_fin(0),
 	pending_threads(0), running_threads(0), max_time(0),
 	conn(c), status_requested(false) {
-	timespec_t ts;
+	struct timespec ts;
 	Simple::ZeroTime(ts);
 	submitted = started = task_started = task_finished =
 	  updated = spare = ts;
@@ -1107,22 +1101,22 @@ namespace picsom {
       size_t max_time;
 
       ///
-      timespec_t submitted;
+      struct timespec submitted;
 
       ///
-      timespec_t started;
+      struct timespec started;
 
       ///
-      timespec_t task_started;
+      struct timespec task_started;
 
       ///
-      timespec_t task_finished;
+      struct timespec task_finished;
 
       ///
-      timespec_t updated;
+      struct timespec updated;
 
       ///
-      timespec_t spare;
+      struct timespec spare;
 
       ///
       Connection *conn;
@@ -1331,7 +1325,10 @@ namespace picsom {
     ///
     list<string> SbatchExclude() const;
 
-    /// Sets true if no output is desired.
+    ///
+    void Quiet(bool q) { quiet = q; }
+    
+    /// Returns true if no output is desired.
     bool Quiet() const { return quiet; }
 
     /// Logging routine to be called from all classes.
@@ -1756,19 +1753,19 @@ namespace picsom {
     void DumpDataBaseList(ostream* = &cout) const;
 
     /// Date string used in origins files.
-    static string OriginsDateString(const timespec_t&, bool = false);
+    static string OriginsDateString(const struct timespec&, bool = false);
 
     /// Date string used in origins files.
     static string OriginsDateStringNow(bool = false);
 
     /// Inversion of date string used in origins files.
-    static timespec_t InverseOriginsDateString(const string&);
+    static struct timespec InverseOriginsDateString(const string&);
 
     /// Invert stringified time back to binary form.
-    static timespec_t InverseTimeStringOld(const char*);
+    static struct timespec InverseTimeStringOld(const char*);
 
     /// Invert stringified time back to binary form.
-    static timespec_t InverseTimeString(const string& s) {
+    static struct timespec InverseTimeString(const string& s) {
       return InverseTimeStringOld(s.c_str());
     }
 
@@ -2516,7 +2513,7 @@ namespace picsom {
       int sframe, eframe;
     
       ///
-      timespec_t stime, etime;
+      struct timespec stime, etime;
 
       ///
       string str;
@@ -2529,25 +2526,25 @@ namespace picsom {
     class speech_data_entry_t {
     public:
       ///
-      speech_data_entry_t(const string& q, const timespec_t& s ,
-			  const timespec_t& e ) : qid(q), stime(s), etime(e)
+      speech_data_entry_t(const string& q, const struct timespec& s ,
+			  const struct timespec& e ) : qid(q), stime(s), etime(e)
       {}
 
       ///
       string     qid;
 
       ///
-      timespec_t stime;
+      struct timespec stime;
 
       ///
-      timespec_t etime;
+      struct timespec etime;
 
       ///
       list<speech_result_entry_t> result;
     }; // class speech_data_entry_t
 
     ///
-    speech_data_entry_t *FindSpeechData(const timespec_t&, bool);
+    speech_data_entry_t *FindSpeechData(const struct timespec&, bool);
 
     ///
     void DumpSpeechData(const speech_data_entry_t*);
@@ -2566,7 +2563,7 @@ namespace picsom {
 
     /// Calls speech recognizer.
     bool FeedSpeechRecognizer(const string&, const string&,
-			      const timespec_t&, const timespec_t&);
+			      const struct timespec&, const struct timespec&);
 
     /// Reads speech recognizer.
     bool ProcessSpeechRecognizerOutput();
@@ -2588,6 +2585,24 @@ namespace picsom {
 
     /// Solves the system architecture and returns it in a string
     string SolveArchitecture() const; 
+
+    ///
+    list<string> Translate(const string&, const string&, const string&,
+			   const list<string>&);
+
+
+    ///
+    list<string> TranslateYandex(const string&, const string&,
+				 const list<string>&);
+
+    ///
+    bool ReadSecrets();
+
+    ///
+    string GetSecret(const string&, bool) const;
+
+    ///
+    string UnZip(const string&, const string& = "", const string& = "");
 
   protected:
     /// protected methods first:
@@ -2668,7 +2683,7 @@ namespace picsom {
     /// data members start here:
 
     ///
-    timespec_t start_time;
+    struct timespec start_time;
 
     ///
     static bool has_features_internal;
@@ -2692,10 +2707,10 @@ namespace picsom {
     Connection *speech_recognizer;
 
     ///
-    timespec_t speech_recognizer_start_time;
+    struct timespec speech_recognizer_start_time;
 
     ///
-    timespec_t speech_zero_time;
+    struct timespec speech_zero_time;
 
     ///
     string speech_str;
@@ -3010,6 +3025,9 @@ namespace picsom {
 
     ///
     string pidfile;
+
+    ///
+    map<string,string> secrets;
 
   }; // class PicSOM
 

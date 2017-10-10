@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Connection.h,v 2.130 2015/12/01 09:47:57 jorma Exp $
+// -*- C++ -*-  $Id: Connection.h,v 2.131 2017/04/28 07:46:07 jormal Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -49,7 +49,7 @@ extern HIST_ENTRY **history_list ();
 #define PICSOM_POLL_TIMEOUT   (60*1000)
 
 static const string Connection_h_vcid =
-  "@(#)$Id: Connection.h,v 2.130 2015/12/01 09:47:57 jorma Exp $";
+  "@(#)$Id: Connection.h,v 2.131 2017/04/28 07:46:07 jormal Exp $";
 
 namespace picsom {
   typedef list<pair<string,string> > http_headers_t;
@@ -1033,12 +1033,12 @@ namespace picsom {
     ///
     bool Poll(int type=0, int timeout=PICSOM_POLL_TIMEOUT) const;
 
-    /// Utility to convert timespec_t to format of HTTP Expires header.
-    static string ExpirationString(const timespec_t&);
+    /// Utility to convert struct timespec to format of HTTP Expires header.
+    static string ExpirationString(const struct timespec&);
 
     /// HTTP Expires header format time given numebr of second in future.
     static string ExpirationAdd(int n) {
-      timespec_t now;
+      struct timespec now;
       Simple::SetTimeNow(now);
       now.tv_sec += n;
       return ExpirationString(now);
@@ -1175,10 +1175,10 @@ namespace picsom {
     bool interactive;
 
     /// Creation time.
-    timespec_t first;
+    struct timespec first;
 
     /// Last access time.
-    timespec_t last;
+    struct timespec last;
 
     /// Is this a real query or something else.
     msg_type msgtype;

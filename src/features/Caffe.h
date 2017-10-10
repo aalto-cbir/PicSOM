@@ -1,4 +1,4 @@
-// -*- C++ -*- 	$Id: Caffe.h,v 1.16 2016/01/26 11:54:38 jorma Exp $
+// -*- C++ -*- 	$Id: Caffe.h,v 1.19 2017/06/20 08:12:57 jormal Exp $
 
 #ifndef _Caffe_
 #define _Caffe_
@@ -9,12 +9,16 @@
 
 // #define USE_MKL
 
+#ifdef HAVE_CUDA_RUNTIME_H
 #include <cuda_runtime.h>
+#endif // HAVE_CUDA_RUNTIME_H
+
 #include <cstring>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include <caffe/caffe.hpp>
 #pragma GCC diagnostic pop
 
@@ -277,7 +281,7 @@ namespace picsom {
     };
 
     ///
-    static map<string,caffe_t> caffemap;
+    static map<string,pair<caffe_t,bool> > caffemap;
 
     ///
     static RwLock caffemaplock;

@@ -1,4 +1,4 @@
-// -*- C++ -*-	$Id: RemoteHost.h,v 2.12 2014/04/02 09:18:01 jorma Exp $
+// -*- C++ -*-	$Id: RemoteHost.h,v 2.13 2017/04/28 07:46:07 jormal Exp $
 
 // 
 // Copyright 1998-2007 PicSOM Development Group
@@ -10,7 +10,7 @@
 #ifndef _PICSOM_REMOTEHOST_H_
 #define _PICSOM_REMOTEHOST_H_
 
-#include <missing-c-utils.h>
+//#include <missing-c-utils.h>
 
 #include <Simple.h>
 
@@ -37,7 +37,7 @@ namespace picsom {
   using namespace std;
 
   static const string RemoteHost_h_vcid =
-    "@(#)$Id: RemoteHost.h,v 2.12 2014/04/02 09:18:01 jorma Exp $";
+    "@(#)$Id: RemoteHost.h,v 2.13 2017/04/28 07:46:07 jormal Exp $";
 
   class DataBase;
 

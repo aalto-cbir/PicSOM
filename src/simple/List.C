@@ -5,7 +5,7 @@
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: List.C,v 1.8 2010/07/22 21:43:14 jorma Exp $
+// @(#)$Id: List.C,v 1.9 2017/05/09 10:16:59 jormal Exp $
 
 #ifndef _LIST_C_
 #define _LIST_C_
@@ -42,6 +42,7 @@ void ListOf<Type>::FullDelete() {
   delete [] own;
   list = NULL;
   own = NULL;
+  listsize = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////

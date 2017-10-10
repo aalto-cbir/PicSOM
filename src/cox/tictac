@@ -1,6 +1,6 @@
-// -*- C++ -*-	$Id: tictac,v 1.4 2015/10/01 10:08:55 jorma Exp $	
+// -*- C++ -*-	$Id: tictac,v 1.5 2017/04/28 08:25:27 jormal Exp $	
 
-// $Id: tictac,v 1.4 2015/10/01 10:08:55 jorma Exp $	
+// $Id: tictac,v 1.5 2017/04/28 08:25:27 jormal Exp $	
 
 #ifndef _cox_tictac_
 #define _cox_tictac_
@@ -104,7 +104,7 @@ namespace cox {
 	return;
 
       tms now_cpu;
-      timespec_t now_real;
+      struct timespec now_real;
       SetTimes(now_real, now_cpu);
 
       tm *time = localtime(&now_real.tv_sec);
@@ -130,7 +130,7 @@ namespace cox {
 	   << endl << "**" << endl;
 
       int maxtictacs, usersum, systsum, ttw;
-      timespec_t rsum;
+      struct timespec rsum;
       CalculateSums(true, maxtictacs, rsum, usersum, systsum, ttw);
       os << "  ";
       for (int j=ttw-1; j>=0; j--)
@@ -160,17 +160,17 @@ namespace cox {
     /// Prints time usage summary.
     void CommonSummary(bool cum, ostream& os = cout) {
       tms now_cpu;
-      timespec_t now_real;
+      struct timespec now_real;
       SetTimes(now_real, now_cpu);
 
       tms& cpunow     = stopped&&cum ? stop_cpu  : now_cpu;
-      timespec_t& realnow = stopped&&cum ? stop_real : now_real;
+      struct timespec& realnow = stopped&&cum ? stop_real : now_real;
 
       tms& cputhen     = cum ? start_cpu  : last_cpu;
-      timespec_t& realthen = cum ? start_real : last_real;
+      struct timespec& realthen = cum ? start_real : last_real;
 
       int maxtictacs, usersum, systsum, ttw;
-      timespec_t rsum;
+      struct timespec rsum;
       CalculateSums(true, maxtictacs, rsum, usersum, systsum, ttw);
     
       if (!cum) {
@@ -181,7 +181,7 @@ namespace cox {
       int udiff   = cpunow.tms_utime-cputhen.tms_utime;
       int sdiff   = cpunow.tms_stime-cputhen.tms_stime;
       int div     = udiff+sdiff;
-      timespec_t rdiff = { realnow.tv_sec-realthen.tv_sec,
+      struct timespec rdiff = { realnow.tv_sec-realthen.tv_sec,
 			   realnow.tv_nsec-realthen.tv_nsec };
 
       char cd = cum?'C':'D';
@@ -214,7 +214,7 @@ namespace cox {
     }
 
     /// Calculates sums and maximums.
-    void CalculateSums(bool cum, int& maxtictacs, timespec_t& realsum,
+    void CalculateSums(bool cum, int& maxtictacs, struct timespec& realsum,
 		       int& usersum, int& systsum, int& ttw) {
       realsum.tv_nsec = realsum.tv_sec = 0;
       usersum = systsum = 0;
@@ -328,7 +328,7 @@ namespace cox {
 	int tacs;
 
 	/// Cumulative wall clock time.
-	timespec_t real;
+	struct timespec real;
 
 	/// Cumulative user mode CPU usage.
 	int user;
@@ -374,7 +374,7 @@ namespace cox {
 
       /// Increments the cumulative times relative to previously-set timestamp.
       void increment_times() {
-	timespec_t tac_real;
+	struct timespec tac_real;
 	tms tac_cpu;
 	SetTimes(tac_real, tac_cpu);
 
@@ -410,8 +410,8 @@ namespace cox {
 	}
       }
 
-      /// Normalizes timespec_t.
-      static void normalize(timespec_t& t) {
+      /// Normalizes struct timespec.
+      static void normalize(struct timespec& t) {
 	const long nano = 1000000000;
 	while (t.tv_nsec<0) {
 	  t.tv_nsec += nano;
@@ -476,7 +476,7 @@ namespace cox {
       int level;
 
       /// Wall clock time of last Tic().
-      timespec_t tic_real;
+      struct timespec tic_real;
 
       /// CPU usage of last Tic().
       tms tic_cpu;
@@ -589,7 +589,7 @@ namespace cox {
 
     /// Prints one line of summary.
     bool PrintLine(int ch, bool skipz, ostream& os, int ttw, int tics,int tacs,
-		   const timespec_t& real, int user, int system,
+		   const struct timespec& real, int user, int system,
 		   int ch_user, int ch_system, int div, const string& n) {
       if (skipz && !tics)
 	return false;
@@ -646,7 +646,7 @@ namespace cox {
     }
 
     /// Sets a pair of times.
-    static void SetTimes(timespec_t& real, tms& cpu) {
+    static void SetTimes(struct timespec& real, tms& cpu) {
       times(&cpu);
       // #ifdef sgi
       clock_gettime(CLOCK_REALTIME, &real);
@@ -722,13 +722,13 @@ namespace cox {
     tms stop_cpu;
 
     /// Start wall clock.
-    timespec_t start_real;
+    struct timespec start_real;
 
     /// Last display wall clock.
-    timespec_t last_real;
+    struct timespec last_real;
 
     /// Stop wall clock.
-    timespec_t stop_real;
+    struct timespec stop_real;
 
     /// Separator string between function names.
     string separator;

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: VectorIndex.h,v 2.49 2016/01/20 09:01:50 jorma Exp $
+// -*- C++ -*-  $Id: VectorIndex.h,v 2.50 2017/05/09 10:19:50 jormal Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -92,15 +92,24 @@ namespace picsom {
 
     ///
     bool BinDataFullTest(size_t i) const {
-      return _bin_data_m.begin()->second.fulltest(i); }
+      return _bin_data_m.begin()->second.fulltest(i); 
+    }
 
     ///
     bool BinDataExists(size_t i) const {
-      return _bin_data_m.begin()->second.exists(i); }
+      return _bin_data_m.begin()->second.exists(i); 
+    }
 
     ///
     bool BinDataErase(size_t i) const {
-      return _bin_data_m.begin()->second.erase(i); }
+      return _bin_data_m.begin()->second.erase(i); 
+    }
+
+    ///
+    void BinDataEraseAll() const {
+      if (_bin_data_m.size())
+	_bin_data_m.begin()->second.erase_all();
+    }
 
     ///
     FloatVector *BinDataFloatVector(size_t);

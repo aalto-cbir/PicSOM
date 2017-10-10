@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: bin_data.h,v 2.20 2015/06/24 11:33:16 jorma Exp $
+// -*- C++ -*-  $Id: bin_data.h,v 2.22 2017/05/09 10:16:17 jormal Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -17,7 +17,7 @@ using namespace std;
 
 #include <Util.h>
 
-#include <missing-c-utils.h>
+//#include <missing-c-utils.h>
 
 #ifdef HAVE_STRING_H
 #include <string.h>
@@ -292,6 +292,9 @@ namespace picsom {
 
     ///
     bool erase(size_t) const;
+
+    ///
+    void erase_all() const;
 
     ///
     vector<float> get_float(size_t) const;

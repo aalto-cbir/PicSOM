@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: bin_data.C,v 2.31 2016/04/29 10:38:48 jorma Exp $
+// -*- C++ -*-  $Id: bin_data.C,v 2.32 2017/05/09 10:16:30 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -33,7 +33,7 @@
 
 namespace picsom {
   static const string bin_data_C_vcid =
-    "@(#)$Id: bin_data.C,v 2.31 2016/04/29 10:38:48 jorma Exp $";
+    "@(#)$Id: bin_data.C,v 2.32 2017/05/09 10:16:30 jormal Exp $";
 
   bool bin_data::close_handles = true;
 
@@ -228,6 +228,15 @@ namespace picsom {
     memset((char*)a, 255, _header.rlength_x);
 
     return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  void bin_data::erase_all() const {
+    // string msg = "bin_data::erase() : ";
+    void *a = raw_address(0);
+    if (a)
+      memset((char*)a, 255, _size-_header.hsize);
   }
 
   /////////////////////////////////////////////////////////////////////////////

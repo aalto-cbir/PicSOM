@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Simple.h,v 1.29 2012/08/20 08:41:25 jorma Exp $
+// -*- C++ -*-  $Id: Simple.h,v 1.30 2017/04/28 07:48:34 jormal Exp $
 // 
 // Copyright 1994-2009 Jorma Laaksonen <jorma@cis.hut.fi>
 // Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
@@ -9,7 +9,8 @@
 #ifndef _SIMPLE_H_
 #define _SIMPLE_H_
 
-#include <missing-c-utils.h>
+//#include <missing-c-utils.h>
+#include <picsom-config.h>
 #include <simple_defines.h>
 
 #include <string>
@@ -417,10 +418,10 @@ public:
 				bool only_files = false,
 				bool only_dirs = false);
   /// Clears timespec.
-  static void ZeroTime(timespec_t& t) { memset(&t, 0, sizeof t); }
+  static void ZeroTime(struct timespec& t) { memset(&t, 0, sizeof t); }
 
   /// Sets timespec.
-  static void SetTimeNow(timespec_t& t) {
+  static void SetTimeNow(struct timespec& t) {
     // #ifdef sgi
     clock_gettime(CLOCK_REALTIME, &t);
     // #else
@@ -429,7 +430,7 @@ public:
   }
 
   static const char *TimeStampP() {
-    timespec_t tt;
+    struct timespec tt;
     SetTimeNow(tt);
     tm mytime;
     tm *time = localtime_r(&tt.tv_sec, &mytime);

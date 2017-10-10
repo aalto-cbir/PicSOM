@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Connection.C,v 2.376 2016/12/07 22:47:12 jorma Exp $
+// -*- C++ -*-  $Id: Connection.C,v 2.378 2017/04/28 07:46:06 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -62,7 +62,7 @@ int WSAAPI getnameinfo(const struct sockaddr*,socklen_t,char*,DWORD,
 
 namespace picsom {
   static const string Connection_C_vcid =
-    "@(#)$Id: Connection.C,v 2.376 2016/12/07 22:47:12 jorma Exp $";
+    "@(#)$Id: Connection.C,v 2.378 2017/04/28 07:46:06 jormal Exp $";
 
   /// A dummy initializer.
   const list<pair<string,string> > Connection::empty_list_pair_string;
@@ -80,7 +80,9 @@ namespace picsom {
 #endif // PICSOM_USE_CSOAP
 
   ///
-  static const string http_vers = "HTTP/1.1";
+  static const string http_server_vers = "HTTP/1.1";
+  ///
+  static const string http_client_vers = "HTTP/1.1";
 
   /////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
@@ -1789,7 +1791,7 @@ int Connection::HttpServerSolveContentLength(const string& s) const {
     bool keepa = keepain; // used to be false until 2015-04-21...
     const string crlf = "\r\n";
     stringstream ss;
-    ss   << http_vers << " " << scode << " " << stxt  << crlf
+    ss   << http_server_vers << " " << scode << " " << stxt  << crlf
 	 << "Connection: " << (keepa?"keep-alive":"close") << crlf
 	 << "Access-Control-Allow-Methods: POST, GET" << crlf
 	 << "Accept-Ranges: bytes"               << crlf
@@ -1823,7 +1825,7 @@ bool Connection::HttpServerRedirect(const string& url) {
 
   const string crlf = "\r\n";
   stringstream ss;
-  ss << http_vers << " " << movd << crlf
+  ss << http_server_vers << " " << movd << crlf
      << "Location: " << url  << crlf << crlf;
 
   if (debug_http)
@@ -1841,7 +1843,7 @@ bool Connection::HttpServerRedirect(const string& url) {
 
     const string crlf = "\r\n";
     stringstream ss;
-    ss << http_vers << " 404 Not Found"  << crlf
+    ss << http_server_vers << " 404 Not Found"  << crlf
        << "Content-Type: "   << "text/html" << crlf
        << "Content-Length: " << html.size() << crlf << crlf
        << html;
@@ -3891,7 +3893,7 @@ bool Connection::HttpServerNewQuery(const string& path) {
     if (DebugProxy()>1)
       WriteLog(msg+"starting");
 
-    timespec_t time = TimeNow();
+    struct timespec time = TimeNow();
 
     list<pair<string,string> > hdrs;
     string datain, ctype;
@@ -4259,7 +4261,7 @@ bool Connection::ReOpenUplink(const char *dumpp) {
     bool connectok = false;
     for (size_t x=0; !connectok && int(x)<1000*timeoutsec; x++) {
       if (!c->State(1)) {
-	timespec_t snap = { 0, 1000000 };
+	struct timespec snap = { 0, 1000000 };
 	nanosleep(&snap, NULL);
 
       } else
@@ -6675,7 +6677,7 @@ bool Connection::SendObjectXML() {
 
     while (!mpi_inter.Iprobe(mpi_root, mpi_msgtag, mpi_status)) {
       // cout << " nothing yet..." << endl;
-      timespec_t ts = { 0, 1000000 };
+      struct timespec ts = { 0, 1000000 };
       nanosleep(&ts, NULL);      
     }
 
@@ -6699,7 +6701,7 @@ bool Connection::SendObjectXML() {
       if (a)
 	break;
 
-      timespec_t snap = { 0, 1000000 }; // 1ms
+      struct timespec snap = { 0, 1000000 }; // 1ms
       nanosleep(&snap, NULL);
     }
 
@@ -6984,7 +6986,7 @@ bool Connection::AddToXMLimage(XmlDom& xml, const string& name,
 
 ///////////////////////////////////////////////////////////////////////////////
 
-string Connection::ExpirationString(const timespec_t& tt) {
+string Connection::ExpirationString(const struct timespec& tt) {
   tm mytime;
   tm *time = localtime_r(&tt.tv_sec, &mytime);
 
@@ -8202,10 +8204,10 @@ Connection::ExtractUploadObject(xmlNodePtr node) const {
       return ShowError(msg+"not conn_http_client");
 
     stringstream ss;
-    ss << mtd << " " << path << " HTTP/1.0" << "\r\n";
+    ss << mtd << " " << path << " " << http_client_vers << "\r\n";
 
     string hostnameport = hostname;
-    if (port!=80)
+    if (port!=80 && port!=443) // obs! 443 only if ssl and 80 if !ssl
       hostnameport += ":"+ToStr(port);
     ss << "Host: " << hostnameport << "\r\n";
 
@@ -8250,7 +8252,7 @@ Connection::ExtractUploadObject(xmlNodePtr node) const {
     //   return ShowError(msg+"poll() failed");
 
     // float maxtime = 120.0; // seconds
-    timespec_t end_time, now_time;
+    struct timespec end_time, now_time;
     SetTimeNow(end_time);
     TimeAdd(end_time, maxtime);
 

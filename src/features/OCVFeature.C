@@ -1,9 +1,11 @@
-// -*- C++ -*-  $Id: OCVFeature.C,v 1.7 2013/03/21 08:42:33 jorma Exp $
+// -*- C++ -*-  $Id: OCVFeature.C,v 1.8 2017/03/10 09:11:39 jormal Exp $
 // 
-// Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
+
+#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
 
 #include <OCVFeature.h>
 
@@ -108,3 +110,5 @@ namespace picsom {
   /////////////////////////////////////////////////////////////////////////////
 
 } // namespace picsom
+
+#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV

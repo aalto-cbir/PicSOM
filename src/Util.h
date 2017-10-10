@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Util.h,v 2.88 2016/12/05 17:43:14 jorma Exp $
+// -*- C++ -*-  $Id: Util.h,v 2.89 2017/06/14 08:55:30 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -98,7 +98,7 @@ using namespace std;
 
 namespace picsom {
   static const string Util_h_vcid =
-    "@(#)$Id: Util.h,v 2.88 2016/12/05 17:43:14 jorma Exp $";
+    "@(#)$Id: Util.h,v 2.89 2017/06/14 08:55:30 jormal Exp $";
 
   extern bool trap_after_error;
   // extern bool jam_after_error;
@@ -749,6 +749,9 @@ namespace picsom {
 
 #endif // HAVE_JAULA_H
 
+  ///
+  string OpenBlasVersion();
+  
 } // namespace picsom
 
 #endif // _PICSOM_UTIL_H_

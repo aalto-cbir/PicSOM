@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Index.C,v 2.85 2016/10/25 08:07:01 jorma Exp $
+// -*- C++ -*-  $Id: Index.C,v 2.87 2017/06/20 08:15:09 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -17,7 +17,7 @@
 
 namespace picsom {
   static const string Index_C_vcid =
-    "@(#)$Id: Index.C,v 2.85 2016/10/25 08:07:01 jorma Exp $";
+    "@(#)$Id: Index.C,v 2.87 2017/06/20 08:15:09 jormal Exp $";
 
   ///
   Index *Index::list_of_indices;
@@ -307,7 +307,7 @@ namespace picsom {
     const string labelfirst = idxfirst>=0 ? Label(idxfirst) : "";
 
     if (!CanCalculateFeatures())
-      ShowError(hdr, "no features_command");
+      return ShowError(hdr, "no features_command");
 
     target_type tt = target_no_target;
     stringstream msg;
@@ -498,7 +498,7 @@ namespace picsom {
 	       +","+incore.front().first.second+">"
 	       +(threads?" in threads":""));
     else
-      return ShowError(tname+"no objects left");
+      return ShowError(tname+" no objects left");
 
     vector<string> cmd_files = cmd;
     cmd_files.insert(cmd_files.end(), files.begin(), files.end());
@@ -601,7 +601,8 @@ namespace picsom {
 	    cout << "Storing ";
 	    vx->Dump();
 	    cout << "  vidx=" << (void*)vidx << " " << vidx->IndexName()
-		 << " dbidx=" << dbidx << endl;
+		 << " dbidx=" << dbidx << " NdataVectors=" 
+		 << vidx->NdataVectors() << endl;
 	  }
 	}
       }

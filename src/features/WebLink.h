@@ -1,20 +1,14 @@
-// -*- C++ -*- 	$Id: WebLink.h,v 1.13 2006/06/16 10:52:21 vvi Exp $
-/**
-   \file WebLink.h
+// -*- C++ -*-  $Id: WebLink.h,v 1.14 2017/03/10 09:12:31 jormal Exp $
+// 
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
+// 
 
-   \brief Declarations and definitions of class WebLink
-   
-   WebLink.h contains declarations and definitions of class the WebLink
-  
-   \author Mats Sjöberg
-   $Revision: 1.13 $
-   $Date: 2006/06/16 10:52:21 $
-   \bug May be some out there hiding.
-   \warning Be warned against all odds!
-   \todo Perhaps something?
-*/
 #ifndef _WebLink_
 #define _WebLink_
+
+#ifdef HAVE_GCRYPT_H
 
 #include "TextBased.h"
 #include "textdata.h"
@@ -194,6 +188,9 @@ private:
 
 }; // class WebLink
 }
+
+#endif // HAVE_GCRYPT_H
+
 #endif
 
 // Local Variables:

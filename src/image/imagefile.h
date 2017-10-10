@@ -1,8 +1,8 @@
-// -*- C++ -*-  $Id: imagefile.h,v 1.51 2012/11/05 16:01:40 jorma Exp $
+// -*- C++ -*-  $Id: imagefile.h,v 1.55 2017/05/24 14:51:12 jormal Exp $
 // 
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
-// Helsinki University of Technology
-// P.O.BOX 5400, FI-02015 TKK, FINLAND
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
 // 
 
 /*!\file imagefile.h
@@ -15,8 +15,8 @@
   of physical image format libraries.
 
   \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-  $Revision: 1.51 $
-  $Date: 2012/11/05 16:01:40 $
+  $Revision: 1.55 $
+  $Date: 2017/05/24 14:51:12 $
   \bug May be some out there hiding.
   \warning Be warned against all odds!
   \todo So many things, so little time...
@@ -60,7 +60,7 @@ namespace picsom {
     /// Returns version of imagefile class ie. version of imagefile.h.
     static const string& version() {
       static string v =
-	"$Id: imagefile.h,v 1.51 2012/11/05 16:01:40 jorma Exp $";
+	"$Id: imagefile.h,v 1.55 2017/05/24 14:51:12 jormal Exp $";
       return v;
     }
 
@@ -109,6 +109,25 @@ namespace picsom {
 
     /// Poisoned because of _impl_data.
     imagefile(const imagefile&) { abort(); }
+    
+    /// Needed with unstringify().
+    imagefile(imagefile&& img) { 
+      _filename      = img._filename;
+      _format        = img._format;
+      _description   = img._description;
+      _cache         = img._writing;
+      _writing       = img._writing;
+      _dispose       = img._dispose;
+      _default_pixel = img._default_pixel;
+      _nframes       = img._nframes;
+      _curr_frame    = img._curr_frame;
+      _use_cacheing  = img._use_cacheing;
+      _frame         = img._frame;
+      _impl_data     = img._impl_data;
+
+      img._impl_data = NULL;
+      img._dispose   = false;
+    }
     
     /// Destructor.  Eg. Disposal of a temporal file.
     ~imagefile() {
@@ -245,6 +264,18 @@ namespace picsom {
       file.write();
     }
 
+    /**
+    */
+    void unlink_tmp_file() {
+      if (_dispose && _filename!="") {
+	if (_debug_impl)
+	  cout << "unlink_tmp_file() unlinking <" << _filename << ">" << endl;
+	unlink(_filename.c_str());
+      }
+      _dispose  = false;
+      _filename = "";
+    }
+	
     /** Class containing display settings such as minimum and maximum
 	with and height, aspect-ratio etc...
     */
@@ -305,17 +336,18 @@ namespace picsom {
     /** Display an image with default display settings
 	\param d the image data to display
     */
-    static void display(const imagedata& d) {
-      display(d, displaysettings());
+    static void display(const imagedata& d, char *k = NULL) {
+      display(d, displaysettings(), k);
     }
       
     /** Display an image with given display settings
 	\param d the image data to display
 	\param fmt display settings to use
     */	
-    static void display(const imagedata& d, const displaysettings& fmt) {
+    static void display(const imagedata& d, const displaysettings& fmt,
+			char *k = NULL) {
       try {
-	display_impl(d, fmt);
+	display_impl(d, fmt, k);
       }
       catch (const string& e) {
 	throw errtxt("display(-imagedata-, -format-) failed: " + e);
@@ -565,6 +597,12 @@ namespace picsom {
     /// Sets the temporary file preservation mode
     static void keep_tmp_files(bool d) { _keep_tmp_files = d; }
 
+    /// Returns temporary file directory.
+    static const string& tmp_dir() { return _tmp_dir; }
+    
+    /// Sets temporary file directory, doesn't crete it though;
+    static void tmp_dir(const string& d) { _tmp_dir = d; }
+    
   protected:
 
     /** Converts an integer to a string object
@@ -604,8 +642,10 @@ namespace picsom {
 	\return the name of the temporary file
      */
     static string make_tmpfile() {
-      // perhaps this should obey TMPDIR ?
-      char tmpfname[] = "/var/tmp/imagefileXXXXXX";
+      // perhaps this should obey also TMPDIR ?
+      string tmp = tmp_dir()+"/imagefile-XXXXXX";
+      char tmpfname[1000];
+      strcpy(tmpfname, tmp.c_str());
       int fd = mkstemp(tmpfname);
       if (fd<0) {
 	stringstream err;
@@ -614,6 +654,9 @@ namespace picsom {
 		     err.str());
       }
       close(fd);
+      if (debug_impl())
+	cout << "make_tmpfile() returns <" << tmpfname << ">"
+	     << endl;
       return tmpfname;
     }
 
@@ -674,7 +717,7 @@ namespace picsom {
 	\param dd image data to display
 	\param fmt display settings
     */
-    static void display_impl(const imagedata&, const displaysettings&);
+    static void display_impl(const imagedata&, const displaysettings&, char*);
 
     /** The actual low level implementation of the stringify function
 	\param fmt file format
@@ -723,14 +766,20 @@ namespace picsom {
 	if (files.empty())
 	  atexit((CFP_atexit) dispose_all);
 
+	if (debug_impl())
+	  cout << "do_dispose() adding <" << n << ">" << endl;
+
 	files.push_back(n);
 
 	return;
       }
 
-      for (list<string>::const_iterator i=files.begin(); i!=files.end(); i++)
+      for (list<string>::const_iterator i=files.begin(); i!=files.end(); i++) {
+	if (debug_impl())
+	  cout << "do_dispose() unlinking <" << *i << ">" << endl;
 	unlink(i->c_str());
-
+      }
+      
       files.clear();
     }
 
@@ -741,6 +790,9 @@ namespace picsom {
     /// debug flag
     static bool _keep_tmp_files;
 
+    /// temp storage dir
+    static string _tmp_dir;
+    
     /// file name
     string _filename;
 

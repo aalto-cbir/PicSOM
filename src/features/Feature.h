@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Feature.h,v 1.213 2016/06/23 10:51:12 jorma Exp $
+// -*- C++ -*-  $Id: Feature.h,v 1.214 2017/04/07 15:11:47 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -15,8 +15,8 @@
    features.
   
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.213 $
-   $Date: 2016/06/23 10:51:12 $
+   $Revision: 1.214 $
+   $Date: 2017/04/07 15:11:47 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -147,10 +147,18 @@ namespace picsom {
       vector<string> args;
       for (int i=0; i<argc; i++)
 	args.push_back(argv[i]);
-      list<incore_feature_t> incore;
-      return Main(args, incore);
+
+      return Main(args);
     }
 
+    /**
+     */
+    static int Main(const vector<string>& args) {
+      list<incore_feature_t> incore;
+
+      return Main(args, incore);
+    }
+    
     /** The real thing
      */
     static int Main(const vector<string>&, list<incore_feature_t>&,

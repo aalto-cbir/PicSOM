@@ -5,7 +5,7 @@
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: TreeSOM.C,v 1.34 2011/03/20 06:53:00 jorma Exp $
+// @(#)$Id: TreeSOM.C,v 1.35 2017/04/28 07:49:12 jormal Exp $
 
 #include <TreeSOM.h>
 #include <XMLutil.h>
@@ -542,7 +542,7 @@ bool TreeSOM::AdaptWrite() {
     cout << PossiblyTimeStamp() << "TreeSOM::AdaptWrite() filename=<"
 	 << FileName() << ">" << endl;
 
-  timespec_t starttime, endtime;
+  struct timespec starttime, endtime;
   SetTimeNow(starttime);
   bool ok = Write(FileName());
   SetTimeNow(endtime);
