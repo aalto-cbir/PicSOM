@@ -73,7 +73,7 @@
 	* picsom-lucene 1.10:
 	Removed inexistent jar-files from the CLASSPATH (as of 3.5.0).
 
-2012-09-25  ajanki  <ajanki@pc19>
+2012-09-25  ajanki  <ajanki@cs-170>
 
 	* PicSOMLucene.java 1.15:
 	Create an IndexWriter instance only when something is added to the
@@ -138,7 +138,7 @@
 
 	* picsom-lucene 1.4: Added cd in the beginning and -Xlint:unchecked.
 
-2012-04-17  satoru  <satoru@pc19>
+2012-04-17  satoru  <satoru@cs-170>
 
 	* PicSOMLucene.java 1.5: *** empty log message ***
 
