@@ -1,4 +1,4 @@
-// $Id: Caffe.C,v 1.33 2017/06/20 08:12:50 jormal Exp $	
+// $Id: Caffe.C,v 1.34 2017/11/28 00:47:37 jormal Exp $	
 
 #include <Caffe.h>
 
@@ -11,13 +11,16 @@
 
 namespace picsom {
   static const char *vcid =
-    "$Id: Caffe.C,v 1.33 2017/06/20 08:12:50 jormal Exp $";
+    "$Id: Caffe.C,v 1.34 2017/11/28 00:47:37 jormal Exp $";
 
   static Caffe list_entry(true);
 
   RwLock Caffe::caffemaplock;
 
   map<string,pair<Caffe::caffe_t,bool> > Caffe::caffemap;
+
+  size_t expand_task = 1;
+  void caffe_expand_task(size_t e) { expand_task = e; }
 
   //===========================================================================
 
@@ -653,65 +656,67 @@ blocks = 256x256+avg(512x512:3x3)
     gidx = 0;
 
     if (MethodVerbose())
-      cout << msg << blocks << endl;
+      cout << msg << blocks << " expand_task=" << expand_task << endl;
     vector<string> funcs;
     split(funcs, blocks, is_any_of("+"));
 
-    for (vector<string>::const_iterator ita = funcs.begin(); 
-	 ita != funcs.end(); ++ita) {
+    for (size_t e=0; e<expand_task; e++) {
+      for (vector<string>::const_iterator ita = funcs.begin(); 
+	   ita != funcs.end(); ++ita) {
 
-      fv_tree_node *n = new fv_tree_node;
-      string func = trim_copy(*ita);
-      if (MethodVerbose())
-	cout << msg << func << endl;
-
-      if (find_first(func, "(")) {
-	vector<string> funcparts;
-	split(funcparts, func, is_any_of("("));
-	
-	if      (funcparts.at(0) == "max")
-	  n->node_type = FV_NODE_MAX;
-	else if (funcparts.at(0) == "cat")
-	  n->node_type = FV_NODE_CAT;
-	else if (funcparts.at(0) == "avg")
-	  n->node_type = FV_NODE_AVG;
-	else {
-	  throw ShowError(msg+"unrecognized function: "+funcparts.at(0));
-	}
-	
-	string lls = funcparts.at(1);
-	trim_right_if(lls, is_any_of(")"));		
-	string layr = "default";
-	if (find_first(lls, ";")) {
-	  vector<string> funcparts2;
-	  split(funcparts2, lls, is_any_of(";"));
-	  lls = funcparts2.at(0);
-	  layr = funcparts2.at(1);
-	}
+	fv_tree_node *n = new fv_tree_node;
+	string func = trim_copy(*ita);
 	if (MethodVerbose())
-	  cout << msg << "  " << lls << endl;
+	  cout << msg << func << endl;
 
-	vector<string> llparts;
-	split(llparts, lls, is_any_of(","));
-	for (vector<string>::const_iterator itb = llparts.begin(); 
-	     itb != llparts.end(); ++itb) {
+	if (find_first(func, "(")) {
+	  vector<string> funcparts;
+	  split(funcparts, func, is_any_of("("));
+	
+	  if      (funcparts.at(0) == "max")
+	    n->node_type = FV_NODE_MAX;
+	  else if (funcparts.at(0) == "cat")
+	    n->node_type = FV_NODE_CAT;
+	  else if (funcparts.at(0) == "avg")
+	    n->node_type = FV_NODE_AVG;
+	  else {
+	    throw ShowError(msg+"unrecognized function: "+funcparts.at(0));
+	  }
+	
+	  string lls = funcparts.at(1);
+	  trim_right_if(lls, is_any_of(")"));		
+	  string layr = "default";
+	  if (find_first(lls, ";")) {
+	    vector<string> funcparts2;
+	    split(funcparts2, lls, is_any_of(";"));
+	    lls = funcparts2.at(0);
+	    layr = funcparts2.at(1);
+	  }
+	  if (MethodVerbose())
+	    cout << msg << "  " << lls << endl;
 
-	  string l = trim_copy(*itb);
-	  ProcessBlocksL(w, h, l, layr, n);
+	  vector<string> llparts;
+	  split(llparts, lls, is_any_of(","));
+	  for (vector<string>::const_iterator itb = llparts.begin(); 
+	       itb != llparts.end(); ++itb) {
+	    
+	    string l = trim_copy(*itb);
+	    ProcessBlocksL(w, h, l, layr, n);
+	  }
+
+	} else {      
+	  n->node_type = FV_NODE_CAT;
+	  string layr = "default";
+	  if (find_first(func, ";")) {
+	    vector<string> funcparts2;
+	    split(funcparts2, func, is_any_of(";"));
+	    func = funcparts2.at(0);
+	    layr = funcparts2.at(1);
+	  }
+	  ProcessBlocksL(w, h, func, layr, n);
 	}
-
-      } else {      
-	n->node_type = FV_NODE_CAT;
-	string layr = "default";
-	if (find_first(func, ";")) {
-	  vector<string> funcparts2;
-	  split(funcparts2, func, is_any_of(";"));
-	  func = funcparts2.at(0);
-	  layr = funcparts2.at(1);
-	}
-	ProcessBlocksL(w, h, func, layr, n);
+	root->children.push_back(n);
       }
-      root->children.push_back(n);
     }
     
     if (MethodVerbose()) {
