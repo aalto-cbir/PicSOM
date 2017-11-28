@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// $Id: demangle,v 1.1 2007/11/19 07:59:57 jorma Exp $	
+// $Id: demangle,v 1.2 2017/11/03 18:26:37 jormal Exp $	
 
 #ifndef _cox_demangle_
 #define _cox_demangle_
@@ -21,7 +21,7 @@ namespace cox {
   /// 
 
   ///
-  static string demangle(const type_info& i) {
+  static string __attribute__((unused)) demangle(const type_info& i) {
 #ifndef __GNUC__
     return i.name();
 #else // __GNUC_

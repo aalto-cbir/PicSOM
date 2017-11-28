@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Analysis.C,v 2.1166 2017/10/09 13:01:30 jormal Exp $
+// -*- C++ -*-  $Id: Analysis.C,v 2.1169 2017/11/27 23:44:31 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -113,7 +113,7 @@ extern "C" {
 
 namespace picsom {
   static const string Analysis_C_vcid =
-    "@(#)$Id: Analysis.C,v 2.1166 2017/10/09 13:01:30 jormal Exp $";
+    "@(#)$Id: Analysis.C,v 2.1169 2017/11/27 23:44:31 jormal Exp $";
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -4346,14 +4346,14 @@ namespace picsom {
         vector<size_t> gto;
         if (keeporder) {
           vector<size_t> ord = db->ReadOrderedClassFile(*j, -1, false);
-          if (verbose>3)
+          if (verbose>4)
             cout << endl << "Class [" << *j << "] had " << ord.size()
                  << " objects according to ReadOrderedClassFile()" << endl;
           ground_truth tmp = gtx;
           for (size_t oi=0; oi<ord.size(); oi++) {
             size_t o = ord[oi];
             if (tmp[o]==1) {
-              if (verbose>3)                
+              if (verbose>4)                
                 cout << endl << "Adding " << Label(o)
 		     << " to ordered ground truth"
 		     << endl;
@@ -4364,7 +4364,7 @@ namespace picsom {
           vector<size_t> tmp2 = tmp.indices(1);
 	  // currently this is always empty ?
 
-          if (tmp2.size() && verbose>2)
+          if (tmp2.size() && verbose>3)
             cout << endl << "Class [" << *j << "] had " << tmp2.size()
                  << " non-ordered objects" << endl;
           gto.insert(gto.end(), tmp2.begin(), tmp2.end());
@@ -4372,31 +4372,41 @@ namespace picsom {
         } else
           gto = gtx.indices(1);
 
-        cout << endl;
-        db->GroundTruthSummaryTable(gtx, verbose>1, verbose>1);
+	if (verbose==2 && argv.size()==0) {
+	  // obs! works only for binary classes...
+	  for (size_t k=0; k<gtx.size(); k++)
+	    if (gtx[k]==0)
+	      return ShowError("AnalyseGT() zero found...");
+	    else if (gtx[k]==1)
+	      cout << db->Label(k) << endl;
+	  continue;
+	}
+
+	cout << endl;
+        db->GroundTruthSummaryTable(gtx, verbose>2, verbose>2);
         cout << endl;
 
-        if (verbose>2 && tt==target_image) {
+        if (verbose>3 && tt==target_image) {
 	  list<video_frange> flist = db->SolveVideoFranges(gtx);
 	  for (auto ri=flist.begin(); ri!=flist.end(); ri++)
 	    cout << "   " << ri->str() << endl;
 	  cout << endl;
         }
 
-        if (verbose>3) {
+        if (verbose>4) {
           cout << endl << "<" << db->Name() << "> contains contents classes:"
                << endl << endl;
           for (size_t kk=0; kk<db->ContentsClasses(); kk++) {
-            db->GroundTruthSummaryTable(db->Contents(kk), verbose>4, verbose>4);
+            db->GroundTruthSummaryTable(db->Contents(kk), verbose>5, verbose>5);
             cout << endl;
           }
         }
 
-        if (verbose>4)
+        if (verbose>5)
           for (size_t oi=0; oi<gto.size(); oi++) {
             size_t o = gto[oi];
             cout << o << ": " << db->ObjectDump(o) << endl;
-	    if (verbose>7) {
+	    if (verbose>8) {
 	      cout << "    ismissing=" << db->IsMissingObject(o)
 		   << " videoclip="    << db->IsVideoClip(o)
 		   << " audioclip="    << db->IsAudioClip(o)
@@ -4404,8 +4414,8 @@ namespace picsom {
 		   <<  endl;
 	    }
 
-            if (verbose>5) {
-              bool find = verbose>6;
+            if (verbose>6) {
+              bool find = verbose>7;
               keyword_list kwl = db->FindKeywords(o, find, find);
               cout << kwl.size() << " keywords=";
               for (keyword_list::const_iterator kk=kwl.begin();
@@ -13691,19 +13701,27 @@ Analysis::analyse_result Analysis::AnalyseKnnOld(const vector<string>&) {
   /////////////////////////////////////////////////////////////////////////////
 
   Analysis::analyse_result
-  Analysis::AnalyseClassification(const vector<string>&) {
+  Analysis::AnalyseClassification(const vector<string>& args) {
     string msg = "AnalyseClassification";
     WriteLog(msg);
     msg += "() : ";
 
     DataBase *db = GetDataBase();
 
-    if (!db->IsMetaClassFile(classname))
-      return ShowError(msg+"class="+classname+" should be METACLASSFILE"); 
+    // if (!db->IsMetaClassFile(classname))
+    //   return ShowError(msg+"class="+classname+" should be METACLASSFILE"); 
 
     if (detections.size()!=1)
       return ShowError(msg+"detections.size() should be ==1"); 
 
+    vector<pair<float,float> > coeff(args.size());
+    for (size_t i=0; i<args.size(); i++) {
+      vector<string> t = SplitInCommas(args[i]);
+      if (t.size()!=2)
+	return ShowError(msg+"should be mul,add but was\""+args[i]+"\"");
+      coeff[i] = make_pair(atof(t[0].c_str()), atof(t[1].c_str()));
+    }
+    
     const ground_truth& gt = QueryRestrictionGT();
     ground_truth_list gtl;
     AddGroundTruthInfo(gtl, "queryrestriction", gt);
@@ -13726,6 +13744,8 @@ Analysis::analyse_result Analysis::AnalyseKnnOld(const vector<string>&) {
       c.push_back("");
     }
 
+    map<string,size_t> confmat, total;
+
     // map<string,size_t> losses; // replaced by classwise_res  - markus
     map<string,pair<size_t,size_t> > classwise_res; // pair<correct,wrong>
 
@@ -13743,7 +13763,8 @@ Analysis::analyse_result Analysis::AnalyseKnnOld(const vector<string>&) {
       }
 
       multimap<float,string> v;
-      for (auto j=c.begin(); j!=c.end(); j++) {
+      size_t ci = 0;
+      for (auto j=c.begin(); j!=c.end(); j++, ci++) {
 	bool angry = true, exists = false, allow_incore = false;
 	string dc = detections[0];
 	if (!is_vector)
@@ -13768,15 +13789,23 @@ Analysis::analyse_result Analysis::AnalyseKnnOld(const vector<string>&) {
 	if (verbose>4)
 	  cout << "   " << *j << " " << ToStr(d.begin()->second) << endl;
 
-	if (!is_vector)
-	  v.insert(make_pair(d.begin()->second[0], *j));
-	else
+	if (!is_vector) {
+	  float val = d.begin()->second[0], valmod = val;
+	  if (coeff.size()>ci) {
+	    valmod = coeff[ci].first*val + coeff[ci].second;
+	    if (verbose>4)
+	      cout << coeff[ci].first << " * " << val << " + " 
+		   << coeff[ci].second << " = " << valmod << endl;
+	  }
+	  v.insert(make_pair(valmod, *j));
+	} else
 	  for (size_t k=0; k<cx.size() && k<d.begin()->second.size(); k++)
 	    v.insert(make_pair(d.begin()->second[k], cx[k]));
       }
 
       bool is_cor = false;
       size_t n = 0;
+      string dst;
       for (auto j=v.rbegin(); j!=v.rend(); j++) {
 	auto gtp = gtmap.find(j->second);
 	if (gtp==gtmap.end()) {
@@ -13787,6 +13816,9 @@ Analysis::analyse_result Analysis::AnalyseKnnOld(const vector<string>&) {
 	if (n<ntop && hit)
 	  is_cor = true;
 
+	if (n==0)
+	  dst = j->second;
+	
 	if ((verbose>2 && n<ntop) || verbose>3)
 	  cout << "   " << n << " " << j->first << " " << j->second << " "
 	       << (int)hit << endl;
@@ -13807,16 +13839,24 @@ Analysis::analyse_result Analysis::AnalyseKnnOld(const vector<string>&) {
 
       for (auto gtp=gtmap.begin(); gtp!=gtmap.end(); gtp++)
 	if (gtp->second[i]==1) {
+	  if (classwise_res.find(gtp->first)==classwise_res.end())
+	    classwise_res[gtp->first] = make_pair(0, 0);
 	  if (is_cor)
 	    classwise_res[gtp->first].first++;
 	  else 
 	    classwise_res[gtp->first].second++;
+	  confmat[gtp->first+" "+dst]++;
+	  total[gtp->first]++;
 	}
-
+      
       tot++;
       cor += is_cor;
     }
-
+      
+    // for (auto mi=confmat.begin(); mi!=confmat.end(); mi++)
+    //   cout << "<" << mi->first << ">" << mi->second << " ";
+    // cout << endl;
+      
     stringstream ss;
     ss << float(cor)/tot << " (" << cor << "/" << tot << ")";
     WriteLog(detections[0]+" "+classname+" "+gt.label()+" top"+ToStr(ntop)+
@@ -13832,7 +13872,12 @@ Analysis::analyse_result Analysis::AnalyseKnnOld(const vector<string>&) {
       avg_per_class_acc += per_class_acc;
       nclass++;
       cout << g->first << " " << g->second.first << " " << g->second.second 
-	   << " " << per_class_acc << endl;
+	   << " " << per_class_acc << " (";
+      for (auto c=classwise_res.begin(); c!=classwise_res.end(); c++) {
+	cout << " " << c->first << ": " << confmat[g->first+" "+c->first]
+	     << " " << float(confmat[g->first+" "+c->first])/total[g->first];
+      }
+      cout << " )" << endl;
     }
     avg_per_class_acc /= float(nclass);
     WriteLog(detections[0]+" "+classname+" "+gt.label()+" top"+ToStr(ntop)+
@@ -29554,6 +29599,12 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
   Analysis::analyse_result Analysis::AnalyseTest(const vector<string>& argv) {
     string msg = "AnalyseTest() : ";
 
+    // DataBase *db = GetDataBase();
+    // vector<string> fv = GetQuery()->SelectedIndices(NULL);
+    // list<string> feat(fv.begin(), fv.end());
+    // cout << db->DetectionName(detections[0], feat, "zzz", "doge", "", false)
+    // 	 << endl;
+    
 #if defined(HAVE_JSON_JSON_H)
     DataBase* db = CheckDB();
     string zipf = db->ExpandPath("download/1.2/image_data.json.zip");

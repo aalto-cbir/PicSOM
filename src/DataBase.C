@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: DataBase.C,v 2.950 2017/10/05 12:37:41 jormal Exp $
+// -*- C++ -*-  $Id: DataBase.C,v 2.952 2017/11/26 21:31:11 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -58,7 +58,7 @@
 
 namespace picsom {
   static const string DataBase_C_vcid =
-    "@(#)$Id: DataBase.C,v 2.950 2017/10/05 12:37:41 jormal Exp $";
+    "@(#)$Id: DataBase.C,v 2.952 2017/11/26 21:31:11 jormal Exp $";
 
   // a special guest appearance...
   const string& object_info::db_name() const {
@@ -5753,13 +5753,30 @@ double DataBase::PointerRelevance(const vector<float>& vin, const string& n) {
 	name.push_back(d->first);
     }
 
-    for (size_t i=0; i<name.size(); i++)
-      if (!DoOneDetectionForAll(force, idx, name[i], classname,
-				instance, feats, augm, tolerate_missing,
-				ad, xml, dstat))
-	return ShowError(msg+"<"+name[i]+"> failed");
+    list<string> cc = SplitClassNames(classname);
 
+    for (auto cci=cc.begin(); cci!=cc.end(); cci++) {
+      for (size_t i=0; i<name.size(); i++)
+	if (!DoOneDetectionForAll(force, idx, name[i], *cci, instance, feats,
+				  augm, tolerate_missing, ad, xml, dstat))
+	  return ShowError(msg+"<"+*cci+"> <"+name[i]+"> failed");
+    }
+    
     return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string DataBase::DetectionName(const string& ddn,
+				 const list<string>& f, const string& augm,
+				 const string& c, const string& i,
+				 bool eout) const {
+    const string msg = "DataBase::DetectionName("+ddn+") : ";
+
+    map<string,string> r = DescribedDetection(ddn);
+    list<pair<string,string> > ll(r.begin(), r.end());
+    
+    return DetectionName(ll, f, augm, c, i, eout);
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -11721,12 +11738,20 @@ list<string> DataBase::CompiledClassFileDepends(const string& f) const {
       return db->SplitClassNames(clspart);
     }
 
+    if (split_class_names_cache.find(str)!=split_class_names_cache.end()) {
+      if (debug_gt)
+	cout << msg << "found in cache" << endl;
+      return split_class_names_cache[str];
+    }
+    
     string clstr = str;
 
     if (clstr.find("**")==0) {
       bool also_contents = clstr[2]=='c';
       FindAllClasses(false, also_contents);  // might end up in an infine loop
-      return KnownClassNames();
+      list<string> l = KnownClassNames();
+      split_class_names_cache[str] = l;
+      return l;
     }
 
     // For supporting multiple classes like "face:known&&face:Matti&face:Teppo"
@@ -11790,6 +11815,8 @@ list<string> DataBase::CompiledClassFileDepends(const string& f) const {
       cout << msg << "ending, classes=[" << CommaJoin(classes)
 	   << "]" << endl;
 
+    split_class_names_cache[str] = classes;
+    
     return classes;
   }
 

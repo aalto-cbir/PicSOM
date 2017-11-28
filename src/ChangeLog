@@ -1,3 +1,30 @@
+2017-11-28  jormal  <jormal@cs-170>
+
+	* configure.ac 2.120: Stepped to 0.36
+
+	* PicSOM.C 2.571: Added call to caffe_expand_task()
+
+	* Analysis.C 2.1169:
+	Commented out DetectionName() test in AnalyseTest().
+
+2017-11-26  jormal  <jormal@cs-170>
+
+	* Analysis.C 2.1168, DataBase.C 2.952, DataBase.h 2.522, Query.C 2.641, Query.h 2.336:
+	Added DataBase::DetectionName() and Query::SelectedIndices().
+
+2017-11-14  jormal  <jormal@cs-170>
+
+	* Analysis.C 2.1167: Changed verbose levels in AnalyseGT().
+
+2017-11-03  jormal  <jormal@cs-170>
+
+	* Query.C 2.640: Summary: Made g++ 7.2.0 happy.
+
+2017-10-11  jormal  <jormal@cs-170>
+
+	* DataBase.h 2.521, DataBase.C 2.951:
+	Summary: Added class loop in DoAllDetections() and split_class_names_cache.
+
 2017-10-09  jormal  <jormal@cs-170>
 
 	* Analysis.C 2.1166:

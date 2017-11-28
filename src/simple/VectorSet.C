@@ -1,11 +1,11 @@
 // 
-// Copyright 1994-2009 Jorma Laaksonen <jorma@cis.hut.fi>
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1994-2017 Jorma Laaksonen <jorma@cis.hut.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: VectorSet.C,v 1.16 2015/04/20 13:18:59 jorma Exp $
+// @(#)$Id: VectorSet.C,v 1.17 2017/11/03 18:27:04 jormal Exp $
 
 #ifndef _VECTORSET_C_
 #define _VECTORSET_C_
@@ -76,13 +76,13 @@ VectorSetOf<Type> VectorSetOf<Type>::SharedCopy() const {
 
 template <class Type>
 void VectorSetOf<Type>::Dump(Simple::DumpMode type, ostream& os) const {
-  if (type&&Simple::DumpRecursive) {
+  if (int(type)&int(Simple::DumpRecursive)) {
     ListOf< VectorOf<Type> >::Dump(type, os);
     VectorSourceOf<Type>::Dump(Simple::DumpMode(type&~Simple::DumpRecursive),
 			       os);
   }
 
-  if (type&Simple::DumpShort || type&Simple::DumpLong) {
+  if (int(type)&int(Simple::DumpShort) || int(type)&int(Simple::DumpLong)) {
     os << Simple::Bold("  VectorSet ") << (void*)this
        << " matchmethod="      << matchmethod
       // << " use_self_dots="  << use_self_dots

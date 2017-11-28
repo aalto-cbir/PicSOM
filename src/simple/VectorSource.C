@@ -1,7 +1,7 @@
-// -*- C++ -*-  $Id: VectorSource.C,v 1.19 2012/08/20 08:41:25 jorma Exp $
+// -*- C++ -*-  $Id: VectorSource.C,v 1.20 2017/11/03 18:27:28 jormal Exp $
 // 
-// Copyright 1994-2012 Jorma Laaksonen <jorma.laaksonen@aalto.fi>
-// Copyright 1998-2012 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1994-2017 Jorma Laaksonen <jorma.laaksonen@aalto.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -46,10 +46,10 @@ namespace simple {
 
 template <class Type>
 void VectorSourceOf<Type>::Dump(Simple::DumpMode type, ostream& os) const {
-  if (type&&Simple::DumpRecursive)
+  if (int(type)&&int(Simple::DumpRecursive))
     SourceOf< VectorOf<Type> >::Dump(type, os);
 
-  if (type&Simple::DumpShort || type&Simple::DumpLong) {
+  if (int(type)&Simple::DumpShort || int(type)&int(Simple::DumpLong)) {
     os << " VectorSource "     	<< (void*)this
        << " vectorlength="     	<< vectorlength << "(" << VectorLength() << ")"
        << " select_label="     	<< ShowString(select_label)

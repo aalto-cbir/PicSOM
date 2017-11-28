@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: DataBase.h,v 2.520 2017/08/09 13:18:35 jormal Exp $
+// -*- C++ -*-  $Id: DataBase.h,v 2.522 2017/11/26 21:31:11 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -74,7 +74,7 @@ typedef struct zip_stat zip_stat_t;
 
 namespace picsom {
   static string DataBase_h_vcid =
-    "@(#)$Id: DataBase.h,v 2.520 2017/08/09 13:18:35 jormal Exp $";
+    "@(#)$Id: DataBase.h,v 2.522 2017/11/26 21:31:11 jormal Exp $";
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -3241,6 +3241,10 @@ namespace picsom {
 			 const string&, bool) const;
 
     ///
+    string DetectionName(const string&, const list<string>&, const string&,
+			 const string&, const string&, bool) const;
+    
+    ///
     bool OpenBinDetection(const string&, const string&, size_t);
 
     ///
@@ -4532,6 +4536,9 @@ namespace picsom {
     /// Cached return from FindAllClassNames() if not force=true;
     list<string> class_name_cache;
 
+    /// Cached return from SplitClasNames().
+    map<string,list<string> > split_class_names_cache;
+    
     /// Set to false if InsertObjects() should not call 
     /// ReWriteChangedDivisionFiles().
     bool write_changed_divfiles;

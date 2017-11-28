@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Query.h,v 2.335 2017/04/28 07:46:07 jormal Exp $
+// -*- C++ -*-  $Id: Query.h,v 2.336 2017/11/26 21:31:11 jormal Exp $
 // 
 // Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -39,7 +39,7 @@ namespace picsom {
   using simple::RandVar;
 
   static const string Query_h_vcid =
-    "@(#)$Id: Query.h,v 2.335 2017/04/28 07:46:07 jormal Exp $";
+    "@(#)$Id: Query.h,v 2.336 2017/11/26 21:31:11 jormal Exp $";
 
   /**
      documentation missing
@@ -78,7 +78,7 @@ namespace picsom {
    
    @short A class implementing query processing in the PicSOM engine. 
 
-   @version $Id: Query.h,v 2.335 2017/04/28 07:46:07 jormal Exp $
+   @version $Id: Query.h,v 2.336 2017/11/26 21:31:11 jormal Exp $
 
 */
 
@@ -670,8 +670,11 @@ namespace picsom {
 
     /// Selects one feature.  If name is preceded by dash, just finds it.
     bool SelectIndex(algorithm_data*, const string&,
-                       bool create = false);
+		     bool create = false);
 
+    /// Gives a vector of index/feature names. 
+    vector<string> SelectedIndices(algorithm_data*);
+    
     ///
     void ShowFeatures() /*const*/;
 

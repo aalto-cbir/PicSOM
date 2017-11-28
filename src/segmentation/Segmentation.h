@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Segmentation.h,v 1.117 2013/01/25 16:27:41 jorma Exp $
+// -*- C++ -*-  $Id: Segmentation.h,v 1.118 2017/11/03 18:28:16 jormal Exp $
 // 
-// Copyright 1998-2012 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -289,8 +289,8 @@ namespace picsom {
 
     /// Checks that image has been read in.
     bool HasImage() const { 
-      if(!image) return false;
-      return getImg()->getWidth()*getImg()->getHeight(); }
+      return image ? getImg()->getWidth() && getImg()->getHeight() : false; 
+    }
 
     /// Checks that segmentation has been generated or read in.
     // should this be recursive

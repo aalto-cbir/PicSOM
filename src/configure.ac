@@ -1,18 +1,18 @@
-## -*- autoconf -*-  $Id: configure.ac,v 2.119 2017/06/14 08:56:17 jormal Exp $
+## -*- autoconf -*-  $Id: configure.ac,v 2.120 2017/11/28 00:03:40 jormal Exp $
 ## 
 ## Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
 ## PO Box 15400, FI-00076 Aalto, FINLAND
 ## 
 
-AC_INIT(PicSOM, 0.35, picsom@ics.aalto.fi)
+AC_INIT(PicSOM, 0.36, picsom@ics.aalto.fi)
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
 AC_PREREQ(2.59)
 AC_COPYRIGHT(PicSOM Development Group)
-AC_REVISION($Revision: 2.119 $)
+AC_REVISION($Revision: 2.120 $)
 
 AC_CONFIG_MACRO_DIRS([m4])
 

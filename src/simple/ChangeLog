@@ -1,3 +1,7 @@
+2017-11-03  jormal  <jormal@cs-170>
+
+	* VectorSource.C 1.20, VectorSet.C 1.17: Summary: Made g++ 7.2.0 happy.
+
 2017-05-09  jormal  <jormal@cs-170>
 
 	* List.C 1.9: Summary: Added resetting of listsize in FullDelete().

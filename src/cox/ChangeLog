@@ -1,3 +1,7 @@
+2017-11-03  jormal  <jormal@cs-170>
+
+	* demangle 1.2: Summary: Made g++ 7.2.0 happy.
+
 2017-04-28  jormal  <jormal@cs-170>
 
 	* tictac 1.5: Changed to go without missg-c-utils.[ch].

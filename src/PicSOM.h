@@ -754,7 +754,7 @@ namespace picsom {
     static string ExtractVersion(const string&);
 
     /// Filled in by release/build script.
-    static string Release() { return "" "picsom-0.35" ; }
+    static string Release() { return "" "picsom-0.36" ; }
 
     ///
     static bool HasFeaturesInternal() { return has_features_internal; }

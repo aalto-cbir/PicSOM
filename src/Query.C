@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Query.C,v 2.639 2017/05/09 10:20:29 jormal Exp $
+// -*- C++ -*-  $Id: Query.C,v 2.641 2017/11/26 21:31:11 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -22,7 +22,7 @@ namespace picsom {
   using namespace std;
 
   static const string Query_C_vcid =
-    "@(#)$Id: Query.C,v 2.639 2017/05/09 10:20:29 jormal Exp $";
+    "@(#)$Id: Query.C,v 2.641 2017/11/26 21:31:11 jormal Exp $";
 
   static string splitchars = " \t\r\n/";
 
@@ -2575,6 +2575,20 @@ namespace picsom {
       ShowError("Query::LowerAlgorithm() failed");
 
     return NULL;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  vector<string> Query::SelectedIndices(algorithm_data *a) {
+    if (a)  // unimplemented
+      return vector<string>();
+
+    vector<string> fl;
+    
+    for (size_t i=0; i<Nfeatures(); i++)
+      fl.push_back(index_data[i]->fullname);
+
+    return fl;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -8355,6 +8369,7 @@ namespace picsom {
 	  if (gt && gt->positives())
 	    return stage_has_positives;		  
 	}
+      /* fall-thru */
       
     case func_random_unseen_images:
       RandomUnseenObjects(true, false);

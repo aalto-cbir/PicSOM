@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: PicSOM.C,v 2.570 2017/08/16 07:18:07 jormal Exp $
+// -*- C++ -*-  $Id: PicSOM.C,v 2.571 2017/11/28 00:03:19 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -175,7 +175,7 @@ extern "C" {
 
 namespace picsom {
   const string PicSOM_C_vcid =
-    "@(#)$Id: PicSOM.C,v 2.570 2017/08/16 07:18:07 jormal Exp $";
+    "@(#)$Id: PicSOM.C,v 2.571 2017/11/28 00:03:19 jormal Exp $";
 
   int PicSOM::debug_times  = 0;
   int PicSOM::debug_mem    = 0;
@@ -7457,6 +7457,12 @@ bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
 
   if (keystr=="debugtext") {
     DataBase::DebugText(boolval);
+    return true;
+  }
+
+  if (keystr=="caffe_expand_task") {
+    extern void caffe_expand_task(size_t);
+    caffe_expand_task(intval);
     return true;
   }
 
