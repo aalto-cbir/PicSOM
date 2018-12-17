@@ -1,11 +1,11 @@
-// -*- C++ -*- 	$Id: Torch.h,v 1.4 2017/04/04 09:58:00 jormal Exp $
+// -*- C++ -*- 	$Id: Torch.h,v 1.5 2018/12/16 07:51:34 jormal Exp $
 
 #ifndef _Torch_
 #define _Torch_
 
-#ifdef HAVE_THC_H
-
 #include "RegionBased.h"
+
+#ifdef HAVE_THC_H
 
 // #define USE_MKL
 

@@ -1,11 +1,11 @@
 // 
 // Copyright 1994-2005 Jorma Laaksonen <jorma@cis.hut.fi>
-// Copyright 1998-2005 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: OptVar.h,v 1.3 2009/11/20 20:48:15 jorma Exp $
+// @(#)$Id: OptVar.h,v 1.4 2018/12/15 23:27:04 jormal Exp $
 
 // -*- C++ -*-
 
@@ -249,7 +249,7 @@ public:
   OptVar& Description(const char *d) {
     CopyString(descr, d);
     if (next) {
-      char tmp[1000];
+      char tmp[2000];
       sprintf(tmp, "%s-%s=%s", descr?descr:"optvar", Argv(0), Value());
       next->Description(tmp);
     }

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Query.C,v 2.641 2017/11/26 21:31:11 jormal Exp $
+// -*- C++ -*-  $Id: Query.C,v 2.643 2018/12/15 23:07:51 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -22,7 +22,7 @@ namespace picsom {
   using namespace std;
 
   static const string Query_C_vcid =
-    "@(#)$Id: Query.C,v 2.641 2017/11/26 21:31:11 jormal Exp $";
+    "@(#)$Id: Query.C,v 2.643 2018/12/15 23:07:51 jormal Exp $";
 
   static string splitchars = " \t\r\n/";
 
@@ -3485,7 +3485,7 @@ namespace picsom {
     //   sprintf(tmp+strlen(tmp), "%s%d", *tmp?" + ":"", ul.Nitems());
     //   sum += ul.Nitems();
     // }
-    char consunitstxt[1000];
+    char consunitstxt[2000];
     sprintf(consunitstxt, "%d = %s", (int)sum, tmp);
 
     // for (sum=i=*tmp=0; i<VQUnitsSize(); i++) {
@@ -3496,7 +3496,7 @@ namespace picsom {
     //   sprintf(tmp+strlen(tmp), "%s%d", *tmp?" + ":"", n);
     //   sum += n;
     // }
-    char selunitstxt[1000];
+    char selunitstxt[2000];
     sprintf(selunitstxt, "%d = %s", (int)sum, tmp);
 
     for (sum=i=*tmp=0; i<PerMapObjectsSize(); i++) {
@@ -3504,17 +3504,17 @@ namespace picsom {
       sprintf(tmp+strlen(tmp),"%s%d", *tmp?" + ":"", (int)ol.size());
       sum += ol.size();
     }
-    char foundimgtxt[1000];
+    char foundimgtxt[2000];
     sprintf(foundimgtxt, "%d = %s", (int)sum, tmp);
     if (sum!=combinedimage.size())
       ShowError("Query::AddToXMLstatistics() sum!=combinedimage.size()");
 
-    char uniqueimgtxt[1000];
+    char uniqueimgtxt[2000];
     sprintf(uniqueimgtxt, "%d", (int)uniqueimage.size());
 
     for (sum=i=0; i<uniqueimage.size(); i++)
       sum += uniqueimage[i].Retained();
-    char consimgtxt[1000];
+    char consimgtxt[2000];
     sprintf(consimgtxt, "%d", (int)sum);
     if (NseenObjects() && uniqueimage.size() && sum!=NnewObjects()) {
       char tmptxt[100];
@@ -3527,7 +3527,7 @@ namespace picsom {
 
     for (sum=i=0; i<NnewObjects(); i++)
       sum += newobject[i].Retained();
-    char selimgtxt[1000];
+    char selimgtxt[2000];
     sprintf(selimgtxt, "%d ~ %s", (int)sum, tmp);
 
     XmlDom stats = xml.Element("statistics");
@@ -6876,7 +6876,7 @@ namespace picsom {
 
         for (int i=0; i<brf.Length(); i++) {
           int labidx = brf[i];
-          const char *lab = db->LabelP(labidx);
+          const char *lab = db->Label(labidx).c_str();
 
           if (!Simple::StringsMatch(lab, map.Unit(idx)->Label()) &&
               CanBeShownRestricted(labidx, seenparents)) {

@@ -1,4 +1,4 @@
-// -*- C++ -*- 	$Id: WordHist.h,v 1.15 2016/02/18 08:46:47 jorma Exp $
+// -*- C++ -*- 	$Id: WordHist.h,v 1.16 2018/01/30 09:54:21 jormal Exp $
 
 /**
    \file WordHist.h
@@ -10,8 +10,8 @@
    for text objects.
   
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.15 $
-   $Date: 2016/02/18 08:46:47 $
+   $Revision: 1.16 $
+   $Date: 2018/01/30 09:54:21 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo Perhaps something?
@@ -90,14 +90,21 @@ namespace picsom {
 
       ///
       size_t size() const {
-	return vec.size() ? vec[0].size() : 0;
+	return vec_r.size() ? vec_r[0].size() : 0;
       }
 
       ///
-      const vector<float>& tovec(const string& word) const {
+      const vector<float>& to_vec_raw(const string& word) const {
 	static const vector<float> empty;
 	auto i = wmap.find(word);
-	return i==wmap.end() ? empty : vec[i->second];
+	return i==wmap.end() ? empty : vec_r[i->second];
+      }
+
+      ///
+      const vector<float>& to_vec_norm(const string& word) const {
+	static const vector<float> empty;
+	auto i = wmap.find(word);
+	return i==wmap.end() ? empty : vec_n[i->second];
       }
 
       ///
@@ -107,7 +114,10 @@ namespace picsom {
       vector<string> vocab;
 
       ///
-      vector<vector<float> > vec;
+      vector<vector<float> > vec_r;
+
+      ///
+      vector<vector<float> > vec_n;
 
       ///
       map<string,size_t> wmap;
@@ -117,13 +127,21 @@ namespace picsom {
     static map<string,w2v_data> w2v_map;
 
     ///
-    static const vector<float>& word2vec(const string&, const string& = "");
+    static const vector<float>& word2vec_raw(const string&,
+					     const string& = "");
+
+    ///
+    static const vector<float>& word2vec_norm(const string&,
+					      const string& = "");
 
     ///
     static int word2vec_index(const string&, const string& = "");
 
     ///
     static const w2v_data *word2vec_find(const string&);
+
+    ///
+    static const vector<string>& word2vec_vocabulary(const string&);
 
     /** Constructor
 	\param obj initialise to this object

@@ -1,8 +1,8 @@
-// -*- C++ -*-  $Id: object_info.h,v 2.4 2008/10/08 09:42:32 jorma Exp $
+// -*- C++ -*-  $Id: object_info.h,v 2.6 2018/08/31 10:51:33 jormal Exp $
 // 
-// Copyright 1998-2008 PicSOM Development Group <picsom@cis.hut.fi>
-// Helsinki University of Technology
-// P.O.BOX 5400, FI-02015 TKK, FINLAND
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
 // 
 
 #ifndef _PICSOM_OBJECT_INFO_H_
@@ -14,7 +14,7 @@
 using namespace std;
 
 static const string object_info_h_vcid =
-  "@(#)$Id: object_info.h,v 2.4 2008/10/08 09:42:32 jorma Exp $";
+  "@(#)$Id: object_info.h,v 2.6 2018/08/31 10:51:33 jormal Exp $";
 
 namespace picsom {
   class DataBase;
@@ -26,7 +26,7 @@ namespace picsom {
   public:
     /// 
     object_info(DataBase *b, int i, const string& l, target_type t) :
-      db(b), index(i), label(l), type(t), master(-1) {}
+      db(b), index(i), label(l), type(t), master(-1), frame(-1) {}
 
     ///
     const string& db_name() const; // defined in DataBase.C !!!
@@ -39,11 +39,11 @@ namespace picsom {
       for (size_t i=0; i<duplicates.size(); i++)
 	os << (i?",":"") << duplicates[i];
 
-      os << "} P: ";
+      os << "} P: {";
       for (size_t i=0; i<parents.size(); i++)
 	os << (i?",":"") << parents[i];
 
-      os << " {";
+      os << "} F: " << frame << " {";
 
       for (size_t i=0; i<children.size(); i++)
 	os << (i?",":"") << children[i];
@@ -90,6 +90,9 @@ namespace picsom {
 
     ///
     vector<int> duplicates;    
+
+    ///
+    int frame;
 
   };  // class object_info
 

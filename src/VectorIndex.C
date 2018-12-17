@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: VectorIndex.C,v 2.104 2016/01/20 09:01:50 jorma Exp $
+// -*- C++ -*-  $Id: VectorIndex.C,v 2.107 2018/12/16 21:12:59 jormal Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -13,7 +13,7 @@
 
 namespace picsom {
   static const string VectorIndex_C_vcid =
-    "@(#)$Id: VectorIndex.C,v 2.104 2016/01/20 09:01:50 jorma Exp $";
+    "@(#)$Id: VectorIndex.C,v 2.107 2018/12/16 21:12:59 jormal Exp $";
 
   bool VectorIndex::bin_data_full_test = false;
   bool VectorIndex::fast_bin_check     = false;
@@ -40,6 +40,7 @@ namespace picsom {
 
   VectorIndex::~VectorIndex() {
     BinDataUnmap();
+    LmdbDataClose();
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -281,75 +282,75 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool VectorIndex::ReadDataFileBinOld(bool nodata) {
-    string msg = "VectorIndex::ReadDataFileBinOld() : ";
+  // bool VectorIndex::ReadDataFileBinOld(bool nodata) {
+  //   string msg = "VectorIndex::ReadDataFileBinOld() : ";
 
-    bool ok = true;
+  //   bool ok = true;
 
-    Tic("ReadDataFileBin");
-    data.Delete();
-    bool nodatawas = data.NoDataRead(nodata);
+  //   Tic("ReadDataFileBin");
+  //   data.Delete();
+  //   bool nodatawas = data.NoDataRead(nodata);
 
-    ifstream in;
-    string ns = FeatureFileName(), datfile;
-    size_t vl = OpenBinDataOld(ns, datfile, in), nzero = 0, nnan = 0;
+  //   ifstream in;
+  //   string ns = FeatureFileName(), datfile;
+  //   size_t vl = OpenBinDataOld(ns, datfile, in), nzero = 0, nnan = 0;
 
-    if (!vl)
-      ok = ShowError(msg+"OpenBinDataOld() failed");
-    else
-      WriteLog("Starting to read binary feature data <"+
-	       ShortFileName(datfile)+">");
+  //   if (!vl)
+  //     ok = ShowError(msg+"OpenBinDataOld() failed");
+  //   else
+  //     WriteLog("Starting to read binary feature data <"+
+  // 	       ShortFileName(datfile)+">");
 
-    data.FileName(datfile);
-    data.NoDataRead(nodata);
+  //   data.FileName(datfile);
+  //   data.NoDataRead(nodata);
 
-    for (size_t i=0; ok && i<db->Size(); i++) {
-      FloatVector v(vl);
-      in.read((char*)(float*)v, vl*sizeof(float));
+  //   for (size_t i=0; ok && i<db->Size(); i++) {
+  //     FloatVector v(vl);
+  //     in.read((char*)(float*)v, vl*sizeof(float));
 
-      if (!db->ObjectsTargetTypeContains(i, FeatureTarget()))
-	continue;
+  //     if (!db->ObjectsTargetTypeContains(i, FeatureTarget()))
+  // 	continue;
 
-      if (v.IsZero()) {
-	nzero++;
-	continue;
-      }
+  //     if (v.IsZero()) {
+  // 	nzero++;
+  // 	continue;
+  //     }
 
-      // was needed in image-net, temporal hack
-      float nanvalue = numeric_limits<float>::quiet_NaN();
-      if (!memcmp(&v[0], &nanvalue, sizeof(float))) {
-	nnan++;
-	continue;
-      }
+  //     // was needed in image-net, temporal hack
+  //     float nanvalue = numeric_limits<float>::quiet_NaN();
+  //     if (!memcmp(&v[0], &nanvalue, sizeof(float))) {
+  // 	nnan++;
+  // 	continue;
+  //     }
 
-      if (in) {
-	v.Number(i);
-	v.Label(db->Label(i));
-	data.AppendCopy(v);
+  //     if (in) {
+  // 	v.Number(i);
+  // 	v.Label(db->Label(i));
+  // 	data.AppendCopy(v);
 
-      } else
-	ok = ShowError(msg+"read() with <"+datfile+"> failed");
-    }
+  //     } else
+  // 	ok = ShowError(msg+"read() with <"+datfile+"> failed");
+  //   }
 
-    if (FeatureTarget()==target_no_target) {
-      target_type tt = SolveDataTarget(data);
-      if (tt!=target_no_target)
-	FeatureTarget(tt);
-    }
+  //   if (FeatureTarget()==target_no_target) {
+  //     target_type tt = SolveDataTarget(data);
+  //     if (tt!=target_no_target)
+  // 	FeatureTarget(tt);
+  //   }
 
-    stringstream tmptxt;
-    tmptxt << " (dim=" << data.VectorLength() << ", "
-	   << data.Nitems() << " vectors 0.."
-	   << data.Nitems()-1 << ") " << nzero
-	   << " zero and " << nnan << " nan vectors were skipped";
-    WriteLog("Read data file ", nodata?"(labels only) ":"",
-	     "<"+ShortFileName(datfile)+">", tmptxt.str());
+  //   stringstream tmptxt;
+  //   tmptxt << " (dim=" << data.VectorLength() << ", "
+  // 	   << data.Nitems() << " vectors 0.."
+  // 	   << data.Nitems()-1 << ") " << nzero
+  // 	   << " zero and " << nnan << " nan vectors were skipped";
+  //   WriteLog("Read data file ", nodata?"(labels only) ":"",
+  // 	     "<"+ShortFileName(datfile)+">", tmptxt.str());
 
-    data.NoDataRead(nodatawas);
-    Tac("ReadDataFileClassical");
+  //   data.NoDataRead(nodatawas);
+  //   Tac("ReadDataFileClassical");
 
-    return ok;
-  }
+  //   return ok;
+  // }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -945,36 +946,36 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  size_t VectorIndex::OpenBinDataOld(const string& ns,
-				  string& fname, ifstream& in) {
-    string msg = "VectorIndex::OpenBinDataOld("+ns+") : ";
+  // size_t VectorIndex::OpenBinDataOld(const string& ns,
+  // 				  string& fname, ifstream& in) {
+  //   string msg = "VectorIndex::OpenBinDataOld("+ns+") : ";
 
-    Obsoleted(msg);
+  //   Obsoleted(msg);
 
-    fname = FindFile(ns, ".bin", true);
+  //   fname = FindFile(ns, ".bin", true);
 
-    if (fname=="")
-      return ShowError(msg+".bin file not found for <"+ns+">");
+  //   if (fname=="")
+  //     return ShowError(msg+".bin file not found for <"+ns+">");
 
-    in.open(fname.c_str());
-    if (!in)
-      return ShowError(msg+"opening <"+fname+"> failed");
+  //   in.open(fname.c_str());
+  //   if (!in)
+  //     return ShowError(msg+"opening <"+fname+"> failed");
 
-    float vlf = 0.0;
-    in.read((char*)&vlf, sizeof(float));
-    if (!in)
-      return ShowError(msg+"reading dimensionality of <"+ns+"> failed");
+  //   float vlf = 0.0;
+  //   in.read((char*)&vlf, sizeof(float));
+  //   if (!in)
+  //     return ShowError(msg+"reading dimensionality of <"+ns+"> failed");
     
-    size_t vl = size_t(floor(vlf));
-    if (vlf!=float(vl) || !vl)
-      return ShowError(msg+"interpreting dimensionality "+ToStr(vlf)+ " of <"+
-		       ns+"> failed");
+  //   size_t vl = size_t(floor(vlf));
+  //   if (vlf!=float(vl) || !vl)
+  //     return ShowError(msg+"interpreting dimensionality "+ToStr(vlf)+ " of <"+
+  // 		       ns+"> failed");
 
-    if (!vl)
-      ShowError(msg+"dimensionality is zero");
+  //   if (!vl)
+  //     ShowError(msg+"dimensionality is zero");
 
-    return vl;
-  }
+  //   return vl;
+  // }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -1037,22 +1038,173 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  FloatVectorSet VectorIndex::DataByIndicesBinOld(const vector<size_t>&
-						  idxvec) {
-    string msg = "VectorIndex::DataByIndicesBinOld() : ";
+  // FloatVectorSet VectorIndex::DataByIndicesBinOld(const vector<size_t>&
+  // 						  idxvec) {
+  //   string msg = "VectorIndex::DataByIndicesBinOld() : ";
 
-    Obsoleted(msg);
+  //   Obsoleted(msg);
 
-    //bool use_cache = use_bin_cache;
-    bool verbose   = false;
+  //   //bool use_cache = use_bin_cache;
+  //   bool verbose   = false;
 
-    if (verbose)
-      cout << TimeStamp() << msg << "starting <" << FeatureFileName()
-	   << "> n=" << idxvec.size() << endl;
+  //   if (verbose)
+  //     cout << TimeStamp() << msg << "starting <" << FeatureFileName()
+  // 	   << "> n=" << idxvec.size() << endl;
 
-    FloatVectorSet empty, res;
+  //   FloatVectorSet empty, res;
 
-    return empty;
+  //   return empty;
+  // }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool VectorIndex::LmdbDataOpen(bool rw, size_t n, bool create,
+				const string& /*augm*/) {
+    string dname = BinInfoFileName();
+    if (dname.substr(dname.size()-4)==".bin")
+      dname.erase(dname.size()-4);
+    dname += ".lmdb";
+    
+    string msg = "VectorIndex::LmdbDataOpen("+ToStr(rw)+","+ToStr(n)+
+      ","+ToStr(create)+") <"+dname+"> : ";
+
+#ifdef HAVE_LMDB_H
+    if (_lmdb_data.env!=NULL)
+      return true;
+    
+    WriteLog(msg+"starting");
+    Picsom()->MkDir(dname, 02775);
+
+    // size_t mapsize = 10485760;
+    // mapsize *= 10;
+    size_t mapsize = 1024L*1024*1024*1024;
+
+    int r = mdb_env_create(&_lmdb_data.env);
+    if (r)
+      return ShowError(msg+"mdb_env_create() failed: "+
+		       mdb_strerror(r));
+
+    r = mdb_env_set_mapsize(_lmdb_data.env, mapsize);
+    if (r)
+      return ShowError(msg+"mdb_env_set_mapsize() failed: "+
+		       mdb_strerror(r));
+
+    r = mdb_env_open(_lmdb_data.env, dname.c_str(), 0, 02664);
+    if (r)
+      return ShowError(msg+"mdb_env_open() failed: "+
+		       mdb_strerror(r));
+
+    r = mdb_txn_begin(_lmdb_data.env, NULL, 0, &_lmdb_data.txn);
+    if (r)
+      return ShowError(msg+"mdb_txn_begin() failed: "+
+		       mdb_strerror(r));
+
+    r = mdb_dbi_open(_lmdb_data.txn, NULL, 0, &_lmdb_data.dbi);
+    if (r)
+      return ShowError(msg+"mdb_dbi_open() failed: "+
+		       mdb_strerror(r));
+
+    return true;
+
+#else
+    return ShowError(msg+"lmdb not supported");
+#endif // HAVE_LMDB_H
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool VectorIndex::LmdbDataClose() {
+    string msg = "VectorIndex::LmdbDataClose() : ";
+
+#ifdef HAVE_LMDB_H
+    if (_lmdb_data.env)
+      WriteLog("Closing lmdb database");
+
+    if (_lmdb_data.dbi)
+      mdb_dbi_close(_lmdb_data.env, _lmdb_data.dbi);
+    _lmdb_data.dbi = 0;
+
+    if (_lmdb_data.txn)
+      if (mdb_txn_commit(_lmdb_data.txn))
+	ShowError(msg+"mdb_txn_commit() failed");
+    _lmdb_data.txn = NULL;
+    
+    if (_lmdb_data.env)
+      mdb_env_close(_lmdb_data.env);
+    _lmdb_data.env = NULL;
+#endif // HAVE_LMDB_H
+
+    return true;
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool VectorIndex::LmdbDataStoreFeature(const FloatVector& vec, 
+					 const string& key) {
+    string msg = "VectorIndex::LmdbDataStoreFeature(FloatVector) : ";
+
+    vector<float> v(vec.Length());
+    memcpy(&v[0], (float*)vec, vec.Length()*sizeof(float));
+
+    return LmdbDataStoreFeature(make_pair(v, key));
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool VectorIndex::LmdbDataStoreFeature(size_t idx, const vector<float>& vec) {
+    string msg = "VectorIndex::LmdbDataStoreFeature(size_t,vector<float>) : ";
+
+    return LmdbDataStoreFeature(make_pair(vec, db->Label(idx)));
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool VectorIndex::LmdbDataStoreFeature(const cox::labeled_float_vector& v) {
+    string msg = "VectorIndex::LmdbDataStoreFeature(labeled_float_vector) : ";
+
+#ifdef HAVE_LMDB_H
+    bool debug = false;
+
+    const vector<float>& vec = v.first;
+    const string& keytxt     = v.second;
+    
+    if (debug)
+      cout << msg << FeatureFileName() << " " << keytxt
+	   << " " << vec.size() << endl;
+    
+    if (!db->OpenReadWriteFea())
+      return ShowError(msg+"not opened with -rw=...fea...");
+
+    if (VectorLength()==0)
+      data.VectorLength(vec.size());
+
+    if (vec.size()!=VectorLength())
+      return ShowError(msg+"vec.size()="+ToStr(vec.size())+
+		       " != VectorLength()="+ToStr(VectorLength()));
+
+    const string augm;
+    if (!LmdbDataOpen(true, db->Size(), true, augm))
+      return ShowError(msg+"LmdbDataOpen(true) failed");
+
+    if (debug) {
+      for (size_t i=0; i<vec.size(); i++)
+	cout << vec[i] << " ";
+      cout << keytxt << endl;
+    }
+
+    MDB_val key = { keytxt.size(), (void*)keytxt.c_str() };
+    MDB_val val = { sizeof(float)*vec.size(), (void*)&vec[0] };
+
+    int r = mdb_put(_lmdb_data.txn, _lmdb_data.dbi, &key, &val, 0);
+    if (r)
+      return ShowError(msg+"key=<"+keytxt+"> mdb_put() failed: "
+		       +mdb_strerror(r));
+
+    return true;
+#else
+    if (v.first.size()) {}
+    return ShowError(msg+"lmdb not supported");
+#endif // HAVE_LMDB_H
   }
 
   /////////////////////////////////////////////////////////////////////////////

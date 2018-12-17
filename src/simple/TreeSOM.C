@@ -5,7 +5,7 @@
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: TreeSOM.C,v 1.35 2017/04/28 07:49:12 jormal Exp $
+// @(#)$Id: TreeSOM.C,v 1.36 2018/12/16 11:01:38 jormal Exp $
 
 #include <TreeSOM.h>
 #include <XMLutil.h>
@@ -478,7 +478,7 @@ bool TreeSOM::AdaptWriteDivide(bool lastiter) const {
     return false;
   }
 
-  char name[1024], nameold[1024];
+  char name[1024], nameold[2048];
   strcpy(name, FileName());
   size_t l = strlen(name);
   if (l>4 && !strcmp(name+l-4, ".cod"))

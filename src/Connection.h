@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Connection.h,v 2.131 2017/04/28 07:46:07 jormal Exp $
+// -*- C++ -*-  $Id: Connection.h,v 2.132 2018/10/05 15:29:57 jormal Exp $
 // 
 // Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -11,6 +11,10 @@
 #include <XMLutil.h>
 #include <RemoteHost.h>
 #include <PicSOM.h>
+
+#ifdef HAVE_EXT_STDIO_FILEBUF_H
+#include <ext/stdio_filebuf.h>
+#endif // HAVE_EXT_STDIO_FILEBUF_H
 
 #if PICSOM_USE_CSOAP
 #include <nanohttp/nanohttp-logging.h>
@@ -49,7 +53,7 @@ extern HIST_ENTRY **history_list ();
 #define PICSOM_POLL_TIMEOUT   (60*1000)
 
 static const string Connection_h_vcid =
-  "@(#)$Id: Connection.h,v 2.131 2017/04/28 07:46:07 jormal Exp $";
+  "@(#)$Id: Connection.h,v 2.132 2018/10/05 15:29:57 jormal Exp $";
 
 namespace picsom {
   typedef list<pair<string,string> > http_headers_t;
@@ -663,9 +667,15 @@ namespace picsom {
     /// File descriptor for reading.
     int Rfd() const { return rfd; }
 
+    ///
+    istream *RfdIstream() const { return rfdistream; }
+    
     /// File descriptor for writing.
     int Wfd() const { return wfd; }
 
+    ///
+    ostream *WfdOstream() const { return wfdostream; }
+    
     /// FILE pointer for reading a pure file.
     FILE *Rfile() const { return rfile; }
 
@@ -1141,6 +1151,18 @@ namespace picsom {
     /// Pointer to input stream.
     istream *istr;
 
+    ///
+    __gnu_cxx::stdio_filebuf<char> *rfdibuf;
+    
+    ///
+    __gnu_cxx::stdio_filebuf<char> *wfdobuf;
+    
+    ///
+    istream *rfdistream;
+
+    ///
+    ostream *wfdostream;
+    
     /// CHild process id.
     pid_t child;
 

@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: VectorIndex.h,v 2.50 2017/05/09 10:19:50 jormal Exp $
+// -*- C++ -*-  $Id: VectorIndex.h,v 2.52 2018/09/25 15:19:43 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -10,6 +10,10 @@
 
 #include <Index.h>
 #include <bin_data.h>
+
+#ifdef HAVE_LMDB_H
+#include <lmdb.h>
+#endif // HAVE_LMDB_H
 
 #include <cox/knn>
 #include <cox/lsc>
@@ -85,7 +89,7 @@ namespace picsom {
     bool ReadDataFileSql(bool);
 
     ///
-    bool ReadDataFileBinOld(bool);
+    // bool ReadDataFileBinOld(bool);
 
     ///
     bool ReadDataFileBin(bool);
@@ -234,7 +238,7 @@ namespace picsom {
     FloatVectorSet DataByIndicesBin(const vector<size_t>&, const string&, bool);
 
     /// Returns data (feature) vectors pointed by indices.
-    FloatVectorSet DataByIndicesBinOld(const vector<size_t>&);
+    // FloatVectorSet DataByIndicesBinOld(const vector<size_t>&);
 
     ///
     bool BinDataOpen(bool, size_t, bool, const string&);
@@ -273,12 +277,6 @@ namespace picsom {
     bool BinDataStoreFeature(size_t, const vector<float>&);
 
     ///
-    size_t OpenBinDataOld(const string&, string&, ifstream&);
-
-    ///
-    bool OpenBinData();
-
-    ///
     bool BinInfoSet() const { return BinInfoVectorLength(); }
 
     ///
@@ -305,6 +303,21 @@ namespace picsom {
       string key = augm==FeatureFileName() ? "" : augm;
       return _bin_data_m[key].rawsize(n);
     }
+
+    ///
+    bool LmdbDataOpen(bool, size_t, bool, const string& = "");
+
+    /// Stores a feature vector for insertion in lmdb data file.
+    bool LmdbDataStoreFeature(const FloatVector&, const string&);
+
+    /// Stores a feature vector for insertion in lmdb data file.
+    bool LmdbDataStoreFeature(const cox::labeled_float_vector&);
+
+    /// Stores a feature vector for insertion in lmdb data file.
+    bool LmdbDataStoreFeature(size_t, const vector<float>&);
+
+    ///
+    bool LmdbDataClose();
 
     /// This is needed to reset numbers in data vectors.
     bool SetDataSetNumbers(bool force, bool may_add);
@@ -389,8 +402,20 @@ namespace picsom {
     ///
     bool DestroyClassifiers();
 
+    ///
     virtual bool IsSelectable() { return is_selectable; }
 
+    ///
+    struct lmdb_data {
+#ifdef HAVE_LMDB_H
+      MDB_env *env { NULL };
+      MDB_txn *txn { NULL };
+      MDB_dbi  dbi {    0 };
+#else
+      bool dummy;
+#endif // HAVE_LMDB_H
+    };
+    
   protected:
     /// Vectorial data is stored here.
     FloatVectorSet data;
@@ -404,9 +429,13 @@ namespace picsom {
     ///
     bool data_numbers_set;
 
-    ///
+    /// All *.bin type features with different augmentations are in this map.
     map<string,bin_data> _bin_data_m;
 
+    /// All *.lmdb type features are in this map.
+    //map<string,lmdb_data> _lmdb_data_m;
+    lmdb_data _lmdb_data;
+    
     ///
     static bool bin_data_full_test, fast_bin_check, nan_inf_check;
 

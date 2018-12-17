@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: bin_data.C,v 2.32 2017/05/09 10:16:30 jormal Exp $
+// -*- C++ -*-  $Id: bin_data.C,v 2.34 2018/12/16 21:12:21 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -33,7 +33,7 @@
 
 namespace picsom {
   static const string bin_data_C_vcid =
-    "@(#)$Id: bin_data.C,v 2.32 2017/05/09 10:16:30 jormal Exp $";
+    "@(#)$Id: bin_data.C,v 2.34 2018/12/16 21:12:21 jormal Exp $";
 
   bool bin_data::close_handles = true;
 
@@ -122,7 +122,7 @@ namespace picsom {
     _size = 0;
     _prodquant = NULL;
 
-    memset(&_header, 0, sizeof(header));
+    memset((char*)&_header, 0, sizeof(header));
 
 #ifdef BIN_DATA_USE_PTHREADS
     pthread_rwlock_unlock(&rwlock);
@@ -186,8 +186,8 @@ namespace picsom {
 
   void *bin_data::raw_address(size_t i) const {
     // string msg = "bin_data::raw_address() : ";
-    size_t l = _header.hsize+i*_header.rlength_x;
-    return _ptr && l+_header.rlength_x<=_size ? (char*)_ptr+l : NULL;
+    size_t l = _header.hsize+i*_header.rlength;
+    return _ptr && l+_header.rlength<=_size ? (char*)_ptr+l : NULL;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -225,7 +225,7 @@ namespace picsom {
     if (!a)
       return false;
 
-    memset((char*)a, 255, _header.rlength_x);
+    memset((char*)a, 255, _header.rlength);
 
     return true;
   }
@@ -312,9 +312,9 @@ namespace picsom {
       header::format_type ft = header::target_format(fmt);
 
       _header = header();
-      _header.format_x  = fmt;
+      _header.format  = fmt;
       _header.vdim    = vl;
-      _header.rlength_x = (ft==header::format_float?4*vl:bits)+
+      _header.rlength = (ft==header::format_float?4*vl:bits)+
 	_header.payloadoffset();
 
       if (!_incore) {
@@ -378,24 +378,25 @@ namespace picsom {
 	_header = header();
 	_header.version = 0.0;
 	_header.hsize   = 4;
-	_header.rlength_x = 4*idim;
+	_header.rlength = 4*idim;
 	_header.vdim    = idim;
-	_header.format_x  = header::format_float;
+	_header.format  = header::format_float;
 
       } else
 	throw(msg+"magic error");
     }
 
     if (vl && _header.vdim!=vl)
-      throw(msg+"vdim error");
+      throw(msg+"vdim error: header="+ToStr(_header.vdim)+
+	    " arg="+ToStr(vl));
 
-    if ((st.st_size-_header.hsize)%_header.rlength_x)
+    if ((st.st_size-_header.hsize)%_header.rlength)
       throw(msg+"rlength error");
 
     if (!_header.is_supported_format())
       throw(msg+"format error");
 
-    if (_header.rlength_x!=(componentsize()*_header.vdim)/8+
+    if (_header.rlength!=(componentsize()*_header.vdim)/8+
 	_header.payloadoffset())
       throw(msg+"rlength vs. vdim mismatch");
 
@@ -539,8 +540,8 @@ namespace picsom {
 
       else {
 	// obs only for fixed-size objects...
-	size_t n = (_size-sizeof(header))/_header.rlength_x;
-	ret = _size==sizeof(header)+n*_header.rlength_x ? n : (size_t)-1;
+	size_t n = (_size-sizeof(header))/_header.rlength;
+	ret = _size==sizeof(header)+n*_header.rlength ? n : (size_t)-1;
       }
     }
 
@@ -763,7 +764,7 @@ namespace picsom {
     if (!pos)
       return "";
 
-    string v(pos, pos+_header.rlength_x);
+    string v(pos, pos+_header.rlength);
 
     check_optimize(pos);
 

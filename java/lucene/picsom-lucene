@@ -1,8 +1,8 @@
 #! /bin/bash
 
-# $Id: picsom-lucene,v 1.14 2016/01/07 10:35:01 jorma Exp $	
+# $Id: picsom-lucene,v 1.15 2018/10/05 14:31:54 jormal Exp $	
 # 
-# Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+# Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 # Aalto University School of Science
 # PO Box 15400, FI-00076 Aalto, FINLAND
 # 
@@ -11,7 +11,7 @@ ulimit -Sv unlimited
 
 debug=0
 compile=0
-root=/triton/ics/project/imagedb/picsom/lucene
+root=/scratch/cs/imagedb/picsom/lucene
 lucene=5.4.0
 
 xlint=""

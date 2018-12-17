@@ -1,3 +1,17 @@
+2018-10-30  jormal  <jormal@cs-271>
+
+	* PicSOMLucene.java 1.29:
+	Summary: Extracted resultPrint() and debugPrint().
+
+2018-10-05  jormal  <jormal@cs-271>
+
+	* PicSOMLucene.java 1.28: Summary: Rearranged imports.
+	Added createLabelHash() and timeStamp().
+	Renamed retrieveDocument() to *Old() and added two faster versions.
+	Added finalized.
+
+	* picsom-lucene 1.15: Summary: Removed old out-commented root.
+
 2016-12-07  JormaLaaksonen  <jorma.laaksonen@tkk.fi>
 
 	* PicSOMLucene.java 1.27: flushIndex() now adds a dummy document.
@@ -73,7 +87,7 @@
 	* picsom-lucene 1.10:
 	Removed inexistent jar-files from the CLASSPATH (as of 3.5.0).
 
-2012-09-25  ajanki  <ajanki@cs-170>
+2012-09-25  ajanki  <ajanki@cs-271>
 
 	* PicSOMLucene.java 1.15:
 	Create an IndexWriter instance only when something is added to the
@@ -138,7 +152,7 @@
 
 	* picsom-lucene 1.4: Added cd in the beginning and -Xlint:unchecked.
 
-2012-04-17  satoru  <satoru@cs-170>
+2012-04-17  satoru  <satoru@cs-271>
 
 	* PicSOMLucene.java 1.5: *** empty log message ***
 

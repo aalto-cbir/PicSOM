@@ -1,31 +1,128 @@
-2017-06-20  jormal  <jormal@cs-170>
+2018-12-16  jormal  <jormal@cs-271>
+
+	* Torch.h 1.5: Corrected the order of #include and #ifdef.
+
+	* Caffe.C 1.36: Corrected endif comment.
+
+2018-11-09  jormal  <jormal@cs-271>
+
+	* PyFasterRcnn.C 1.9: Summary: Added gunzipping in ProcessBatch().
+
+2018-10-05  jormal  <jormal@cs-271>
+
+	* External.C 1.43: Summary: Commented out erroneous use of sync().
+
+2018-06-21  jormal  <jormal@cs-271>
+
+	* Feature.C 1.257, Feature.h 1.217, RegionBased.C 1.25:
+	Added PreProcess_trim().
+	Extracted SetRegionSpecificationWholeImage() from RegionBased::ProcessOptionsAndRemove().
+	AddDataElements() is now called after FramePreProcess().
+
+2018-06-16  jormal  <jormal@cs-271>
+
+	* PyFasterRcnn.C 1.8: Prettified one line.
+
+2018-06-12  jormal  <jormal@cs-271>
+
+	* Feature.h 1.216:
+	Changed IsBatchOperator() to return false by default.
+
+2018-06-11  jormal  <jormal@cs-271>
+
+	* PyFasterRcnn.C 1.7:
+	Summary: Changed AnalyseFeatureTest() and PyFasterRcnn to allow images from command line.
+
+2018-06-08  jormal  <jormal@cs-271>
+
+	* PyFasterRcnn.C 1.6:
+	Summary: Updated to use lib/categories.json and dumpLocFeaturesWithoutDB.py .
+
+2018-06-06  jormal  <jormal@cs-271>
+
+	* PyFasterRcnn.C 1.5, PyFasterRcnn.h 1.5:
+	Summary: Added LD_LIBRARY_PATH and support for configuration=clasDetFEat80/spatMapFeat3+3GaussScaleDet .
+
+	* External.C 1.42: Summary: Added error diagnostics in ExecRun().
+
+2018-06-05  jormal  <jormal@cs-271>
+
+	* PyFasterRcnn.C 1.4, PyFasterRcnn.h 1.4:
+	Summary: First working version.
+
+	* External.C 1.41:
+	Summary: FindExecutable() now searches also without /bin/ .
+
+2018-05-28  jormal  <jormal@cs-271>
+
+	* Makefile 1.97: Added PyFasterRcnn .
+
+	* PyFasterRcnn.h 1.3, PyFasterRcnn.C 1.3:
+	Split the look in tow, added call to CalculateCommon() and cleaned a bit.
+
+	* PyFasterRcnn.C 1.2, PyFasterRcnn.h 1.2:
+	Added placeholder options and correct output.
+
+2018-05-27  jormal  <jormal@cs-271>
+
+	* Feature.C 1.256, Feature.h 1.215:
+	Added feature_batch and feature_batch_e, IsBatchOperator(), CollectBatch() and ProcessBatch()
+
+	* PyFasterRcnn.C 1.1, PyFasterRcnn.h 1.1:
+	Copied from Cepstrum and edited slightly.
+
+2018-01-30  jormal  <jormal@cs-271>
+
+	* WordHist.C 1.20, WordHist.h 1.16:
+	Separated raw and normalized vectors in WordHist::w2v_data.
+
+2018-01-02  jormal  <jormal@cs-271>
+
+	* Makefile 1.96: Added Torch.
+
+2017-12-20  jormal  <jormal@cs-271>
+
+	* Caffe.C 1.35: Added unconditioned logging of CPU vs GPU.
+
+2017-11-29  jormal  <jormal@cs-271>
+
+	* Feature.C 1.255:
+	Summary: Added 2x fall-thru + 1x break to make g++ 7.2.0 happy and silent.
+
+	* ExternalSound.C 1.13: Summary: Corrected fall-thru bug.
+
+2017-11-28  jormal  <jormal@cs-271>
+
+	* Caffe.C 1.34: added caffe_expand_task().
+
+2017-06-20  jormal  <jormal@cs-271>
 
 	* Caffe.C 1.33, Caffe.h 1.19:
 	Summary: Commented out *Old(), added some support for instances.
 
-2017-05-09  jormal  <jormal@cs-170>
+2017-05-09  jormal  <jormal@cs-271>
 
 	* Caffe.h 1.18, Caffe.C 1.32:
 	Summary: Added checks for HAVE_CUDA_RUNTIME_H.
 
-2017-04-28  jormal  <jormal@cs-170>
+2017-04-28  jormal  <jormal@cs-271>
 
 	* audiodata.h 1.15, textdata.h 1.18:
 	Changed to go without missg-c-utils.[ch].
 
-2017-04-07  jormal  <jormal@cs-170>
+2017-04-07  jormal  <jormal@cs-271>
 
 	* Feature.h 1.214: Summary: Added one more Main().
 
-2017-04-04  jormal  <jormal@cs-170>
+2017-04-04  jormal  <jormal@cs-271>
 
 	* NGram.C 1.18, Torch.C 1.6, Torch.h 1.4: Some HAVE_ checks...
 
-2017-03-16  jormal  <jormal@cs-170>
+2017-03-16  jormal  <jormal@cs-271>
 
 	* Caffe.C 1.31: Added message on used gpudevice.
 
-2017-03-10  jormal  <jormal@cs-170>
+2017-03-10  jormal  <jormal@cs-271>
 
 	* OCVLbp.C 1.22, OCVMlhmsLbp.C 1.4, WebLink.C 1.9, WebLink.h 1.14, OCVFeature.C 1.8, NGram.C 1.17, OCVKeyPoint.C 1.4, OCVCentrist.C 1.19, OCVBoV.C 1.3:
 	Summary: Added some #ifdef HAVE_*_H.

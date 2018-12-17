@@ -1,4 +1,4 @@
-// -*- C++ -*-	$Id: OCVface.C,v 1.23 2014/08/04 09:39:16 jorma Exp $
+// -*- C++ -*-	$Id: OCVface.C,v 1.24 2018/12/16 09:35:49 jormal Exp $
 
 #include <Util.h>
 
@@ -58,7 +58,7 @@ static void foo() {
 
 namespace picsom {
   static const string vcid =
-    "@(#)$Id: OCVface.C,v 1.23 2014/08/04 09:39:16 jorma Exp $";
+    "@(#)$Id: OCVface.C,v 1.24 2018/12/16 09:35:49 jormal Exp $";
 
   static OCVface list_entry(true);
 
@@ -321,8 +321,9 @@ namespace picsom {
       }
     }
 
-    Mat imgMat(img);
-
+    // Mat imgMat(img);
+    Mat imgMat = cvarrToMat(img);
+    
     Mat gray, small_img(cvRound(imgMat.rows/scale), cvRound(imgMat.cols/scale), 
 			CV_8UC1);
     cvtColor(imgMat, gray, CV_BGR2GRAY);

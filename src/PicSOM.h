@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: PicSOM.h,v 2.302 2017/08/16 07:18:08 jormal Exp $
+// -*- C++ -*-  $Id: PicSOM.h,v 2.308 2018/10/29 21:04:32 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -52,6 +52,14 @@
 
 // #define PICSOM_USE_READLINE
 
+#if defined(PICSOM_USE_PYTHON2) || defined(PICSOM_USE_PYTHON3)
+#define PICSOM_USE_PYTHON 1
+#endif // PICSOM_USE_PYTHON2 | PICSOM_USE_PYTHON3
+
+#if defined(PICSOM_USE_CAFFE) && defined(PICSOM_USE_CAFFE2)
+#error Cannot have both PICSOM_USE_CAFFE and PICSOM_USE_CAFFE2
+#endif
+
 #ifdef PICSOM_USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -103,7 +111,7 @@ namespace picsom {
   using simple::ListOf;
 
   static string PicSOM_h_vcid =
-    "@(#)$Id: PicSOM.h,v 2.302 2017/08/16 07:18:08 jormal Exp $";
+    "@(#)$Id: PicSOM.h,v 2.308 2018/10/29 21:04:32 jormal Exp $";
 
   extern const string PicSOM_C_vcid, picsom_C_vcid;
 
@@ -708,7 +716,7 @@ namespace picsom {
      @verbinclude cmdline-io.dox
    
      @short A class implementing the PicSOM engine. 
-     @version $Id: PicSOM.h,v 2.302 2017/08/16 07:18:08 jormal Exp $
+     @version $Id: PicSOM.h,v 2.308 2018/10/29 21:04:32 jormal Exp $
   */
   class PicSOM : public Simple {
   public:
@@ -754,7 +762,7 @@ namespace picsom {
     static string ExtractVersion(const string&);
 
     /// Filled in by release/build script.
-    static string Release() { return "" "picsom-0.36" ; }
+    static string Release() { return "" "picsom-0.37" ; }
 
     ///
     static bool HasFeaturesInternal() { return has_features_internal; }
@@ -2808,6 +2816,9 @@ namespace picsom {
     /// -1=none, 0,1,... = deviceid
     int gpudevice;
 
+    /// set to false if /usr/bin/nvidia-smi exists but failed
+    bool nvidia_smi_ok;
+
     /// If set to true, old queries are not stored on disk.
     bool no_save;
 
@@ -3004,6 +3015,9 @@ namespace picsom {
 
     ///
     bool use_mpi_slaves;
+
+    ///
+    bool use_slaves;
 
     ///
     bool listen_mpi;
@@ -3323,10 +3337,18 @@ namespace picsom {
       db(_db), idx(_idx), start(-1), end(-1) {}
 
     //
-    string str(bool = false, bool = true) const;
+    string str_common(bool, bool, bool) const;
 
     //
-    bool parse(const string&);
+    string txt_display(bool full = false, bool val = true) const {
+      return str_common(full, val, false); 
+    }
+
+    //
+    string txt_encode() const { return str_common(false, true, true); }
+    
+    //
+    bool txt_decode(const string&);
 
     //
     void add(const pair<string,double>& sv) {
@@ -3370,10 +3392,10 @@ namespace picsom {
     double end;
 
     //
-    string generator;
+    string index, field;
 
     //
-    string evaluator;
+    string generator, evaluator;
 
     //
     vector<pair<string,double> > txt_val;

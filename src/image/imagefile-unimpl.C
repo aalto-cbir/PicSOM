@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: imagefile-unimpl.C,v 1.9 2010/03/04 08:49:58 jorma Exp $
+// -*- C++ -*-  $Id: imagefile-unimpl.C,v 1.10 2018/03/23 11:37:01 jormal Exp $
 // 
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 TKK, FINLAND
 // 
@@ -11,10 +11,12 @@
 #include <iostream>
 
 namespace picsom {
-  static const string implhead = "imagefile-unimpl";
-  int imagefile::_debug_impl = 0;
+  int imagefile::_debug_impl      = 0;
   bool imagefile::_keep_tmp_files = false;
+  string imagefile::_tmp_dir      = "/var/tmp";
+
   static bool do_throw = true;
+  static const string implhead = "imagefile-unimpl";
 
   // map<imagedata::pixeldatatype,string> imagedata::pixeldatatype_map;
 
@@ -24,7 +26,7 @@ namespace picsom {
 
   const string& imagefile::impl_version() {
     static string v =
-      "$Id: imagefile-unimpl.C,v 1.9 2010/03/04 08:49:58 jorma Exp $";
+      "$Id: imagefile-unimpl.C,v 1.10 2018/03/23 11:37:01 jormal Exp $";
     return v;
   }
 
@@ -108,7 +110,7 @@ namespace picsom {
 
   ///--------------------------------------------------------------------------
 
-  imagefile imagefile::unstringify_impl(const string& /*d*/, const string& fmt) {
+  imagefile imagefile::unstringify_impl(const string&, const string& fmt) {
     if (debug_impl())
       cout << "now in " << implhead << "::unstringify_impl(" << fmt
 	   << ")" << endl;
@@ -119,7 +121,8 @@ namespace picsom {
 
   ///--------------------------------------------------------------------------
 
-  void imagefile::display_impl(const imagedata&, const displaysettings&) {}
+  void imagefile::display_impl(const imagedata&, const displaysettings&,
+			       char*) {}
 
   ///--------------------------------------------------------------------------
 

@@ -1,20 +1,20 @@
-## -*- autoconf -*-  $Id: configure.ac,v 2.120 2017/11/28 00:03:40 jormal Exp $
+## -*- autoconf -*-  $Id: configure.ac,v 2.129 2018/12/16 09:54:03 jormal Exp $
 ## 
-## Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+## Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
 ## PO Box 15400, FI-00076 Aalto, FINLAND
 ## 
 
-AC_INIT(PicSOM, 0.36, picsom@ics.aalto.fi)
+AC_INIT(PicSOM, 0.37, picsom@ics.aalto.fi)
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
 AC_PREREQ(2.59)
 AC_COPYRIGHT(PicSOM Development Group)
-AC_REVISION($Revision: 2.120 $)
+AC_REVISION($Revision: 2.129 $)
 
-AC_CONFIG_MACRO_DIRS([m4])
+#AC_CONFIG_MACRO_DIRS([m4])
 
 #AX_PREFIX_CONFIG_H(picsom-config.h)
 AC_CONFIG_HEADER([picsom-config.h])
@@ -92,6 +92,9 @@ AC_CHECK_HEADERS([sqlite3.h],[],
 AC_CHECK_HEADERS([mysql.h],[],
         [warnings="$warnings|MySQL use disabled due to missing header."])
 
+AC_CHECK_HEADERS([lmdb.h],[],
+        [warnings="$warnings|lmdb use disabled due to missing header."])
+
 AC_CHECK_HEADERS([mpi.h],[],
         [warnings="$warnings|MPI use disabled due to missing header."])
 
@@ -134,11 +137,20 @@ AC_CHECK_HEADERS([cuda_runtime.h],[],
 AC_CHECK_HEADERS([caffe/caffe.hpp caffe/data_transformer.hpp],[],
         [warnings="$warnings|Caffe use disabled due to missing header."])
 
+AC_CHECK_HEADERS([caffe2/core/macros.h],[],
+        [warnings="$warnings|Caffe2 use disabled due to missing header."])
+
 AC_CHECK_HEADERS([THC.h],[],
         [warnings="$warnings|Torch use disabled due to missing header."])
 
 AC_CHECK_HEADERS([thrift/Thrift.h],[],
         [warnings="$warnings|Trift use disabled due to missing header."])
+
+AC_CHECK_HEADERS([gif_lib.h],[],
+        [warnings="$warnings|GIF use disabled due to missing header."])
+
+AC_CHECK_HEADERS([tiffio.h],[],
+        [warnings="$warnings|TIFF use disabled due to missing header."])
 
 AC_CHECK_HEADERS([libavcodec/avcodec.h libavdevice/avdevice.h   \
 		  libavfilter/avfilter.h libavformat/avformat.h \
@@ -211,6 +223,8 @@ AC_CHECK_LIB(dl, dlopen)
 AC_CHECK_LIB(mpi,     main)
 AC_CHECK_LIB(mpi_cxx, main)
 
+AC_CHECK_LIB(lmdb, mdb_version)
+
 AC_CHECK_LIB(flandmark_shared, main)
 
 has_pthreads=false
@@ -246,6 +260,7 @@ AC_CHECK_LIB(socket, main)
 AC_CHECK_LIB(jpeg,      main)
 AC_CHECK_LIB(tiff,      main)
 AC_CHECK_LIB(png,       main)
+AC_CHECK_LIB(gif,       main)
 
 AC_CHECK_LIB(gfortran,  main)
 AC_CHECK_LIB(blas,      main)
@@ -296,6 +311,7 @@ AC_CHECK_LIB(vl,        main)
 
 magicktype="opencv"
 AC_CHECK_HEADERS([opencv2/core/core.hpp],[],magicktype="none")
+AC_CHECK_HEADERS([opencv2/core/cuda.hpp],[],[])
 AC_CHECK_HEADERS([opencv2/core/gpumat.hpp],[],[])
 AC_CHECK_HEADERS([opencv2/nonfree/nonfree.hpp],[],[])
 AC_CHECK_HEADERS([opencv2/nonfree/gpu.hpp],[],[])
@@ -305,6 +321,14 @@ AC_CHECK_LIB(opencv_flann,      main,,magicktype="none")
 AC_CHECK_LIB(opencv_features2d, main,,magicktype="none")
 AC_CHECK_LIB(opencv_objdetect,  main,,magicktype="none")
 AC_CHECK_LIB(opencv_imgproc,    main,,magicktype="none")
+AC_CHECK_LIB(opencv_video,      main)
+AC_CHECK_LIB(opencv_videoio,    main)
+AC_CHECK_LIB(opencv_imgcodecs,  main)
+AC_CHECK_LIB(opencv_nonfree,    main)
+AC_CHECK_LIB(opencv_calib3d,    main)
+AC_CHECK_LIB(opencv_ml,         main)
+AC_CHECK_LIB(opencv_cudev,      main)
+AC_CHECK_LIB(cudart,            main)
 
 if test "$magicktype" = "none"; then
   warnings="$warnings|OpenCV use disabled due to missing header or library."

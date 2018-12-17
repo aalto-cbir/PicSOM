@@ -31,8 +31,9 @@ namespace picsom {
       int dim_origin, dim_subspace;
       FILE* fp = fopen(fname.c_str(), "r");
 
-      fscanf(fp, "%d\n", &dim_origin);
-      fscanf(fp, "%d\n", &dim_subspace);
+      if (fscanf(fp, "%d\n", &dim_origin)!=1 ||
+          fscanf(fp, "%d\n", &dim_subspace)!=1)
+	return NULL;
 
       LBModel* pModel = new LBModel(dim_origin, dim_subspace);
       
@@ -41,24 +42,28 @@ namespace picsom {
       vector<float> tmp2(dim_subspace);
       
       for (i=0;i<dim_origin;i++) {
-    	fscanf(fp, "%f\n", &tmp1);
+    	if (fscanf(fp, "%f\n", &tmp1)!=1)
+          return NULL;
     	pModel->Mf[i] = tmp1;
       }
       
       for (i=0;i<dim_origin;i++){
 	for (j=0;j<dim_subspace;j++){      
-	  fscanf(fp, "%f ", &tmp1);
+	  if (fscanf(fp, "%f ", &tmp1)!=1)
+	    return NULL;
 	  tmp2[j] = tmp1;
 	}
 	pModel->projection.set_row(i, tmp2);
       }
 
       for (i=0;i<dim_subspace;i++) {
-    	fscanf(fp, "%f\n", &tmp1);
+        if (fscanf(fp, "%f\n", &tmp1)!=1)
+	  return NULL;
     	pModel->lamdaM[i] = tmp1;
       }
     
-      fscanf(fp, "%f\n", &tmp1);
+      if (fscanf(fp, "%f\n", &tmp1)!=1)
+        return NULL;
       pModel->rho = tmp1;
     
       fclose(fp);
@@ -72,10 +77,8 @@ namespace picsom {
       int w = idata.width();
       
       matrix<float> I(idata.get_float(), h, w);
-      
       vector<float> X = idata.get_float();
-      
-      
+
       matrix<float> Ih(h-1,w);
       for (int r=0;r<h-1;r++)
 	for (int c=0;c<w;c++)

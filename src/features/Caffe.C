@@ -1,4 +1,4 @@
-// $Id: Caffe.C,v 1.34 2017/11/28 00:47:37 jormal Exp $	
+// $Id: Caffe.C,v 1.36 2018/12/16 07:50:25 jormal Exp $	
 
 #include <Caffe.h>
 
@@ -11,7 +11,7 @@
 
 namespace picsom {
   static const char *vcid =
-    "$Id: Caffe.C,v 1.34 2017/11/28 00:47:37 jormal Exp $";
+    "$Id: Caffe.C,v 1.36 2018/12/16 07:50:25 jormal Exp $";
 
   static Caffe list_entry(true);
 
@@ -174,13 +174,14 @@ blocks = 256x256+avg(512x512:3x3)
 			       Data *dst) {
 
     // size_t max_instances = 4;
-    
+    static bool first = true;
+
     vector<float>& d = ((CaffeData*)dst)->datavec;
 
     string msg = "Caffe::ProcessRegion() "+ThreadIdentifierUtil()+" : ";
     msg += ToStr(openblas_get_num_threads())+"+"+ToStr(openblas_get_num_procs())
       +" ";
-    
+
     if (FrameVerbose())
       cout << msg << "d.size()=" << d.size() << endl;
 
@@ -237,14 +238,15 @@ blocks = 256x256+avg(512x512:3x3)
     if (use_gpu) {
       Caffe::SetDevice(gpudevice);
       Caffe::set_mode(Caffe::GPU);
-      if (MethodVerbose())
-	cout << msg << "using GPU device " << gpudevice << endl;
+      if (MethodVerbose() || first)
+	cout << TimeStamp() << msg << "using GPU device " << gpudevice << endl;
     } else {
       Caffe::set_mode(Caffe::CPU);
-      if (MethodVerbose())
-	cout << msg << "using CPU device" << endl;
+      if (MethodVerbose() || first)
+	cout << TimeStamp() << msg << "using CPU device" << endl;
     }
-    
+    first =  false;
+
     ProcessBlocksString(img.width(), img.height());
     vector<fv_tree_node*> leaves = BlocksLeaves();
     size_t n_leaves = leaves.size();
@@ -1524,4 +1526,4 @@ blocks = 256x256+avg(512x512:3x3)
 
 } // namespace picsom
 
-#endif // HAVE_CAFFE_DATA_LAYERS_HPP
+#endif // HAVE_CAFFE_DATA_TRANSFORMER_HPP

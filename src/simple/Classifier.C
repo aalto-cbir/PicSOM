@@ -1,11 +1,11 @@
 // 
 // Copyright 1994-2009 Jorma Laaksonen <jorma@cis.hut.fi>
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: Classifier.C,v 1.11 2009/11/20 20:48:14 jorma Exp $
+// @(#)$Id: Classifier.C,v 1.12 2018/12/15 23:27:04 jormal Exp $
 
 #ifndef _CLASSIFIER_C_
 #define _CLASSIFIER_C_
@@ -1721,7 +1721,7 @@ void Classifier::Intermediates(const StatQuadVector& vec,
   if (ov.HasNext()) {
     list.AppendCopy(Results());
     list.Peek()->Label(ov.Value());
-    char tmp[1000];
+    char tmp[2000];
     sprintf(tmp, "%s.all", ov.FileName());
     list.Write(tmp);
   }

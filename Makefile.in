@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# @(#)$Id: Makefile.am,v 1.1 2007/08/22 13:19:42 jorma Exp $
+# @(#)$Id: Makefile.am,v 1.2 2018/12/16 08:00:36 jormal Exp $
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -323,6 +323,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = src doc
+ACLOCAL_AMFLAGS = -I m4
 all: all-recursive
 
 .SUFFIXES:

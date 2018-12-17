@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: InvertedIndex.C,v 2.5 2011/12/14 13:41:18 jorma Exp $
+// -*- C++ -*-  $Id: InvertedIndex.C,v 2.6 2018/01/02 10:28:18 jormal Exp $
 // 
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 TKK, FINLAND
 // 
@@ -13,7 +13,7 @@
 
 namespace picsom {
   static const string InvertedIndex_C_vcid =
-    "@(#)$Id: InvertedIndex.C,v 2.5 2011/12/14 13:41:18 jorma Exp $";
+    "@(#)$Id: InvertedIndex.C,v 2.6 2018/01/02 10:28:18 jormal Exp $";
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -125,7 +125,7 @@ namespace picsom {
 	if (check_restr && !db->OkWithRestriction(i))
 	  continue;
 
-	FloatVector v(cols.Nitems(), NULL, db->LabelP(i));
+	FloatVector v(cols.Nitems(), NULL, db->Label(i).c_str());
 	v.Number(i);
 	for (int j=0; j<v.Length(); j++)
 	  v[j] = cols[j][i];

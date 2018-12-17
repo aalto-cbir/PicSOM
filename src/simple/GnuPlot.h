@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: GnuPlot.h,v 1.6 2009/11/20 20:48:15 jorma Exp $
+// -*- C++ -*-  $Id: GnuPlot.h,v 1.7 2018/12/15 23:05:37 jormal Exp $
 // 
 // Copyright 1994-2009 Jorma Laaksonen <jorma@cis.hut.fi>
 // Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
@@ -232,7 +232,7 @@ public:
   static int HasReject(const StatQuadVector&);
 
   static void Debug(int r) { debug = r; }
-  static void IgnorePipeSignal(int = 0, int = 0);
+  static void IgnorePipeSignal(int = 0);
 
   void DisableRefresh()  { SetRefresh(FALSE); }
   void EnableRefresh()   { SetRefresh(TRUE);  }

@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: CbirAlgorithm.C,v 2.40 2016/10/25 08:06:21 jorma Exp $
+// -*- C++ -*-  $Id: CbirAlgorithm.C,v 2.41 2018/12/15 23:07:50 jormal Exp $
 // 
 // Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science and Technology
@@ -11,7 +11,7 @@
 namespace picsom {
   ///
   static const string CbirAlgorithm_C_vcid =
-    "@(#)$Id: CbirAlgorithm.C,v 2.40 2016/10/25 08:06:21 jorma Exp $";
+    "@(#)$Id: CbirAlgorithm.C,v 2.41 2018/12/15 23:07:50 jormal Exp $";
 
   /// Head of the list of "factory" instances.
   CbirAlgorithm *CbirAlgorithm::list_of_algorithms;
@@ -198,7 +198,7 @@ namespace picsom {
 	  kv = SplitKeyEqualValueNew(v[i]);
 	else
 	  kv.first = v[i];
-      } catch (logic_error e) {
+      } catch (const logic_error& e) {
 	ShowError(hdr+e.what());
       }
       if (a.find(kv.first)!=a.end())

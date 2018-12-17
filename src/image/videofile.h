@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: videofile.h,v 1.29 2016/05/03 10:55:58 jorma Exp $
+// -*- C++ -*-  $Id: videofile.h,v 1.30 2018/06/21 11:36:01 jormal Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -15,8 +15,8 @@
   (http://ffmpeg.mplayerhq.hu/).
 
   \author Mats Sjoberg <mats.sjoberg@tkk.fi>
-  $Revision: 1.29 $
-  $Date: 2016/05/03 10:55:58 $
+  $Revision: 1.30 $
+  $Date: 2018/06/21 11:36:01 $
   \bug May be some out there hiding.
   \warning Be warned against all odds!
   \todo So many things, so little time...
@@ -58,7 +58,7 @@ namespace picsom {
     /// Returns version of videofile class ie. version of videofile.h.
     static const string& version() {
       static string v =
-	"$Id: videofile.h,v 1.29 2016/05/03 10:55:58 jorma Exp $";
+	"$Id: videofile.h,v 1.30 2018/06/21 11:36:01 jormal Exp $";
       return v;
     }
 
@@ -175,6 +175,9 @@ namespace picsom {
     /// Returns true if mplayer pipe is broken
     bool is_broken() { return mplayer_broken; }
    
+    /// Sets temporary file directory, doesn't crete it though;
+    static void tmp_dir(const string& d) { _tmp_dir = d; }
+
   protected:
     ///
     string frame_outname(const string f_tempname, int f_num=-1);
@@ -192,10 +195,10 @@ namespace picsom {
     static const string& avconvname();
 
     /// Generates temporary filename.
-    static string temp_filename(const string& = "");
+    static string tmp_filename(const string& = "");
 
     /// Return directory for temporary files.
-    static string temp_dir();
+    static string tmp_dir();
 
     /** Creates an error string from the given parameters (max 7)
         \return the resulting error string
@@ -261,7 +264,7 @@ namespace picsom {
     static bool _keep_tmp_files;
 
     ///
-    static string _temp_dir;
+    static string _tmp_dir;
     
     ///
     bool mplayer_broken;

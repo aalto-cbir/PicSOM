@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: TSSOM.C,v 2.206 2016/04/27 07:07:38 jorma Exp $
+// -*- C++ -*-  $Id: TSSOM.C,v 2.207 2018/01/02 10:30:45 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -19,7 +19,7 @@
 
 namespace picsom {
   static const string TSSOM_C_vcid =
-    "@(#)$Id: TSSOM.C,v 2.206 2016/04/27 07:07:38 jorma Exp $";
+    "@(#)$Id: TSSOM.C,v 2.207 2018/01/02 10:30:45 jormal Exp $";
 
   static TSSOM list_entry(true);
 
@@ -1197,7 +1197,8 @@ void TSSOM::ReduceMemoryUse() {
       XmlDom vii = xml.Element("imagelist");
 
       for (int i=1; i<imglist.Length(); i++)
-        if (!strcmp(db->LabelP(imglist[i]), Map(level).Unit(p)->Label())) {
+        if (!strcmp(db->Label(imglist[i]).c_str(),
+		    Map(level).Unit(p)->Label())) {
           imglist.Swap(0,i);
           break;
         }

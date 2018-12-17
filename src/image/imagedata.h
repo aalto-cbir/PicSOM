@@ -1,4 +1,4 @@
-// -*- C++ -*-    $Id: imagedata.h,v 1.111 2017/04/28 07:49:29 jormal Exp $
+// -*- C++ -*-    $Id: imagedata.h,v 1.113 2018/10/11 20:38:37 jormal Exp $
 
 /**
    \file imagedata.h
@@ -9,8 +9,8 @@
    independent storage for pixel based images.
    
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.111 $
-   $Date: 2017/04/28 07:49:29 $
+   $Revision: 1.113 $
+   $Date: 2018/10/11 20:38:37 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -19,7 +19,6 @@
 #ifndef _imagedata_h_
 #define _imagedata_h_
 
-//#include <missing-c-utils.h>
 #include <picsom-config.h>
 
 #include <vector>
@@ -76,7 +75,7 @@ namespace picsom {
     /// Version control identifier of the imagedata.h file.
     static const string& version() {
       static const string v =
-	"$Id: imagedata.h,v 1.111 2017/04/28 07:49:29 jormal Exp $";
+	"$Id: imagedata.h,v 1.113 2018/10/11 20:38:37 jormal Exp $";
       return v;
     }
 
@@ -822,9 +821,9 @@ namespace picsom {
     }
 
     /// Forces the data into using three channels.
-    void force_three_channel() {
+    void force_three_channel(size_t ch = 0) {
       if (_count!=3) {
-	if (_count!=1) {
+	if (false && _count!=1) {
 	  char str[80];
 	  sprintf(str, "don't know how to force three channels out of %d",
 		  (int)_count);
@@ -839,9 +838,9 @@ namespace picsom {
 	    _vec_float.resize(3*n);
 	    size_t i,j;
 	    for(i=0,j=0;i<n;i++){
-	      _vec_float[j++]=tmp[i];
-	      _vec_float[j++]=tmp[i];
-	      _vec_float[j++]=tmp[i];
+	      _vec_float[j++]=tmp[i*_count+ch];
+	      _vec_float[j++]=tmp[i*_count+ch];
+	      _vec_float[j++]=tmp[i*_count+ch];
 	    }
 	  }
 	  break;
@@ -852,9 +851,9 @@ namespace picsom {
 	    _vec_double.resize(3*n);
 	    size_t i,j;
 	    for(i=0,j=0;i<n;i++){
-	      _vec_double[j++]=tmp[i];
-	      _vec_double[j++]=tmp[i];
-	      _vec_double[j++]=tmp[i];
+	      _vec_double[j++]=tmp[i*_count+ch];
+	      _vec_double[j++]=tmp[i*_count+ch];
+	      _vec_double[j++]=tmp[i*_count+ch];
 	    }
 	  }
 	  break;
@@ -865,9 +864,9 @@ namespace picsom {
 	    _vec_uchar.resize(3*n);
 	    size_t i,j;
 	    for(i=0,j=0;i<n;i++){
-	      _vec_uchar[j++]=tmp[i];
-	      _vec_uchar[j++]=tmp[i];
-	      _vec_uchar[j++]=tmp[i];
+	      _vec_uchar[j++]=tmp[i*_count+ch];
+	      _vec_uchar[j++]=tmp[i*_count+ch];
+	      _vec_uchar[j++]=tmp[i*_count+ch];
 	    }
 	  }
 	  break;
@@ -879,9 +878,9 @@ namespace picsom {
 	    _vec_uint16.resize(3*n);
 	    size_t i,j;
 	    for(i=0,j=0;i<n;i++){
-	      _vec_uint16[j++]=tmp[i];
-	      _vec_uint16[j++]=tmp[i];
-	      _vec_uint16[j++]=tmp[i];
+	      _vec_uint16[j++]=tmp[i*_count+ch];
+	      _vec_uint16[j++]=tmp[i*_count+ch];
+	      _vec_uint16[j++]=tmp[i*_count+ch];
 	    }
 	  }
 	  break;
@@ -892,9 +891,9 @@ namespace picsom {
 	    _vec_uint32.resize(3*n);
 	    size_t i,j;
 	    for(i=0,j=0;i<n;i++){
-	      _vec_uint32[j++]=tmp[i];
-	      _vec_uint32[j++]=tmp[i];
-	      _vec_uint32[j++]=tmp[i];
+	      _vec_uint32[j++]=tmp[i*_count+ch];
+	      _vec_uint32[j++]=tmp[i*_count+ch];
+	      _vec_uint32[j++]=tmp[i*_count+ch];
 	    }
 	  }
 	  break;
@@ -906,7 +905,6 @@ namespace picsom {
 	}
 	
 	_count = 3;
-
       }
     }
 
@@ -999,7 +997,7 @@ namespace picsom {
     imagedata subimage(size_t ulx, size_t uly,
 		       size_t lrx, size_t lry) const throw(string) {
       if (!coordinates_ok(ulx, uly) || !coordinates_ok(lrx, lry) ||
-	  lrx<=ulx || lry<=uly) {
+	  lrx<ulx || lry<uly) {
 	stringstream txt;
 	txt << " ulx=" << ulx << " uly=" << uly
 	    << " lrx=" << lrx << " lry=" << lry

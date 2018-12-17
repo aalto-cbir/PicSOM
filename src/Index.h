@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Index.h,v 2.59 2016/01/27 21:02:47 jorma Exp $
+// -*- C++ -*-  $Id: Index.h,v 2.60 2018/06/16 12:47:40 jormal Exp $
 // 
 // Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
@@ -401,8 +401,8 @@ namespace picsom {
     }
 
     ///
-    virtual bool CalculateFeatures(vector<size_t>&, list<incore_feature_t>&,
-				   set<string>&, XmlDom&,
+    virtual bool CalculateFeatures(const vector<size_t>&, list<incore_feature_t>&,
+				   set<string>&, const XmlDom&,
 				   bin_data*);
 
     ///

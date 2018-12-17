@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.25 2017/05/24 13:47:14 jormal Exp $
+// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.34 2018/11/09 10:40:32 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
@@ -18,7 +18,13 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#ifdef HAVE_TIFFIO_H
 #include <tiffio.h>
+#endif // HAVE_TIFFIO_H
+
+#ifdef HAVE_GIF_LIB_H
+#include <gif_lib.h>
+#endif // HAVE_GIF_LIB_H
 
 namespace picsom {
   int    imagefile::_debug_impl     = 0;
@@ -28,7 +34,13 @@ namespace picsom {
   static bool do_throw = true;
   static const string implhead = "imagefile-opencv";
 
-  // map<imagedata::pixeldatatype,string> imagedata::pixeldatatype_map;
+#ifdef HAVE_GIF_LIB_H
+  static bool   gif_convert = false;
+  static string gif_convert_extension = "";
+#else
+  static bool   gif_convert = true;
+  static string gif_convert_extension = ".png"; // ".tiff"
+#endif // HAVE_GIF_LIB_H
 
   using namespace std;
 
@@ -36,7 +48,7 @@ namespace picsom {
 
   const string& imagefile::impl_version() {
     static string v =
-      "$Id: imagefile-opencv.C,v 1.25 2017/05/24 13:47:14 jormal Exp $";
+      "$Id: imagefile-opencv.C,v 1.34 2018/11/09 10:40:32 jormal Exp $";
     return v;
   }
 
@@ -71,7 +83,21 @@ namespace picsom {
     ///
     _opencv_impl_data() : is_image(false), is_video(false), use_libtiff(false),
 			  next_frame((size_t)-1),
-			  last_successfully_read_frame((size_t)-1) {}
+			  last_successfully_read_frame((size_t)-1), gif(NULL) {}
+
+    ///
+    ~_opencv_impl_data() {
+ #ifdef HAVE_GIF_LIB_H
+      if (gif) {
+#if defined(GIFLIB_MAJOR) && GIFLIB_MAJOR>=5
+	int err = 0;
+	DGifCloseFile(gif, &err);
+#else
+	DGifCloseFile(gif);
+#endif // GIFLIB_MAJOR>=5
+      }
+#endif // HAVE_GIF_LIB_H
+    }
 
     ///
     cv::Mat image;
@@ -97,6 +123,15 @@ namespace picsom {
     ///
     size_t last_successfully_read_frame;
 
+ #ifdef HAVE_GIF_LIB_H
+    ///
+    GifFileType *gif;
+
+    ///
+    list<imagedata> frames;
+#else
+    void *gif;
+#endif // HAVE_GIF_LIB_H
   }; // class _opencv_impl_data
 
   ///--------------------------------------------------------------------------
@@ -177,9 +212,9 @@ namespace picsom {
 //       data(this)->is_image=data(this)->is_video=false;
 //     } else{
 
-    data(this)->use_libtiff=false;
-    data(this)->is_image = fmt.find("image/")==0;
-    data(this)->is_video = fmt.find("video/")==0;
+    data(this)->use_libtiff = false;
+    data(this)->is_image    = fmt.find("image/")==0;
+    data(this)->is_video    = fmt.find("video/")==0;
 
     if (!data(this)->is_image && !data(this)->is_video) {
 	cerr << msg << "MIME type \"" << fmt
@@ -190,7 +225,7 @@ namespace picsom {
     string fname = fnamein;
 
     if (data(this)->is_image) {
-      if (cmp=="application/x-gzip") {
+      if (cmp=="application/x-gzip" || cmp=="application/gzip") {
 	// obs! unsafe things might happen...
 	string tmpfile = make_tmpfile();
 	CopyFile(fnamein, tmpfile+".gz");
@@ -203,20 +238,42 @@ namespace picsom {
       }
 
       if (fmt=="image/gif") {
-	string tmpfile = make_tmpfile();
-	Unlink(tmpfile);
-	string cmd = "convert "+fname+" "+tmpfile+".png";
-	cout << "[" << cmd << "]" << endl;
-	if (system(cmd.c_str()))
-	  cerr << msg << "system(convert ...) failed" << endl;
-	fname = tmpfile+".png";
-	// obs! this should be unlinked...
+	if (gif_convert) {
+	  string tmpfile = make_tmpfile();
+	  Unlink(tmpfile);
+	  string cmd = "convert "+fname+" "+tmpfile+gif_convert_extension;
+	  cout << "[" << cmd << "]" << endl;
+	  if (system(cmd.c_str()))
+	    cerr << msg << "system(convert ...) failed" << endl;
+	  fname = tmpfile+gif_convert_extension;
+	  // obs! this should be unlinked...
+	  if (gif_convert_extension==".tiff")
+	    fmt = "image/tiff";
+	} else {
+#ifdef HAVE_GIF_LIB_H
+#if defined(GIFLIB_MAJOR) && GIFLIB_MAJOR>=5
+	  int err = 0;
+	  data(this)->gif = DGifOpenFileName(fname.c_str(), &err);
+#else
+	  data(this)->gif = DGifOpenFileName(fname.c_str());
+#endif // GIFLIB_MAJOR>=5
+ 	  if (!data(this)->gif) {
+	    cerr << msg << "EGifOpenFileName() failed" << endl;
+	    return 0;
+	  }
+	  DGifSlurp(data(this)->gif);
+	  return data(this)->gif->ImageCount;
+#else
+	  cerr << msg << "gif_convert==false but HAVE_GIF_LIB_H undef" << endl;
+	  return 0;
+#endif // HAVE_GIF_LIB_H
+	}
       }
 
       if (fmt=="image/tiff") {
-	int n=0;
+	int n = 0;
 
-	TIFF *tif = TIFFOpen(fname.c_str(),"r");
+	TIFF *tif = TIFFOpen(fname.c_str(), "r");
 	if (!tif) 
 	  return n; // probably not a TIFF file
 
@@ -329,9 +386,9 @@ namespace picsom {
       cout << "now in " << implhead << "::open_write_impl(" << fname
 	   << ", " << fmt << ")" <<endl;
 
-    data(this)->is_image = true;
-    data(this)->is_video = false;  // there is now no way to set this to true
-    data(this)->use_libtiff=false;
+    data(this)->is_image    = true;
+    data(this)->is_video    = false;  // there is now no way to set this to true
+    data(this)->use_libtiff = false;
    
     // obs: currently the comment field is written only for
     // multi-frame tiffs
@@ -348,14 +405,14 @@ namespace picsom {
 
   ///--------------------------------------------------------------------------
 
-  imagedata imagefile::read_frame_impl(const string& f, int fc, int step, 
+  imagedata imagefile::read_frame_impl(const string& fin, int fc, int step, 
 				       imagedata::pixeldatatype t) const {
     string msg = "imagefile-opencv::read_frame_impl() : ";
 
     bool truncate_on_failure = true;
 
     if (debug_impl())
-      cout << "now in " << implhead << "::read_frame_impl(" << f
+      cout << "now in " << implhead << "::read_frame_impl(" << fin
 	   << ", "  << tos(fc) << ", " << tos(step) << ", "
 	   << imagedata::datatypename(t) << ")"
 	   << endl;
@@ -367,11 +424,140 @@ namespace picsom {
       return imagedata(0, 0);
     }
 
-    if (data(this)->use_libtiff) {
-      TIFF *tif=TIFFOpen(f.c_str(), "r");
+    if (data(this)->gif) {
+      // https://chromium.googlesource.com/webm/libwebp/+/0.3.0/examples/gif2webp.c
+      if (debug_impl())
+	cout << "now in " << implhead << "::read_frame_impl() with GIF" << endl;
+
+  #ifdef HAVE_GIF_LIB_H
+      if (data(this)->frames.size()>(size_t)fc)
+	return *next(data(this)->frames.begin(), fc);
       
-      int frame=0;
-      while(frame<fc){
+      GifFileType *g = data(this)->gif;
+      
+      ColorMapObject *gcm = g->SColorMap;
+      if (debug_impl()) {
+	cout << data(this)->filename << " : " << g->SWidth
+	     << "x" << g->SHeight << " " << g->SColorResolution
+	     << " " << g->SBackGroundColor << " ("
+	     << g->Image.Left << " " << g->Image.Top << " "<< g->Image.Width 
+	     << " " << g->Image.Height << ")" << endl;
+	if (gcm) {
+	  cout << "GLOBAL colormap" << endl;
+	  for (int j=0; j<gcm->ColorCount; j++)
+	    cout << j << " : " << (int)gcm->Colors[j].Red << " "
+		 << (int)gcm->Colors[j].Green << " " << (int)gcm->Colors[j].Blue 
+		 << endl;
+	}
+      }
+      
+      imagedata img(g->SWidth, g->SHeight, 3, imagedata::pixeldata_uchar);
+      size_t n = img.width()*img.height(), l = img.count();
+      unsigned char *vx = (unsigned char*)img.raw(n*l);
+
+      size_t transparent = 100000;
+      SavedImage *i = g->SavedImages;
+      
+      for (int f=0; f<g->ImageCount; f++, i++) {
+	if (debug_impl())
+	  cout << "STARTING frame " << f << "/" << g->ImageCount 
+	       << " (" << i->ImageDesc.Left << " " << i->ImageDesc.Top
+	       << " " << i->ImageDesc.Width << " " << i->ImageDesc.Height
+	       << " " << i->ImageDesc.Interlace << ")" << endl;
+	for (int e=0; e<i->ExtensionBlockCount; e++) {
+	  if (debug_impl())
+	    cout << "ext " << e << "/" << i->ExtensionBlockCount
+		 << " " << i->ExtensionBlocks[e].Function
+		 << " " << i->ExtensionBlocks[e].ByteCount;
+	
+	  char *sbb = (char*)i->ExtensionBlocks[e].Bytes;
+	  unsigned char *ubb = (unsigned char*)i->ExtensionBlocks[e].Bytes;
+	  if (debug_impl())
+	    for (int j=0; j< i->ExtensionBlocks[e].ByteCount; j++)
+	      cout << " [" << (int)ubb[j]  << "]";
+	
+	  if (i->ExtensionBlocks[e].Function==APPLICATION_EXT_FUNC_CODE) {
+	    if (debug_impl())
+	      cout << " = application " << string(sbb, i->ExtensionBlocks[e].ByteCount)
+		   << endl;
+	  
+	  } else if (i->ExtensionBlocks[e].Function==GRAPHICS_EXT_FUNC_CODE) {
+	    if (i->ExtensionBlocks[e].ByteCount>3)
+	      transparent = ubb[3];
+	    if (debug_impl())
+	      cout << " = graphics " << transparent << endl;
+	  
+	  }
+#if defined(GIFLIB_MAJOR) && GIFLIB_MAJOR>=5
+	  else if (i->ExtensionBlocks[e].Function==CONTINUE_EXT_FUNC_CODE) {
+	    if (debug_impl())
+	      cout << " = continue " << endl;
+	  }
+#endif // GIFLIB_MAJOR>=5
+	}
+
+	ColorMapObject *lcm = i->ImageDesc.ColorMap;
+	if (debug_impl() && lcm) {
+	  cout << "LOCAL colormap" << endl;
+	  for (int j=0; j<lcm->ColorCount; j++)
+	    cout << j << " : " << (int)lcm->Colors[j].Red << " "
+		 << (int)lcm->Colors[j].Green << " " << (int)lcm->Colors[j].Blue 
+		 << endl;
+	}
+	ColorMapObject *c = lcm ? lcm : gcm;
+
+	unsigned char *v = vx;
+	size_t nx = n;
+	
+	imagedata subimg;
+	if (i->ImageDesc.Width!=g->SWidth || i->ImageDesc.Height!=g->SHeight) {
+	  subimg = img.subimage(i->ImageDesc.Left, i->ImageDesc.Top,
+				i->ImageDesc.Left+i->ImageDesc.Width-1,
+				i->ImageDesc.Top +i->ImageDesc.Height-1);
+	  nx = subimg.width()*subimg.height();
+	  v  = (unsigned char*)subimg.raw(nx*3);
+	}
+	
+	int cc = c ? c->ColorCount : 0, bpp = c ? c->BitsPerPixel : 0;
+	if (cc==256 && bpp==8) {
+	  for (size_t p=0; p<nx; p++) {
+	    size_t j = i->RasterBits[p];
+	    if (false && p<1000)
+	      cout << " " << (int)j;
+	    if (false && p==1000)
+	      cout << endl;
+	    if (j!=transparent) {
+	      v[p*l  ] = c->Colors[j].Red;
+	      v[p*l+1] = c->Colors[j].Green;
+	      v[p*l+2] = c->Colors[j].Blue;
+	    }
+	  }	
+	}
+
+	if (nx!=n) {
+	  img.copyAsSubimage(subimg, i->ImageDesc.Left, i->ImageDesc.Top);
+	}
+
+	imagedata img2 = img;
+	img2.convert(t);    
+	data(this)->frames.push_back(img2);
+      }
+
+      return *next(data(this)->frames.begin(), fc);
+#else
+      return imagedata(0, 0);
+#endif // HAVE_GIF_LIB_H
+    }
+      
+    if (data(this)->use_libtiff) {
+      string f = data(this)->filename;
+      if (f=="")
+	f = fin;
+      
+      TIFF *tif = TIFFOpen(f.c_str(), "r");
+      
+      int frame = 0;
+      while (frame<fc) {
 	TIFFReadDirectory(tif);
 	frame++;
       }
@@ -379,51 +565,99 @@ namespace picsom {
       // cout << "directory " << frame << endl;
       // TIFFPrintDirectory(tif, stdout, TIFFPRINT_NONE);
 
-      uint32 w,h;
+      uint32 w = 0, h = 0;
+      uint16 nrchannels = 0, bps = 0, sformat = 0, interp = 0;
 
-      TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);           // uint32 width;
-      TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);        // uint32 height;
-
-      uint32 npixels=w*h;
-
-      imagedata img(w, h, 1, imagedata::pixeldata_uint16);
-
-      uint16 *raster=(uint16 *) _TIFFmalloc(npixels *sizeof(uint16));
-
-      // wastefully allocate room for the whole image
-      // TIFFReadRGBAImage(tif, w, h, raster, 0); 
-
-      uint32 nrchannels=1; 
-      uint16 bps;
-      
+      TIFFGetField(tif, TIFFTAG_IMAGEWIDTH,      &w); // uint32 width;
+      TIFFGetField(tif, TIFFTAG_IMAGELENGTH,     &h); // uint32 height;
       TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nrchannels);
-      TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bps);
-      
-      // cv::Mat vismat(h,w,CV_8UC1,cv::Scalar::all(0));
+      TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE,   &bps);
+      TIFFGetField(tif, TIFFTAG_SAMPLEFORMAT,    &sformat);
+      TIFFGetField(tif, TIFFTAG_PHOTOMETRIC,     &interp);
 
-      if (nrchannels!=1)
-	unimplemented("imagefile-opencv::read_frame_impl(); tiff read w/ nrchannels !=1");
+      size_t npixels = w*h;
 
-      if (bps!=16)
-	unimplemented("imagefile-opencv::read_frame_impl(); tiff read w/ bps != 16");
+      if (interp==3) {
+	if (bps!=8)
+	  unimplemented("imagefile-opencv::read_frame_impl(); colormap tiff read w/ bps != 8");
 
-      for(size_t y=0;y<h;y++){
-	TIFFReadScanline(tif,raster,y);
-	for(size_t x=0;x<w;x++){
-	  //	    vismat.at<uchar>(y,x)=(raster[x])?255:0;
-	  img.set(x,y,raster[x]);
+	imagedata img(w, h, 3, imagedata::intdatatype(16));
+	// cout << img.info() << endl;
+	
+	uint16 *red = NULL, *green = NULL, *blue = NULL;
+	TIFFGetField(tif, TIFFTAG_COLORMAP, &red, &green, &blue);
+
+	vector<unsigned char> samples(w*nrchannels);
+	for (size_t y=0; y<h; y++) {
+	  TIFFReadScanline(tif, &samples[0], y);
+	  if (false && y==50) {
+	    for (size_t i=0; i<samples.size(); i++)
+	      cout << " " << (int)samples[i];
+	    cout << endl;
+	  }
+	  for (size_t x=0; x<w; x++) {
+	    // size_t i = samples[x*nrchannels]+256*samples[x*nrchannels+1];
+	    size_t i = samples[x*nrchannels];
+	    vector<uint16_t> v { red[i], green[i], blue[i] };
+	    img.set(x, y, v);
+	  }
 	}
-      }
- 
-      TIFFClose(tif);
-      _TIFFfree(raster);
 
-      // cv::imshow("frame",vismat);
-      // cv::waitKey(0);
+	img.convert(t);    
+
+	return img;
 	
-      img.convert(t);    
+      } else {
+	if (bps!=8 && bps!=16)
+	  unimplemented("imagefile-opencv::read_frame_impl(); tiff read w/ bps != 8 | 16");
+
+	imagedata::pixeldatatype dtype = imagedata::intdatatype(bps);
+	imagedata img(w, h, nrchannels, dtype);
+	cout << img.info() << endl;
+
+	size_t dsize = bps/8;
+	vector<void*> rasters(nrchannels);
+	for (size_t i=0; i<nrchannels; i++)
+	  rasters[i] = _TIFFmalloc(npixels*dsize);
+
+	for (size_t y=0; y<h; y++) {
+	  for (size_t i=0; i<nrchannels; i++)
+	    TIFFReadScanline(tif, rasters[i], y, i);
 	
-      return(img); 
+	  for (size_t x=0; x<w; x++) {
+	    if (nrchannels==1) {
+	      if (bps==8)
+		img.set(x, y, ((const unsigned char*)rasters[0])[x]);
+
+	      if (bps==16)
+		img.set(x, y, ((const uint16_t*)rasters[0])[x]);
+
+	    } else {
+	      if (bps==8) {
+		vector<unsigned char> zzz(nrchannels);
+		for (size_t i=0; i<nrchannels; i++)
+		  zzz[i] = ((const unsigned char*)rasters[i])[x];
+		img.set(x, y, zzz);
+	      }
+	    
+	      if (bps==16) {
+		vector<uint16_t> zzz(nrchannels);
+		for (size_t i=0; i<nrchannels; i++)
+		  zzz[i] = ((const uint16_t*)rasters[i])[x];
+		img.set(x, y, zzz);
+	      }
+	    }
+	  }
+	}
+ 
+	TIFFClose(tif);
+	for (size_t i=0; i<nrchannels; i++)
+	  _TIFFfree(rasters[i]);
+
+	img.convert(t);    
+	
+	return(img); 
+      }
     }
     
     cv::Mat& ocv_image = data(this)->image;

@@ -5,7 +5,7 @@
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: VectorSet.h,v 1.19 2014/07/01 13:40:56 jorma Exp $
+// @(#)$Id: VectorSet.h,v 1.20 2018/03/16 10:27:41 jormal Exp $
 
 // -*- C++ -*-
 
@@ -23,6 +23,7 @@
 #endif // EXPLICIT_INCLUDE_CXX
 
 #include <vector>
+#include <map>
 
 namespace simple {
 
@@ -222,12 +223,16 @@ public:
 
   void SetLabels(const char *l) {
     for (int i=0; i<Nitems(); i++)
-      Get(i)->Label(l); }
+      Get(i)->Label(l); 
+  }
 
   VectorOf<Type> *GetByLabel(const char*, int = 0) const;
+
   VectorOf<Type> *GetByLabel(const string& s, int i = 0) const {
     return GetByLabel(s.c_str(), i);
   }
+
+  map<string,size_t> LabelToIndexMap() const;
 
   const VectorOf<Type> *GetByNumber(int n) const {
     static int previ=0, prevn=0;

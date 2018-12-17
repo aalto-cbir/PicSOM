@@ -5,7 +5,7 @@
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: VectorSet.C,v 1.17 2017/11/03 18:27:04 jormal Exp $
+// @(#)$Id: VectorSet.C,v 1.18 2018/03/16 10:27:41 jormal Exp $
 
 #ifndef _VECTORSET_C_
 #define _VECTORSET_C_
@@ -364,6 +364,18 @@ VectorOf<Type> *VectorSetOf<Type>::GetByLabel(const char *l, int n) const {
       return Get(i);
 
   return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+template <class Type>
+map<string,size_t> VectorSetOf<Type>::LabelToIndexMap() const {
+  map<string,size_t> m;
+
+  for (int i=0; i<Nitems(); i++)
+    m[Get(i)->Label()] = i;
+
+  return m;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

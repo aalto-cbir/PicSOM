@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: bin_data.h,v 2.22 2017/05/09 10:16:17 jormal Exp $
+// -*- C++ -*-  $Id: bin_data.h,v 2.24 2018/06/21 11:39:31 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -15,19 +15,33 @@
 #include <stdexcept>
 using namespace std;
 
+#define BIN_DATA_USE_UTIL_H 1
+#ifdef BIN_DATA_USE_UTIL_H
 #include <Util.h>
-
-//#include <missing-c-utils.h>
-
-#ifdef HAVE_STRING_H
-#include <string.h>
-#endif // HAVE_STRING_H
+#else
+#include <math.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#define HAVE_SYS_MMAN_H 1
+#define HAVE_STRING_H 1
+#endif // BIN_DATA_USE_UTIL_H
 
 #ifndef NO_PTHREADS
 #define BIN_DATA_USE_PTHREADS 1
 #endif // NO_PTHREADS
 
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif // HAVE_STRING_H
+
 namespace picsom {
+#ifndef BIN_DATA_USE_UTIL_H
+  static string ToStr(float) { return ""; }
+  static string HumanReadableBytes(size_t) { return ""; }
+#endif // BIN_DATA_USE_UTIL_H
+  
   ///
   class bin_data {
   public:
@@ -52,7 +66,7 @@ namespace picsom {
 
       ///
       header() : version(1.0), hsize(sizeof(header)),
-		 rlength_x(0), vdim(0), format_x(0) {
+		 rlength(0), vdim(0), format(0) {
 	memcpy(magic, "PSBD", 4);
 	memset(dummy, 0, sizeof dummy);
       }
@@ -61,8 +75,8 @@ namespace picsom {
       string str() const {
 	stringstream ss;
 	ss << magic[0] << magic[1] << magic[2] << magic[3]
-	   << " v" << version << " [" << hsize << "] len=" << rlength_x
-	   << " dim=" << vdim << " format=0x" << hex << format_x;
+	   << " v" << version << " [" << hsize << "] len=" << rlength
+	   << " dim=" << vdim << " format=0x" << hex << format;
 	return ss.str();
       }
 
@@ -73,7 +87,7 @@ namespace picsom {
 
       ///
       format_type target_format() const {
-	return target_format((format_type)format_x);
+	return target_format((format_type)format);
       }
 
       ///
@@ -84,7 +98,7 @@ namespace picsom {
 
       ///
       bool is_supported_format() const {
-	return is_supported_format((format_type)format_x);
+	return is_supported_format((format_type)format);
       }
 
       ///
@@ -94,7 +108,7 @@ namespace picsom {
 
       ///
       bool is_var_length_format() const {
-	return is_var_length_format((format_type)format_x);
+	return is_var_length_format((format_type)format);
       } 
 
       ///
@@ -104,7 +118,7 @@ namespace picsom {
 
       ///
       bool is_expl_status_format() const {
-	return is_expl_status_format((format_type)format_x);
+	return is_expl_status_format((format_type)format);
       } 
 
       ///
@@ -114,7 +128,7 @@ namespace picsom {
 
       ///
       bool is_expl_index_format() const {
-	return is_expl_index_format((format_type)format_x);
+	return is_expl_index_format((format_type)format);
       }
 
       ///
@@ -124,7 +138,7 @@ namespace picsom {
 
       ///
       bool is_file_dict_format() const {
-	return is_file_dict_format((format_type)format_x);
+	return is_file_dict_format((format_type)format);
       }
 
       ///
@@ -139,7 +153,7 @@ namespace picsom {
  
       ///
       size_t payloadsize() const {
-	return is_var_length_format() ? 0 : rlength_x-payloadoffset();
+	return is_var_length_format() ? 0 : rlength-payloadoffset();
       }
 
       ///
@@ -152,13 +166,13 @@ namespace picsom {
       uint64_t hsize;     // offset=08 header size, currently always 64
 
       ///
-      uint64_t rlength_x; // offset=16 size of a record, 4*vector dimensionality
+      uint64_t rlength;   // offset=16 size of a record, 4*vector dimensionality
       
       ///
       uint64_t vdim;      // offset=24 vector dimensionality
       
       ///
-      uint64_t format_x;  // offset=32 for float ==1
+      uint64_t format;    // offset=32 for float ==1
       
       ///
       uint64_t dummy[3];  // offsets=40,48,56, filled with zeros
@@ -198,8 +212,8 @@ namespace picsom {
 	  ss << " fd=" << _fd;
 	if (_size) {
 	  size_t b = componentsize();
-	  long n = (_size-_header.hsize)/_header.rlength_x;
-	  long m = (_size-_header.hsize)%_header.rlength_x;
+	  long n = (_size-_header.hsize)/_header.rlength;
+	  long m = (_size-_header.hsize)%_header.rlength;
 	  ss << " size=" << _size << " (" << HumanReadableBytes(_size)
 	     << ") [" << _header.target_format_str()
 	     << ", " << n << " objects";
@@ -235,7 +249,7 @@ namespace picsom {
     size_t rawsize() const { return _size; }
 
     ///
-    size_t rawsize(size_t n) const { return _header.hsize+n*_header.rlength_x; }
+    size_t rawsize(size_t n) const { return _header.hsize+n*_header.rlength; }
 
     ///
     size_t nobjects() const;

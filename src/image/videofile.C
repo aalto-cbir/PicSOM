@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: videofile.C,v 1.47 2016/05/03 10:56:08 jorma Exp $
+// -*- C++ -*-  $Id: videofile.C,v 1.50 2018/09/12 09:22:19 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -19,7 +19,7 @@ namespace picsom {
   string videofile::_local_bin = "/usr/local/bin";
   int    videofile::_debug = 0;
   bool   videofile::_keep_tmp_files = false;
-  string videofile::_temp_dir;
+  string videofile::_tmp_dir;
 
   ///--------------------------------------------------------------------------
   
@@ -80,7 +80,7 @@ namespace picsom {
       throw error(msg, "failed: not writing");
 
     if (!frame_num)
-      frame_tempname = temp_filename();
+      frame_tempname = tmp_filename();
     frame_num++;
 
     const string outname = frame_outname(frame_tempname, (int)frame_num);
@@ -153,16 +153,21 @@ namespace picsom {
   bool videofile::identify(const string& filename) {
     string fname = filename.empty() ? _filename : filename;
 
-    string avprobe = "/usr/bin/ffprobe";
+    string probe = "/usr/bin/ffprobe";
     struct stat tmp;
-    if (stat(avprobe.c_str(), &tmp))
-      avprobe = local_bin()+"/avprobe";
+    if (stat(probe.c_str(), &tmp)) {
+      probe = local_bin()+"/ffprobe";
 
-    if (stat(avprobe.c_str(), &tmp))
-      return identify_mplayer_identify(fname);
+      if (stat(probe.c_str(), &tmp)) {
+    	probe = local_bin()+"/avprobe";
+
+    	if (stat(probe.c_str(), &tmp))
+    	  return identify_mplayer_identify(fname);
+      }
+    }
 
     if (avprobe_cmd=="")
-      avprobe_cmd = avprobe;
+      avprobe_cmd = probe;
 
     bool r = false;
     try {
@@ -198,7 +203,7 @@ namespace picsom {
   
     bool debug = false;
 
-    const string tempname = videofile::temp_filename(_tempdir);
+    const string tempname = videofile::tmp_filename(_tempdir);
     string full_cmd = avprobe_cmd+" -show_format -show_streams "+fname+
       " 2>/dev/null </dev/null > "+tempname;
     int r = execute_system(full_cmd);
@@ -312,7 +317,7 @@ namespace picsom {
       "-frames 1 -identify ";
     const string identify_cmd = "/usr/bin/identify";
 
-    const string tempname = videofile::temp_filename();
+    const string tempname = videofile::tmp_filename();
     //int r = execute_system(midentify_cmd+" "+fname+" > "+tempname);
     int r = execute_system(midentify_cmd+" "+fname+
 			   " 2>/dev/null </dev/null | grep ^ID_ > "+tempname);
@@ -394,7 +399,7 @@ namespace picsom {
 						 int program,
                                                  const string& extra_opts,
 						 const string& tmpdir) {
-    const string tempbase = temp_filename(tmpdir);
+    const string tempbase = tmp_filename(tmpdir);
     const string tempname = tempbase+ext;
 
     extract_video_segment(tempname, tp, dur, vcodec, acodec, program,
@@ -415,6 +420,8 @@ namespace picsom {
 	avconv = "/usr/bin/ffmpeg";
       if (stat(avconv.c_str(), &tmp))
 	avconv = local_bin()+"/avconv";
+      if (stat(avconv.c_str(), &tmp))
+	avconv = local_bin()+"/ffmpeg";
       if (stat(avconv.c_str(), &tmp))
 	avconv = "/bin/false";
     }
@@ -471,11 +478,12 @@ namespace picsom {
 	string aspect = ass.str();
 	sprintf(cmdtmp,
 		// -same_quant removed 2014-10-21 when turning to libav-9.17
-		"%s -y -i %s -ss %f -vframes 1 %s -f image2 %s",
+		"%s -nostdin -y -i %s -ss %f -vframes 1 %s -f image2 %s",
 		avconv.c_str(),
 		_filename.c_str(), tp, aspect.c_str(), filename.c_str());
       } else
-	sprintf(cmdtmp, "%s -y -i %s -ss %f -t %f %s %s", avconv.c_str(),
+	sprintf(cmdtmp, "%s -nostdin -y -i %s -ss %f -t %f %s %s", 
+		avconv.c_str(),
 		_filename.c_str(), tp, dur, opts.c_str(), filename.c_str());
 
       cmds = cmdtmp;
@@ -604,7 +612,7 @@ namespace picsom {
     const string msg = "extract_segment_video() ";
     if (fn.empty()) fn=_filename;
     
-    const string tempbase = videofile::temp_filename();
+    const string tempbase = videofile::tmp_filename();
     string wavname_tmp = tempbase+"_tmp.wav";
     string wavname = tempbase+".wav";
     
@@ -651,8 +659,8 @@ namespace picsom {
 
   ///--------------------------------------------------------------------------
 
-  string videofile::temp_filename(const string& tmpdir) {
-    string tempname = tmpdir!="" ? tmpdir : temp_dir();
+  string videofile::tmp_filename(const string& tmpdir) {
+    string tempname = tmpdir!="" ? tmpdir : tmp_dir();
     tempname += "/picsom_videofile_XXXXXX";
     char tempnamec[1000];
     strcpy(tempnamec, tempname.c_str());
@@ -674,12 +682,12 @@ namespace picsom {
 
   ///--------------------------------------------------------------------------
 
-  string videofile::temp_dir() {
-    if (_temp_dir.empty()) {
+  string videofile::tmp_dir() {
+    if (_tmp_dir.empty()) {
       char *envdir = getenv("TMPDIR");
-      _temp_dir = (envdir && (strlen(envdir)>0) ? envdir : "/tmp");
+      _tmp_dir = (envdir && (strlen(envdir)>0) ? envdir : "/tmp");
     }
-    return _temp_dir;
+    return _tmp_dir;
   }
 
   ///--------------------------------------------------------------------------

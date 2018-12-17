@@ -1,8 +1,8 @@
 ##
-## Copyright 1998-2017 PicSOM Development Group
+## Copyright 1998-2018 PicSOM Development Group
 ##
 
-# @(#)$Id: configure.ac,v 1.2 2015/11/11 08:15:57 jorma Exp $
+# @(#)$Id: configure.ac,v 1.3 2018/12/16 07:59:35 jormal Exp $
 
 AC_INIT(PicSOM, 0.1, picsom@cis.hut.fi)
 AM_INIT_AUTOMAKE([subdir-objects])
@@ -10,7 +10,7 @@ LT_INIT([disable-static])
 
 AC_PREREQ(2.59)
 AC_COPYRIGHT(PicSOM Development Group)
-AC_REVISION($Revision: 1.2 $)
+AC_REVISION($Revision: 1.3 $)
 
 AC_CONFIG_SRCDIR([NEWS])
 AC_CONFIG_FILES([Makefile])

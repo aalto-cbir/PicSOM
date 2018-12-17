@@ -1,9 +1,14 @@
-// $Id: RegionBased.C,v 1.24 2015/01/20 12:49:49 jorma Exp $	
+// -*- C++ -*-  $Id: RegionBased.C,v 1.25 2018/06/21 15:03:58 jormal Exp $
+// 
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
+// 
 
 #include <RegionBased.h>
 
 namespace picsom {
-//static const char *vcid = "$Id: RegionBased.C,v 1.24 2015/01/20 12:49:49 jorma Exp $";
+//static const char *vcid = "$Id: RegionBased.C,v 1.25 2018/06/21 15:03:58 jormal Exp $";
 
 //=============================================================================
 
@@ -40,17 +45,9 @@ bool RegionBased::ProcessOptionsAndRemove(list<string>& opts) {
   
   bool ok = Feature::ProcessOptionsAndRemove(opts);
 
-  if (ok && !RegionDescriptorCount()) {
-    char tmp[100];
-    int w = Width(), h = Height();
-    sprintf(tmp, "(%d,%d):%dx%d", (w-1)/2, (h-1)/2, w, h);
-    AddRegionDescriptor(tmp, "");
-    SetRegionSpecifications();
+  if (ok && !RegionDescriptorCount())
+    SetRegionSpecificationWholeImage();
 
-    if (FileVerbose())
-      cout << msg << " added all image [" << tmp << "]" << endl;
-  }
-  
   return ok;
 }
 

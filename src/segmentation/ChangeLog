@@ -1,4 +1,15 @@
-2017-11-03  jormal  <jormal@cs-170>
+2018-12-16  jormal  <jormal@cs-271>
+
+	* OCVface.C 1.24: Summary: Started to use cvarrToMat().
+
+	* LBModel.h 1.4: Summary: Added checks for fscanf() outputs.
+
+2017-11-29  jormal  <jormal@cs-271>
+
+	* Segmentation.C 1.145:
+	Summary: Added missing break to make g++ 7.2.0 happy and silent.
+
+2017-11-03  jormal  <jormal@cs-271>
 
 	* Segmentation.h 1.118: Summary: Made g++ 7.2.0 happy.
 

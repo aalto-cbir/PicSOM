@@ -1,63 +1,62 @@
-// $Id: PicSOMLucene.java,v 1.27 2016/12/07 14:42:19 jorma Exp $	
+// $Id: PicSOMLucene.java,v 1.29 2018/10/30 09:30:53 jormal Exp $	
+// 
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
+// 
 
-/**
-*/
-
-import org.apache.lucene.LucenePackage;
-import org.apache.lucene.util.Version;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexWriterConfig.OpenMode;
-import org.apache.lucene.document.*;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.FilterDirectoryReader;
-
-import org.apache.lucene.analysis.Analyzer;
-
-import java.util.Properties;
-import java.util.Enumeration;
-import java.util.Date;
+import java.io.InputStreamReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.FileReader;
-
 import java.nio.file.Paths;
 
-import org.apache.lucene.index.FilterLeafReader;
-//import org.apache.lucene.index.IndexReader;
-//import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.ScoreDoc;
-//import org.apache.lucene.wordnet.SynExpand;
-import java.io.InputStreamReader;
-import java.io.FileWriter;
-import java.io.PrintWriter;
 import java.util.List;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Properties;
+import java.util.Enumeration;
+import java.util.Date;
+import java.util.HashMap;
+import java.text.SimpleDateFormat;
+
+import org.apache.lucene.LucenePackage;
+import org.apache.lucene.document.*;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.IndexWriterConfig.OpenMode;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FilterDirectoryReader;
+import org.apache.lucene.index.FilterLeafReader;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.standard.ClassicAnalyzer;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.de.GermanAnalyzer;
 import org.apache.lucene.analysis.fr.FrenchAnalyzer;
 import org.apache.lucene.analysis.fi.FinnishAnalyzer;
-import org.apache.lucene.analysis.core.KeywordAnalyzer;
-//import org.apache.lucene.analysis.snowball.SnowballAnalyzer;
+import org.apache.lucene.util.Version;
 
 public class PicSOMLucene {
     public static String version =
-	"$Id: PicSOMLucene.java,v 1.27 2016/12/07 14:42:19 jorma Exp $";
+	"$Id: PicSOMLucene.java,v 1.29 2018/10/30 09:30:53 jormal Exp $";
 
     ///
     public Hashtable<String,String> attrtable;
@@ -69,8 +68,7 @@ public class PicSOMLucene {
 	    final String b = i<args.length-1 ? args[i+1] : null;
 	    final String c = i<args.length-2 ? args[i+2] : null;
 	    if (psl.verbose)
-		System.out.println("Processing command line argument <" +
-				   a +">");
+		debugPrint("Processing command line argument <"+a+">");
 
 	    if (a.equals("--compile")) {
 		i++;
@@ -89,12 +87,13 @@ public class PicSOMLucene {
 		    System.err.println("Usage: " + usage);
 		    System.exit(1);
 		}
-                //System.out.println(iplus);
+                //debugPrint(iplus);
 		i += iplus;
 	    }
 	}
 
-	psl.finalize();
+	if (!psl.finalized)
+	    psl.finalize();
     }
 
     ///
@@ -102,25 +101,26 @@ public class PicSOMLucene {
 	String a = cmdline ? ain.substring(2) : ain;
 
 	if (verbose) {
-	    System.out.println("  Interpreting <"+a+"> <"+(b!=null?b:"nil")+"> <"+
+	    debugPrint("Interpreting <"+a+"> <"+(b!=null?b:"nil")+"> <"+
 			       (c!=null?c:"nil")+">");
 	}
 
 	if (a.equals("version")) {
-	    System.out.println("* "+System.getProperty("java.vendor")+
-			       " "+System.getProperty("java.version")+
-			       " "+System.getProperty("java.home"));
-	    System.out.println("* "+System.getProperty("java.vm.vendor")+
-			       " "+System.getProperty("java.vm.version")+
-			       " "+System.getProperty("java.vm.name"));
-	    System.out.println("* "+LucenePackage.get().toString());
-	    System.out.println("* "+version);
-	    System.out.println("* "+luceneVersion.toString());
+	    resultPrint(System.getProperty("java.vendor")+
+			" "+System.getProperty("java.version")+
+			" "+System.getProperty("java.home"));
+	    resultPrint(System.getProperty("java.vm.vendor")+
+			" "+System.getProperty("java.vm.version")+
+			" "+System.getProperty("java.vm.name"));
+	    resultPrint(LucenePackage.get().toString());
+	    resultPrint(version);
+	    resultPrint(luceneVersion.toString());
 	    return 1;
 	}
 
 	if (a.equals("quit")) {
 	    quit = true;
+	    finalize();
 	    return 1;
 	}
 
@@ -168,7 +168,7 @@ public class PicSOMLucene {
  
 	if (a.equals("add-attribute") && b!=null && c!=null) {
             //add (key:attribute, text:text) to hash table
-            //System.out.println(b + " "+ c);
+            //debugPrint(b + " "+ c);
             attrtable.put(b.trim(), c.trim());
             
             return 3;
@@ -229,7 +229,7 @@ public class PicSOMLucene {
 	    return 2;
 	}
 
-	System.out.println("* ERROR interpret("+ain+") failed");
+	resultPrint("ERROR interpret("+ain+") failed");
 	System.exit(2);
 
 	return 0;
@@ -248,7 +248,7 @@ public class PicSOMLucene {
 
 		String[] l = line.split("\\s+", 2);
 		String a = l[0], b = l.length>1 ? l[1] : null, c = null;
-		//System.out.println("1 ["+a+"] ["+b+"] ["+c+"]");
+		//debugPrint("1 ["+a+"] ["+b+"] ["+c+"]");
 
 		if (a.length()>0 && a.substring(0, 1).equals("#"))
 		    continue;
@@ -258,11 +258,11 @@ public class PicSOMLucene {
 		    String[] m = b.split("\\s+", 2);
 		    b = m[0];
 		    c = m[1];
-		    //System.out.println("2 ["+a+"] ["+b+"] ["+c+"]");
+		    //debugPrint("2 ["+a+"] ["+b+"] ["+c+"]");
 		}
 		if (interpret(false, a, b, c)==0)
 		    return false;
-		System.out.println("* ok");
+		resultPrint("ok");
 	    
 	    }
 	} catch (IOException e) {
@@ -283,6 +283,9 @@ public class PicSOMLucene {
 
     ///
     protected void flushIndex() {
+	if (verbose)
+	    debugPrint("Flushing index");
+	
 	String dummy = "dummy";
 	if (!documentExists(dummy)) {
 	    Document doc = new Document();
@@ -296,18 +299,24 @@ public class PicSOMLucene {
 		System.exit(3);
 	    }
 	    if (verbose) {
-		System.out.println("  Added in <"+dummy+"> for initialization");
+		debugPrint("Added in <"+dummy+"> for initialization");
 	    }
 	}
         finalize();
 	openIndex(idxname);
+	finalized = false;
     }
 
     ///
     protected void finalize() {
+	if (verbose)
+	    debugPrint("Finalizing");
+
         optimizeWriter();
         closeWriter();
         closeReader();
+
+	finalized = true;
     }
 
     ///
@@ -322,22 +331,21 @@ public class PicSOMLucene {
 	    reader = DirectoryReader.open(FSDirectory.open(Paths.get(idxname)));
 
 	    if (verbose)
-		System.out.println("  Created index reader '" +idxname+"'");
+		debugPrint("Created index reader '" +idxname+"'");
 
 	    // out-commented 2016-01-07 because normsField is always null...
 	    // if (normsField != null) {
 	    // 	reader = new OneNormsReader(reader, normsField);
 
 	    // 	if (verbose)
-	    // 	    System.out.println("  Created one norms reader '" +
-	    // 			       normsField+"'");
+	    // 	    debugPrint("Created one norms reader '"+normsField+"'");
 	    // }
 
 	} catch (IOException e) {
 	    if (relaxed)
 		return false;
 
-	    System.out.println("* ERROR createReader() caught a " + e.getClass() +
+	    resultPrint("ERROR createReader() caught a " + e.getClass() +
 			       " \"" + e.getMessage() + "\"");
 	    System.exit(2);
 	}
@@ -352,8 +360,8 @@ public class PicSOMLucene {
 
 	// nitems = 0;
 	// indexDocs(writer, docDir, textfield);
-	// System.out.println("  Indexed " +nitems+ " documents");
-	// System.out.println("  Optimizing...");
+	// debugPrint("Indexed " +nitems+ " documents");
+	// debugPrint("Optimizing...");
 
 	return true;
     }
@@ -361,13 +369,12 @@ public class PicSOMLucene {
     ///
     void checkAnalyzer(Analyzer an) {
 	if (an == null) {
-	    System.out.println("* ERROR No such analyzer implemented: "+
-			       analyzerName);
+	    resultPrint("ERROR No such analyzer implemented: "+analyzerName);
 	    AnalyzerFactory.listAnalyzers();
 	    System.exit(1);
 	} else {
 	    if (verbose)
-		System.out.println("  Selecting "+analyzerName+" analyzer.");
+		debugPrint("Selecting "+analyzerName+" analyzer.");
 	}
     }
 
@@ -388,7 +395,7 @@ public class PicSOMLucene {
 	*/
 
 	if (verbose)
-	    System.out.println("  Optimized writer index");
+	    debugPrint("Optimized writer index");
 
  	return true;
     }
@@ -409,13 +416,13 @@ public class PicSOMLucene {
 		writer = new IndexWriter(dir, iwc);
 
 	    } catch (IOException e) {
-		System.out.println("* ERROR getWriter() caught a " + e.getClass() +
+		resultPrint("ERROR getWriter() caught a " + e.getClass() +
 				   " \"" + e.getMessage() + "\"");
 		System.exit(2);
 	    }
             
 	    if (verbose)
-		System.out.println("  Created index writer '" +idxdir+ "'");
+		debugPrint("Created index writer '" +idxdir+ "'");
         }
 
         return writer;
@@ -437,7 +444,7 @@ public class PicSOMLucene {
 	}
 
 	if (verbose)
-	    System.out.println("  Closed writer index");
+	    debugPrint("Closed writer index");
 
  	return true;
     }
@@ -458,7 +465,7 @@ public class PicSOMLucene {
 	}
 
 	if (verbose)
-	    System.out.println("  Closed reader index");
+	    debugPrint("Closed reader index");
 
  	return true;
     }
@@ -472,7 +479,7 @@ public class PicSOMLucene {
 		    t += " ";
 		t += analyzeFields[i];
 	    }
-	    System.out.println("  Set AnalyzeFields ["+t+"]");
+	    debugPrint("Set AnalyzeFields ["+t+"]");
 	}
 	return true;
     }
@@ -499,7 +506,7 @@ public class PicSOMLucene {
 	    if (strx.length()>50)
 		strx = strx.substring(0, 50)+"...";
 
-	    System.out.println("  Added ["+textfield+"] "+ach+" label=<"
+	    debugPrint("Added ["+textfield+"] "+ach+" label=<"
 			       +id+"> : \""+strx+"\"");
 	}
 
@@ -571,7 +578,7 @@ public class PicSOMLucene {
 
     boolean documentExists(final String label) {
 	if (verbose)
-	    System.out.println("  Checking existence of \""+label+"\"");
+	    debugPrint("Checking existence of \""+label+"\"");
 
 	if (!createReader(true))
 	    return false;
@@ -643,7 +650,7 @@ public class PicSOMLucene {
 		if (strx.length()>50)
 		    strx = strx.substring(0, 50)+"...";
 
-		System.out.println("  Added in <"+label+"> "+ach+" ["+
+		debugPrint("Added in <"+label+"> "+ach+" ["+
 				   attrstr+"] : \""+strx+"\"");
 	    }
 	}
@@ -720,7 +727,7 @@ public class PicSOMLucene {
 		String strx = textstr;
 		if (strx.length()>50)
 		    strx = strx.substring(0, 50)+"...";
-		System.out.println("  Updated in <"+label+"> "+ach+" ["+
+		debugPrint("Updated in <"+label+"> "+ach+" ["+
 				   attrstr+"] : \""+strx+"\"");
 	    }
 	}
@@ -767,7 +774,7 @@ public class PicSOMLucene {
     ///
     boolean getLabels() {
 	if (verbose)
-	    System.out.println("  Getting labels");
+	    debugPrint("Getting labels");
 
 	if (!createReader(true))
 	    return true;
@@ -788,7 +795,7 @@ public class PicSOMLucene {
 		    else if (!val.equals(""))
 			other += (other.equals("") ? "" : " ")+key;
 		}
-		System.out.println("* "+label+" : "+other);
+		resultPrint(label+" : "+other);
 	    }
 
 	} catch (IOException e) {
@@ -801,9 +808,106 @@ public class PicSOMLucene {
     }
 
     ///
+    boolean createLabelHash() {
+	if (verbose)
+	    debugPrint("Creating label hash");
+
+	if (labelhash!=null)
+	    return true;
+	
+	if (!createReader(true))
+	    return true;
+
+	try {
+	    labelhash = new HashMap<String,Integer>(1000000, 0.25f);
+	    int max = reader.maxDoc();
+	    for (int i=0; i<max; i++) {
+		Document doc = reader.document(i);
+		String label = doc.get("label");
+		labelhash.put(label, i);
+	    }
+
+	} catch (IOException e) {
+	    System.err.println("createLabelHash() caught a " + e.getClass() +
+			       "\n with message: " + e.getMessage());
+	    System.exit(3);
+	}
+
+	if (verbose)
+	    debugPrint("Done creating label hash");
+
+	return true;
+    }
+
+    ///
     boolean retrieveDocument(final String str) {
 	if (verbose)
-	    System.out.println("  Retrieving \""+str+"\"");
+	    debugPrint("Retrieving \""+str+"\"");
+
+	createReader(false);
+	createLabelHash();
+	
+	try {
+	    if (labelhash.containsKey(str)) {
+		Document doc = reader.document(labelhash.get(str));
+		List<IndexableField> fields = doc.getFields();
+		Iterator fieldIte = fields.iterator();
+		while (fieldIte.hasNext()) {
+		    IndexableField f = (IndexableField)fieldIte.next();
+		    String key = f.name();
+		    String val = f.stringValue();
+		    resultPrint(key+" : "+val);
+		}
+	    }
+
+	} catch (IOException e) {
+	    System.err.println("retrieveDocument() caught a " + e.getClass() +
+			       "\n with message: " + e.getMessage());
+	    System.exit(3);
+	}
+
+	if (verbose)
+	    debugPrint("Retrieved \""+str+"\"");
+
+	return true;
+    }
+
+    ///
+    boolean retrieveDocumentOld(final String str) {
+	if (verbose)
+	    debugPrint("Retrieving \""+str+"\"");
+
+	createReader(false);
+
+	try {
+	    IndexSearcher searcher = new IndexSearcher(reader);
+	    Query query = new TermQuery(new Term("label", str));
+	    TopDocs hits = searcher.search(query, 1);
+	    if (hits.scoreDocs.length > 0) {
+		Document doc = searcher.doc(hits.scoreDocs[0].doc);
+		List<IndexableField> fields = doc.getFields();
+		Iterator fieldIte = fields.iterator();
+		while (fieldIte.hasNext()) {
+		    IndexableField f = (IndexableField)fieldIte.next();
+		    String key = f.name();
+		    String val = f.stringValue();
+		    resultPrint(key+" : "+val);
+		}
+	    }
+
+	} catch (IOException e) {
+	    System.err.println("retrieveDocument() caught a " + e.getClass() +
+			       "\n with message: " + e.getMessage());
+	    System.exit(3);
+	}
+
+	return true;
+    }
+
+    ///
+    boolean retrieveDocumentOldOld(final String str) {
+	if (verbose)
+	    debugPrint("Retrieving \""+str+"\"");
 
 	createReader(false);
 
@@ -831,7 +935,7 @@ public class PicSOMLucene {
 		    IndexableField f = (IndexableField)fieldIte.next();
 		    String key = f.name();
 		    String val = f.stringValue();
-		    System.out.println("* "+key+" : "+val);
+		    resultPrint(key+" : "+val);
 		}
 	    }
 
@@ -853,7 +957,7 @@ public class PicSOMLucene {
 	boolean show = true;
 
 	if (verbose)
-	    System.out.println("  Searching ["+textfield+"] \""+str+"\"");
+	    debugPrint("Searching ["+textfield+"] \""+str+"\"");
 
 	createReader(false);
 
@@ -867,8 +971,7 @@ public class PicSOMLucene {
 	    Query query = parser.parse(str);
 
 	    if (verbose)
-		System.out.println("  query.toString()=\""+query.toString()
-				   +"\"");
+		debugPrint("query.toString()=\""+query.toString()+"\"");
 
 	    IndexSearcher searcher = new IndexSearcher(reader);
 	    TopDocs topDocs = searcher.search(query, 9999999);
@@ -884,7 +987,7 @@ public class PicSOMLucene {
 		if (txtx!=null && txtx.length()>50)
 		    txtx = txtx.substring(0, 50)+"...";
 
-		System.out.println("* "+label+" "+score+" "+txtx);
+		resultPrint(label+" "+score+" "+txtx);
 	    }
 
 	} catch (IOException e) {
@@ -939,6 +1042,27 @@ public class PicSOMLucene {
     }
 
     ///
+    static String timeStamp() {
+	SimpleDateFormat sdfDate = new SimpleDateFormat("HH:mm:ss.SSS");
+	Date now = new Date();
+	String strDate = sdfDate.format(now);
+	return strDate;
+    }
+
+    ///
+    void resultPrint(final String str) {
+	if (verbose)
+	    debugPrint("done");
+	System.out.println("* "+str);
+    }
+    
+    ///
+    static void debugPrint(final String str) {
+	// System.out.println("  "+str);
+	System.out.println("  "+timeStamp()+" "+str);
+    }
+    
+    ///
     String idxname;
 
     ///
@@ -962,6 +1086,9 @@ public class PicSOMLucene {
     IndexWriter writer;
 
     ///
+    HashMap<String,Integer> labelhash = null;
+
+    ///
     boolean verbose = false;
 
     ///
@@ -973,6 +1100,8 @@ public class PicSOMLucene {
     ///
     boolean quit = false;
 
+    ///
+    boolean finalized = false;
 }
 
 // 
@@ -1022,6 +1151,5 @@ class AnalyzerFactory {
 	System.out.println("  finnish \tAnalyzer for Finnish.");
 	System.out.println("  keyword \tAnalyzer for vanilla keywords.");
     }
-
 }
 

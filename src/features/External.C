@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: External.C,v 1.40 2016/10/25 08:11:38 jorma Exp $
+// -*- C++ -*-  $Id: External.C,v 1.43 2018/10/05 13:23:26 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -173,6 +173,10 @@ string External::SolveArchitecture() const {
     string homex = home+"/picsom/bin/"+n;
     if (home!="" && FileExists(homex))
       return homex;
+
+    homex = home+"/picsom/"+n;
+    if (home!="" && FileExists(homex))
+      return homex;
     
     return "/share/imagedb/picsom/linux/bin/"+n;
   }
@@ -338,7 +342,7 @@ bool External::EnsureFileList(vector<string> files) const {
       return false;
     }
 
-    sync();
+    // sync();
 
     pid_t child = fork();
 
@@ -442,17 +446,20 @@ bool External::EnsureFileList(vector<string> files) const {
       return false;
     }
   
-    if (out_str.length() > 0 && SaveOutput()) {
-      StoreOutput(out_str);
-      if (FrameVerbose())
-        cout << msg+"read " << out_str.size() << " bytes of output" << endl;
+    if (out_str!="") {
+      if (SaveOutput())
+	StoreOutput(out_str);
+      if (FrameVerbose() || !ok)
+        cout << msg+"read " << out_str.size() << " bytes of output: [" 
+	     << out_str << "]" << endl;
     }
 
-    if (err_str.length() > 0 && SaveError()) {
-      StoreError(err_str);
-      if (FrameVerbose())
-        cout << msg+"read " << err_str.size() << " bytes of error output"
-             << endl;
+    if (err_str!="") {
+      if (SaveError())
+	StoreError(err_str);
+      if (FrameVerbose() || !ok)
+        cout << msg+"read " << err_str.size() << " bytes of error output: ["
+             << err_str << "]" << endl;
     }
 
     return ok;

@@ -1,4 +1,4 @@
-// $Id: WordHist.C,v 1.19 2016/10/25 08:13:35 jorma Exp $	
+// -*- C++ -*-  $Id: WordHist.C,v 1.20 2018/01/30 09:54:31 jormal Exp $	
 
 #include <WordHist.h>
 
@@ -6,7 +6,7 @@
 
 namespace picsom {
   static const string vcid =
-    "$Id: WordHist.C,v 1.19 2016/10/25 08:13:35 jorma Exp $";
+    "$Id: WordHist.C,v 1.20 2018/01/30 09:54:31 jormal Exp $";
 
   static WordHist list_entry(true);
 
@@ -83,13 +83,24 @@ namespace picsom {
 
   //===========================================================================
 
-  const vector<float>& WordHist::word2vec(const string& word,
-					  const string& file) {
+  const vector<float>& WordHist::word2vec_raw(const string& word,
+					      const string& file) {
     static const vector<float> empty;
 
     auto m = word2vec_find(file);
 
-    return m ? m->tovec(word) : empty;
+    return m ? m->to_vec_raw(word) : empty;
+  }
+  
+  //===========================================================================
+
+  const vector<float>& WordHist::word2vec_norm(const string& word,
+					       const string& file) {
+    static const vector<float> empty;
+
+    auto m = word2vec_find(file);
+
+    return m ? m->to_vec_norm(word) : empty;
   }
   
   //===========================================================================
@@ -135,24 +146,30 @@ namespace picsom {
     ifstream fs(file);
     unsigned long long words = 0, size = 0;
     fs >> words >> size;
-    // cout << "  words=" << words << " size=" << size << endl;
+    if (MethodVerbose())
+      cout << "WordHist::w2v_data::read(" << file
+	   << ") words=" << words << " size=" << size << endl;
     for (size_t i=0; fs && i<words; i++) {
       char c;
-      fs.get(c);
-      if (c!='\n')
-	return false;
-
+      // fs.get(c);
+      // if (c!='\n')
+      //   return false;
+      
       string w;
       while (fs) {
 	fs.get(c);
+	if (c=='\n')
+	  continue;
 	if (c==' ')
 	  break;
 	w += c;
       }
-      // cout << "<" << w << ">" << endl;
+      if (MethodVerbose())
+	cout << "  <" << w << ">" << endl;
       vector<float> v(size);
       fs.read((char*)&v[0], size*sizeof(float));
       if (fs) {
+	vec_r.push_back(v);
 	double s = 0;
 	for (size_t j=0; j<v.size(); j++)
 	  s += v[j]*v[j];
@@ -160,13 +177,24 @@ namespace picsom {
 	for (size_t j=0; j<v.size(); j++)
 	  v[j] *= s;
 
-	vec.push_back(v);
+	vec_n.push_back(v);
 	vocab.push_back(w);
 	wmap[w] = i;
       }
     }
 
     return true;
+  }
+
+  //===========================================================================
+
+  const vector<string>& WordHist::word2vec_vocabulary(const string& file) {
+    auto m = word2vec_find(file);
+    if (m)
+      return m->vocab;
+
+    static vector<string> empty;
+    return empty;
   }
 
   //===========================================================================
@@ -423,7 +451,7 @@ namespace picsom {
       max = used_max;
     }
 
-    size_t maxidx = w2v ? w2v->vec.size() : res.size();
+    size_t maxidx = w2v ? w2v->vec_r.size() : res.size();
     bool iszero = true;
     for (WordHistData::count_t::const_iterator i=d.count.begin();
 	 i!=d.count.end(); i++) {
@@ -495,7 +523,7 @@ namespace picsom {
       
       double tfidf = tf * idf;
       if (w2v) {
-	const vector<float>& v = w2v->vec[idx];
+	const vector<float>& v = w2v->vec_n[idx]; //obs! vec_r also?
 	for (size_t j=0; j<res.size(); j++)
 	  res[j] += tfidf*v[j];
 

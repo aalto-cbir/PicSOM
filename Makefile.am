@@ -5,7 +5,8 @@
 ## picsom@cis.hut.fi
 ##
 
-# @(#)$Id: Makefile.am,v 1.1 2007/08/22 13:19:42 jorma Exp $
+# @(#)$Id: Makefile.am,v 1.2 2018/12/16 08:00:36 jormal Exp $
 
 SUBDIRS = src doc
 
+ACLOCAL_AMFLAGS = -I m4

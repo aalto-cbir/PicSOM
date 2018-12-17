@@ -15,6 +15,9 @@
 /* Define to 1 if you have the <basetsd.h> header file. */
 #undef HAVE_BASETSD_H
 
+/* Define to 1 if you have the <caffe2/core/macros.h> header file. */
+#undef HAVE_CAFFE2_CORE_MACROS_H
+
 /* Define to 1 if you have the <caffe/caffe.hpp> header file. */
 #undef HAVE_CAFFE_CAFFE_HPP
 
@@ -138,6 +141,9 @@
 /* Define to 1 if you have the `getuid' function. */
 #undef HAVE_GETUID
 
+/* Define to 1 if you have the <gif_lib.h> header file. */
+#undef HAVE_GIF_LIB_H
+
 /* Define to 1 if you have the <glog/logging.h> header file. */
 #undef HAVE_GLOG_LOGGING_H
 
@@ -217,6 +223,9 @@
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #undef HAVE_LIBCRYPTO
 
+/* Define to 1 if you have the `cudart' library (-lcudart). */
+#undef HAVE_LIBCUDART
+
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 
@@ -233,6 +242,9 @@
 /* Define to 1 if you have the `gfortran' library (-lgfortran). */
 #undef HAVE_LIBGFORTRAN
 
+/* Define to 1 if you have the `gif' library (-lgif). */
+#undef HAVE_LIBGIF
+
 /* Define to 1 if you have the `glog' library (-lglog). */
 #undef HAVE_LIBGLOG
 
@@ -244,6 +256,9 @@
 
 /* Define to 1 if you have the `lapack' library (-llapack). */
 #undef HAVE_LIBLAPACK
+
+/* Define to 1 if you have the `lmdb' library (-llmdb). */
+#undef HAVE_LIBLMDB
 
 /* Define to 1 if you have the `mad' library (-lmad). */
 #undef HAVE_LIBMAD
@@ -266,8 +281,14 @@
 /* Define to 1 if you have the `octinterp' library (-loctinterp). */
 #undef HAVE_LIBOCTINTERP
 
+/* Define to 1 if you have the `opencv_calib3d' library (-lopencv_calib3d). */
+#undef HAVE_LIBOPENCV_CALIB3D
+
 /* Define to 1 if you have the `opencv_core' library (-lopencv_core). */
 #undef HAVE_LIBOPENCV_CORE
+
+/* Define to 1 if you have the `opencv_cudev' library (-lopencv_cudev). */
+#undef HAVE_LIBOPENCV_CUDEV
 
 /* Define to 1 if you have the `opencv_features2d' library
    (-lopencv_features2d). */
@@ -279,12 +300,28 @@
 /* Define to 1 if you have the `opencv_highgui' library (-lopencv_highgui). */
 #undef HAVE_LIBOPENCV_HIGHGUI
 
+/* Define to 1 if you have the `opencv_imgcodecs' library
+   (-lopencv_imgcodecs). */
+#undef HAVE_LIBOPENCV_IMGCODECS
+
 /* Define to 1 if you have the `opencv_imgproc' library (-lopencv_imgproc). */
 #undef HAVE_LIBOPENCV_IMGPROC
+
+/* Define to 1 if you have the `opencv_ml' library (-lopencv_ml). */
+#undef HAVE_LIBOPENCV_ML
+
+/* Define to 1 if you have the `opencv_nonfree' library (-lopencv_nonfree). */
+#undef HAVE_LIBOPENCV_NONFREE
 
 /* Define to 1 if you have the `opencv_objdetect' library
    (-lopencv_objdetect). */
 #undef HAVE_LIBOPENCV_OBJDETECT
+
+/* Define to 1 if you have the `opencv_video' library (-lopencv_video). */
+#undef HAVE_LIBOPENCV_VIDEO
+
+/* Define to 1 if you have the `opencv_videoio' library (-lopencv_videoio). */
+#undef HAVE_LIBOPENCV_VIDEOIO
 
 /* Define to 1 if you have the `png' library (-lpng). */
 #undef HAVE_LIBPNG
@@ -339,6 +376,9 @@
 
 /* Define to 1 if you have the `link' function. */
 #undef HAVE_LINK
+
+/* Define to 1 if you have the <lmdb.h> header file. */
+#undef HAVE_LMDB_H
 
 /* Define to 1 if you have the `localtime_r' function. */
 #undef HAVE_LOCALTIME_R
@@ -408,6 +448,9 @@
 
 /* Define to 1 if you have the <opencv2/core/core.hpp> header file. */
 #undef HAVE_OPENCV2_CORE_CORE_HPP
+
+/* Define to 1 if you have the <opencv2/core/cuda.hpp> header file. */
+#undef HAVE_OPENCV2_CORE_CUDA_HPP
 
 /* Define to 1 if you have the <opencv2/core/gpumat.hpp> header file. */
 #undef HAVE_OPENCV2_CORE_GPUMAT_HPP
@@ -575,6 +618,9 @@
 
 /* Define to 1 if you have the <thrift/Thrift.h> header file. */
 #undef HAVE_THRIFT_THRIFT_H
+
+/* Define to 1 if you have the <tiffio.h> header file. */
+#undef HAVE_TIFFIO_H
 
 /* Define to 1 if you have the `times' function. */
 #undef HAVE_TIMES

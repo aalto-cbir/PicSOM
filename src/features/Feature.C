@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Feature.C,v 1.254 2017/02/01 15:25:17 jorma Exp $
+// -*- C++ -*-  $Id: Feature.C,v 1.257 2018/06/21 15:04:10 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -183,6 +183,7 @@ namespace picsom {
                 DebugMemoryUsage(true);
                 break;
               }
+	      /* fall-thru */ // I guess...
             case 'D':
             case 'm': {
               pair<bool,int> verb = SolveVerbosity(astr.substr(1));
@@ -632,7 +633,7 @@ namespace picsom {
           if (fptr) {  // fptr==NULL if concat and not enough files yet...
             bool can_reuse = fptr->ReInitializable();
             if ((!can_reuse || force_no_reuse) &&
-                (can_reuse || !force_reuse)) {
+                (can_reuse || !force_reuse) && !fptr->IsBatchOperator()) {
               if (MethodVerbose())
                 cout << msg << "Destroying method data" << endl;
               delete fptr;
@@ -648,6 +649,9 @@ namespace picsom {
         pos++;
       }
 
+      if (fptr && fptr->IsBatchOperator() && !fptr->ProcessBatch())
+	retval = 1;
+      
       delete fptr;
 
       if (MethodVerbose() && result)
@@ -836,6 +840,12 @@ namespace picsom {
       f->Initialize(all_files, segmfile, NULL, opts_eff, false);
     }
 
+    if (f->IsBatchOperator()) {
+      if (FileVerbose())
+	cout << "  IsBatchOperator()==true, collecting..." << endl;
+      return f->CollectBatch(one_file_x, incorep, result); 
+    }
+    
     string segmtmp;
 
     if (std_naming_pat=="")
@@ -1614,6 +1624,23 @@ namespace picsom {
     return true;
   }
 
+  //===========================================================================
+
+  void Feature::SetRegionSpecificationWholeImage() {
+    string msg = "Feature::SetRegionSpecificationWholeImage() : ";
+
+    region_descr.clear();
+
+    char tmp[100];
+    int w = Width(), h = Height();
+    sprintf(tmp, "(%d,%d):%dx%d", (w-1)/2, (h-1)/2, w, h);
+    AddRegionDescriptor(tmp, "");
+    SetRegionSpecifications();
+
+    if (FileVerbose())
+      cout << msg << " added whole image [" << tmp << "]" << endl;
+  }
+  
   //===========================================================================
 
   imagedata Feature::RegionImage(size_t r) const {
@@ -2858,7 +2885,7 @@ void Feature::Print(ostream& os, const featureVector& vec, const string& lbl) {
          << endl;
 
   SetDataLabelsAndIndices(false);
-  AddDataElements(false); 
+  // AddDataElements(false); 2018-06-21 moved after FramePreProcess()
   
   featureVector concat;
   
@@ -3335,8 +3362,15 @@ Feature::featureVector Feature::CalculatePerFrame(int f, int ff, bool print) {
   if (!FramePreProcess(img, f))
     ok = false;
 
-  if (ok)
-   PossiblySetZoning();  // added 2014-01-22 so it's set multiple times...
+  if (ok) {
+    // added 2018-06-21 for t_c_ features...
+    if (RegionDescriptorCount()==1) {
+      // assume "all image" added in RegionBased::ProcessOptionsAndRemove()
+      SetRegionSpecificationWholeImage();
+    }
+    PossiblySetZoning();  // added 2014-01-22 so it's set multiple times...
+    AddDataElements(false); // moved here 2018-06-21
+  }
 
 #if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
   opencvmat = Convert2cvMat();
@@ -3364,6 +3398,7 @@ Feature::featureVector Feature::CalculatePerFrame(int f, int ff, bool print) {
     }
     case treat_concatenate:
       GetData(f)->ZeroToSize(FeatureVectorSize());
+      break;
     case treat_pixelconcat:
     case treat_average:
     case treat_join:
@@ -3966,7 +4001,7 @@ string Feature::BaseFileName() const {
              << ") @" << (void*)SegmentData()->accessFrame(base+i) << endl;
     
       switch (t) {
-      case pixel_rgba: v[o+3] = 0;
+      case pixel_rgba: v[o+3] = 0; /* fall-thru */
       case pixel_rgb:  v[o] = m*p[0]; v[o+1] = m*p[1]; v[o+2] = m*p[2]; break;
       case pixel_grey: v[o] = m*(p[0]+p[1]+p[2])/3; break;
       default: throw "Feature::GetPixelFloats() unknown type";
@@ -4359,6 +4394,7 @@ bool Feature::PerformScaling(int f) {
     string msg = "Feature::PreProcess("+m+","+ToStr(f)+") : ";
 
     bool display_it = false; // FrameVerbose();
+    // display_it = true;
 
     if (FrameVerbose())
       cout << msg << "for " << ot << " starting " << imgd.info() << endl;
@@ -4423,6 +4459,7 @@ bool Feature::PerformScaling(int f) {
     pmi.push_back(e("multiply", &Feature::PreProcess_multiply));
     pmi.push_back(e("shift",    &Feature::PreProcess_shift));
     pmi.push_back(e("crop",     &Feature::PreProcess_crop));
+    pmi.push_back(e("trim",     &Feature::PreProcess_trim));
     pmi.push_back(e("resize",   &Feature::PreProcess_resize));
     pmi.push_back(e("hflip",    &Feature::PreProcess_hflip));
   }
@@ -4549,6 +4586,97 @@ bool Feature::PerformScaling(int f) {
 
     if (FrameVerbose())
       cout << msg << "cropping " << img.info() << " with l=" << l
+	   << " t=" << t << " r=" << r << " b=" << b << endl;
+
+    imagedata sub = img.subimage(l, t, img.width()-1-r, img.height()-1-b);
+    img = sub;
+
+    if (FrameVerbose())
+      cout << msg << "result " << img.info() << endl;
+
+    return true;
+  }
+
+  //===========================================================================
+
+  bool Feature::PreProcess_trim(imagedata& img, const string& a) const {
+    string msg = "Feature::PreProcess_trim("+a+") : ";
+
+    if (a!="")
+      return ShowError(msg+"trim should not have argument");
+    
+    float th = 3.0/32;
+
+    int l = 0, r = 0, t = 0, b = 0;
+
+    size_t w = img.width(), h = img.height();
+    bool xl = true, xr = true, xt = true, xb = true;
+    for (size_t x=0; x<w/2; x++) {
+      double dlm = 0, drm = 0;
+      for (size_t y=1; y<h; y++) {
+	vector<float> v1 = img.get_float(x,     y  );
+	vector<float> v2 = img.get_float(x,     y-1);
+	vector<float> v3 = img.get_float(w-1-x, y  );
+	vector<float> v4 = img.get_float(w-1-x, y-1);
+	double dl = 0, dr = 0;
+	for (size_t i=0; i<3; i++) {
+	  dl += fabs(v1[i]-v2[i]);
+	  dr += fabs(v3[i]-v4[i]);
+	}
+	if (dl>dlm) dlm = dl;
+	if (dr>drm) drm = dr;
+      }
+
+      if (dlm>th)
+	xl = false;
+      if (drm>th)
+	xr = false;
+
+      l += xl;
+      r += xr;
+      
+      if (PixelVerbose())
+	cout << "x : " << x << " " << dlm << " " << drm
+	     << " (" << th << ") " << xl << " " << xr << endl;
+
+      if (!xl && !xr)
+	break;
+    }
+
+    for (size_t y=0; y<h/2; y++) {
+      double dtm = 0, dbm = 0;
+      for (size_t x=1; x<w; x++) {
+	vector<float> v1 = img.get_float(x,   y    );
+	vector<float> v2 = img.get_float(x-1, y    );
+	vector<float> v3 = img.get_float(x,   h-1-y);
+	vector<float> v4 = img.get_float(x-1, h-1-y);
+	double dt = 0, db = 0;
+	for (size_t i=0; i<3; i++) {
+	  dt += fabs(v1[i]-v2[i]);
+	  db += fabs(v3[i]-v4[i]);
+	}
+	if (dt>dtm) dtm = dt;
+	if (db>dbm) dbm = db;
+      }
+
+      if (dtm>th)
+	xt = false;
+      if (dbm>th)
+	xb = false;
+
+      t += xt;
+      b += xb;
+
+      if (PixelVerbose())
+	cout << "y : " << y << " " << dtm << " " << dbm 
+	     << " (" << th << ") " << xt << " " << xb << endl;
+
+      if (!xt && !xb)
+	break;
+    }
+
+    if (FrameVerbose())
+      cout << msg << "trimming " << img.info() << " with l=" << l
 	   << " t=" << t << " r=" << r << " b=" << b << endl;
 
     imagedata sub = img.subimage(l, t, img.width()-1-r, img.height()-1-b);
@@ -5782,6 +5910,15 @@ bool Feature::PerformScaling(int f) {
 
   //===========================================================================
 
+  bool Feature::CollectBatch(const string& f, incore_feature_t *i,
+			     feature_result *r) {
+    string msg = "Feature::CollectBatch() : ";
+    batch.push_back(feature_batch_e(f, i, r));
+    if (FileVerbose())
+      cout << msg << (void*)this << " collected " << batch.size() << endl;
+    return true;
+  }
+  
   //===========================================================================
 
 } // namespace picsom

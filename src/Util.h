@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Util.h,v 2.89 2017/06/14 08:55:30 jormal Exp $
+// -*- C++ -*-  $Id: Util.h,v 2.91 2018/10/11 09:48:37 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -98,7 +98,7 @@ using namespace std;
 
 namespace picsom {
   static const string Util_h_vcid =
-    "@(#)$Id: Util.h,v 2.89 2017/06/14 08:55:30 jormal Exp $";
+    "@(#)$Id: Util.h,v 2.91 2018/10/11 09:48:37 jormal Exp $";
 
   extern bool trap_after_error;
   // extern bool jam_after_error;
@@ -751,6 +751,21 @@ namespace picsom {
 
   ///
   string OpenBlasVersion();
+
+  ///
+  double NiceUpperLimit(double v, size_t m = 0);
+
+  ///
+  inline double NiceUpperLimit(const vector<float>& v, size_t m = 0) {
+    float max = 0;
+    for (auto i=v.begin(); i!=v.end(); i++)
+      if (*i>max)
+	max = *i;
+    return NiceUpperLimit(max, m);
+  }
+
+  ///
+  string WashString(const string&, const string&);
   
 } // namespace picsom
 

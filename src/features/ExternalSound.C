@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: ExternalSound.C,v 1.12 2014/02/03 09:21:16 jorma Exp $
+// -*- C++ -*-  $Id: ExternalSound.C,v 1.13 2017/11/29 05:09:11 jormal Exp $
 // 
 // Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -19,7 +19,7 @@
 
 namespace picsom {
   static const char *vcid =
-    "$Id: ExternalSound.C,v 1.12 2014/02/03 09:21:16 jorma Exp $";
+    "$Id: ExternalSound.C,v 1.13 2017/11/29 05:09:11 jormal Exp $";
 
   static ExternalSound list_entry(true);
 
@@ -92,6 +92,7 @@ namespace picsom {
       }
       case treat_concatenate:
 	GetData(f)->ZeroToSize(FeatureVectorSize());
+	break;
       case treat_pixelconcat:
       case treat_average:
       case treat_join:

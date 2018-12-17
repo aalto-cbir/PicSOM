@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Segmentation.C,v 1.144 2014/10/29 14:08:22 jorma Exp $
+// -*- C++ -*-  $Id: Segmentation.C,v 1.145 2017/11/29 11:53:56 jormal Exp $
 // 
-// Copyright 1998-2012 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -28,7 +28,7 @@ using std::cerr;
 
 namespace picsom {
   static const string vcid =
-    "@(#)$Id: Segmentation.C,v 1.144 2014/10/29 14:08:22 jorma Exp $";
+    "@(#)$Id: Segmentation.C,v 1.145 2017/11/29 11:53:56 jormal Exp $";
 
   Segmentation *Segmentation::list_of_methods;
 
@@ -358,7 +358,7 @@ namespace picsom {
 	  if(argv[1][2]=='b'){
 	    TagBackgroundLabels(false);
 	  }
-
+	  break;
 
 	case 'm':
 	  option.option = argv[1];

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Analysis.h,v 2.490 2017/05/09 10:19:10 jormal Exp $
+// -*- C++ -*-  $Id: Analysis.h,v 2.508 2018/10/30 09:26:53 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -40,7 +40,7 @@ namespace picsom {
   using simple::DataSet;
 
   static const string Analysis_h_vcid =
-    "@(#)$Id: Analysis.h,v 2.490 2017/05/09 10:19:10 jormal Exp $";
+    "@(#)$Id: Analysis.h,v 2.508 2018/10/30 09:26:53 jormal Exp $";
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -590,6 +590,9 @@ namespace picsom {
     bool WriteOutTextLineData();
 
     ///
+    bool WriteOutTextLineData(const textline_t&);
+
+    ///
     bool FetchImageNet(const string&, const string&, vector<string>&);
 
     ///
@@ -938,7 +941,7 @@ namespace picsom {
 					  string&, size_t&);
 
     ///
-    bool ProcessSlaveXmlResultCaption(const XmlDom&, bool, string&);
+    bool ProcessSlaveXmlResultCaption(const XmlDom&, bool, bool, string&);
 
     ///
     bool ProcessSlaveXmlResultObjectInfoHashList(const XmlDom&, size_t&);
@@ -1077,6 +1080,9 @@ namespace picsom {
     analyse_result AnalyseWordNetTest(const vector<string>&);
     
     ///
+    analyse_result AnalyseVisualGenomeTest(const vector<string>&);
+    
+    ///
     analyse_result AnalyseSparqlTest(const vector<string>&);
     
     ///
@@ -1106,6 +1112,9 @@ namespace picsom {
     ///
     analyse_result AnalyseMetaClassFile(const vector<string>&);
 
+    ///
+    analyse_result AnalyseCreateLabelMap(const vector<string>&);
+    
     ///
     analyse_result AnalyseDTW(const vector<string>&);
 
@@ -1833,7 +1842,13 @@ namespace picsom {
     analyse_result AnalyseTrecvidLocOutput(const vector<string>&);
 
     ///
+    analyse_result AnalyseTrecvidVttOutput(const vector<string>&);
+
+    ///
     analyse_result AnalyseCOCOoutput(const vector<string>&);
+
+    ///
+    analyse_result AnalyseCOCOoutput_old(const vector<string>&);
 
     ///
     analyse_result AnalyseLSMDCoutput(const vector<string>&);
@@ -2182,7 +2197,13 @@ namespace picsom {
     bool SqlUpdateOneSet(const vector<string>&);
 
     ///
+    analyse_result AnalyseUpdateObjectInfo(const vector<string>&);
+
+    ///
     analyse_result AnalyseUpdateVideoInfo(const vector<string>&);
+
+    ///
+    analyse_result AnalyseUpdateImageInfo(const vector<string>&);
 
     ///
     analyse_result AnalyseBinDataTest(const vector<string>&);
@@ -2230,8 +2251,14 @@ namespace picsom {
     analyse_result AnalyseImportExternalDetections(const vector<string>&);
 
     ///
+    analyse_result AnalyseExportWadm(const vector<string>&);
+    
+    ///
     analyse_result AnalyseImportBinData(const vector<string>&);
 
+    ///
+    analyse_result AnalyseExportLmdbFeatures(const vector<string>&);
+    
     ///
     bool libsvmdump;
     bool LibsvmDump();
@@ -2274,6 +2301,9 @@ namespace picsom {
     ///
     analyse_result AnalysePDF(const vector<string>&);
 
+    list<analyse_result> SplitSlavesAndAnalyse(const vector<size_t>&,
+					       const list<string>&,
+					       const string&);
     ///
     analyse_result AnalyseCaptioning(const vector<string>&);
 
@@ -2308,7 +2338,8 @@ namespace picsom {
     string CleanTextQuery(const string&);
 
     ///
-    analyse_result AnalyseDumpFakeTextIndex(const vector<string>&);
+    analyse_result AnalyseDumpTextIndex(const vector<string>&);
+
     ///
     bool RunAnalyseBestAndCombine(int, vector<textsearchresult_t>&);
 
@@ -2317,6 +2348,12 @@ namespace picsom {
 
     ///
     analyse_result AnalyseTextAddField(const vector<string>&);
+
+    ///
+    analyse_result AnalyseTextIndexUpdateLabels(const vector<string>&);
+
+    ///
+    analyse_result AnalyseTextWash(const vector<string>&);
 
     ///
     analyse_result AnalyseGoogleCustomSearch(const vector<string>&);
@@ -2547,7 +2584,7 @@ namespace picsom {
     const string& Label(int i) const { return CheckQuery()->Label(i); }
 
     ///
-    const char *LabelP(int i) const { return Label(i).c_str(); }
+    // const char *LabelP(int i) const { return Label(i).c_str(); }
 
     ///
     const string& DataBaseName() const { return CheckQuery()->DataBaseName(); }
@@ -2951,6 +2988,11 @@ namespace picsom {
     ///
     analyse_result AnalyseCaffeTest(const vector<string>&);
 #endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
+
+#if defined(HAVE_CAFFE2_CORE_MACROS_H) && defined(PICSOM_USE_CAFFE2)
+    ///
+    analyse_result AnalyseCaffe2Test(const vector<string>&);
+#endif // HAVE_CAFFE2_CORE_MACROS_H && PICSOM_USE_CAFFE2
 
 #if defined(HAVE_THC_H) && defined(PICSOM_USE_TORCH)
     ///
@@ -3645,10 +3687,22 @@ namespace picsom {
     bool tolerate_missing_features;
 
     ///
+    bool reextract_zero_vectors;
+    
+    ///
     string mapgrid;
 
     ///
     map<string,map<size_t,textline_t> > insert_objects_textline;
+
+    /// Used in objectinfo verbose=512
+    vector<string> labelextras;
+
+    /// Set true to force DoAlldetections(), Do AllCaptionings() etc.
+    bool force;
+
+    /// If set to false, then lucene textindex is not updated with captions.
+    bool use_textindex;
 
   };  // class Analysis
 
@@ -3657,7 +3711,7 @@ namespace picsom {
   // of a script for different weightings of the last feature
   // in the script
 
-  class optEvaluator:public floatEvaluator{
+  class optEvaluator:public floatEvaluator {
   public:
     optEvaluator(Analysis *a, std::list<std::string> *b,
 		 std::list<std::string> *f,
@@ -3670,10 +3724,9 @@ namespace picsom {
       firstresult=true;
     }
 
-    virtual ~optEvaluator(){}
+    virtual ~optEvaluator() {}
 
-
-    virtual float eval(float x){
+    virtual float eval(float x) {
       cout << "optEvaluator::eval("<<x<<")=";
       string newbase=new_feat->substr(0,new_feat->find('('));
       list<string> a;

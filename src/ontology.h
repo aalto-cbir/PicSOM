@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: ontology.h,v 2.1 2015/03/17 11:22:36 jorma Exp $
+// -*- C++ -*-  $Id: ontology.h,v 2.3 2018/02/14 09:18:14 jormal Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -16,7 +16,7 @@ using namespace std;
 
 namespace picsom {
   static string ontology_h_vcid =
-    "@(#)$Id: ontology.h,v 2.1 2015/03/17 11:22:36 jorma Exp $";
+    "@(#)$Id: ontology.h,v 2.3 2018/02/14 09:18:14 jormal Exp $";
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -28,27 +28,46 @@ namespace picsom {
   class ontology {
   public:
     ///
-    typedef list<pair<string,pair<string,float> > > relation_t;
+    class entry_t {
+    public:
+      ///
+      entry_t() : own(0), children(0) {}
+
+      ///
+      entry_t(const string& a, const string& b, float v1, float v2) :
+	first(a), second(b), own(v1), children(v2), level(0) {}
+      
+      ///
+      string first, second;
+
+      ///
+      float own, children;
+
+      ///
+      size_t level;
+    };
+
+    typedef list<entry_t> relation_t;
 
     ///
-    typedef vector<pair<string,float> > rellist_t;
+    typedef vector<entry_t> rellist_t;
 
     /// The constructor.
     /// ontology();
 
     ///
-    void add_is_a(const string& a, const string& b, float v = 1) {
-      add(_is_a, a, b, v);
+    entry_t&  add_is_a(const string& a, const string& b) {
+      return add(_is_a, a, b);
     }
 
     ///
-    void add_is_part(const string& a, const string& b, float v = 1) {
-      add(_is_part, a, b, v);
+    entry_t& add_is_part(const string& a, const string& b) {
+      return add(_is_part, a, b);
     }
 
     ///
-    void add_excludes(const string& a, const string& b, float v = 1) {
-      add(_excludes, a, b, v);
+    entry_t& add_excludes(const string& a, const string& b) {
+      return add(_excludes, a, b);
     }
 
     ///
@@ -82,16 +101,35 @@ namespace picsom {
     }
 
     ///
-    void add(relation_t&, const string&, const string&, float);
+    entry_t& add(relation_t&, const string&, const string&, 
+		 float = 0, float = 0);
 
     ///
     rellist_t pick(const relation_t&, const string&, bool, bool) const;
+
+    ///
+    static bool wordnet_split(const string&, string&, int&, int&);
+    
+    ///
+    static vector<string> wordnet_path(const string&);
+    
+    ///
+    static vector<string> wordnet_children(const string&, bool = false);
+    
+    ///
+    relation_t& IsA() { return _is_a; }
+
+    ///
+    relation_t& IsPart() { return _is_part; }
+
+    ///
+    relation_t& Excludes() { return _excludes; }
 
   private:
     ///
     relation_t _is_a, _is_part, _excludes;
 
-  };  // class DataBase
+  };  // class ontology
 
 } // namespace picsom
 

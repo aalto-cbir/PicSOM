@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Feature.h,v 1.214 2017/04/07 15:11:47 jormal Exp $
+// -*- C++ -*-  $Id: Feature.h,v 1.217 2018/06/21 15:04:16 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -15,8 +15,8 @@
    features.
   
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.214 $
-   $Date: 2017/04/07 15:11:47 $
+   $Revision: 1.217 $
+   $Date: 2018/06/21 15:04:16 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -115,6 +115,26 @@ namespace picsom {
   ///
   typedef pair<pair<string,string>,vector<float> > incore_feature_t;
 
+  ///
+  class feature_batch_e {
+  public:
+    ///
+    feature_batch_e(const string& f, const incore_feature_t *i,
+		    feature_result *r) : fname(f), incore(i), result(r) {}
+
+    ///
+    string fname;
+
+    ///
+    const incore_feature_t *incore;
+
+    ///
+    feature_result *result;
+  };
+
+  ///
+  typedef list<feature_batch_e> feature_batch;
+  
   /// A base class for all features that can be used in the feature extraction.
   class Feature {
   public:
@@ -276,6 +296,19 @@ namespace picsom {
 	per frame features.
     */
     virtual bool IsPerFrameCombinable() { return true; } // = 0;
+
+    /**
+     */
+    virtual bool IsBatchOperator() { return false; }
+
+    /**
+     */
+    virtual bool CollectBatch(const string&, incore_feature_t*, 
+			      feature_result*);
+
+    /**
+     */
+    virtual bool ProcessBatch() { return false; }
 
     /** Returns true if can be invoked with -R swithch.
      */
@@ -1763,6 +1796,11 @@ namespace picsom {
     /** Example of a preprocessing method
 	\return true if ok
     */
+    bool PreProcess_trim(imagedata&, const string&) const;
+
+    /** Example of a preprocessing method
+	\return true if ok
+    */
     bool PreProcess_resize(imagedata&, const string&) const;
 
     /** Example of a preprocessing method
@@ -2654,6 +2692,9 @@ namespace picsom {
       region_descr.push_back(make_pair(d, a));
     }
 
+    ///
+    void SetRegionSpecificationWholeImage();
+
     /** Return the region with a specified index
 	\param l the region index
 	\return the regioninfo of the region
@@ -2997,6 +3038,9 @@ namespace picsom {
     ///
     imagedata *incore_imagedata_ptr;
 
+    ///
+    feature_batch batch;
+    
   };  // class Feature
 
 } // namespace picsom

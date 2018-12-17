@@ -1,11 +1,11 @@
 // 
-// Copyright 1994-2005 Jorma Laaksonen <jorma@cis.hut.fi>
-// Copyright 1998-2005 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1994-2017 Jorma Laaksonen <jorma@cis.hut.fi>
+// Copyright 1998-2017 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: DataSet.C,v 1.3 2009/11/20 20:48:15 jorma Exp $
+// @(#)$Id: DataSet.C,v 1.4 2017/11/29 11:53:02 jormal Exp $
 
 #include <DataSet.h>
 
@@ -61,7 +61,7 @@ DataSet::~DataSet() {
 ///////////////////////////////////////////////////////////////////////////
 
 void DataSet::Dump(Simple::DumpMode dt, ostream& os) const {
-  if (dt&&DumpRecursive)
+  if (int(dt)&&int(DumpRecursive))
     FloatVectorSource::Dump(dt, os);
 
   os << "  DataSet "            << (void*)this

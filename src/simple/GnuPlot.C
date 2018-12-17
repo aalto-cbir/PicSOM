@@ -5,7 +5,7 @@
 // P.O.BOX 5400, FI-02015 HUT, FINLAND
 // 
 
-// @(#)$Id: GnuPlot.C,v 1.13 2009/11/20 20:48:15 jorma Exp $
+// @(#)$Id: GnuPlot.C,v 1.14 2018/12/15 23:05:37 jormal Exp $
 
 #include <GnuPlot.h>
 
@@ -718,7 +718,7 @@ const char *GnuPlot::LabelText(const char *sf, int t, const char *pr, int b) {
 
 ///////////////////////////////////////////////////////////////////////////
 
-void GnuPlot::IgnorePipeSignal(int, int) {
+void GnuPlot::IgnorePipeSignal(int) {
   #ifdef SIGPIPE
   signal(SIGPIPE, (CFP_signal)IgnorePipeSignal);
   #endif // SIGPIPE

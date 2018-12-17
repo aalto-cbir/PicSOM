@@ -1,4 +1,588 @@
-2017-11-28  jormal  <jormal@cs-170>
+2018-12-16  jormal  <jormal@cs-271>
+
+	* VectorIndex.C 2.107: Summary: Added 2x #ifdef HAVE_LMDB_H .
+
+	* bin_data.C 2.34: Summary: Added (char*) in memset().
+
+	* Connection.C 2.385:
+	Summary: Added working #ifdef for #define OPENSSL_VERSION_NUMBER.
+
+	* Connection.C 2.384: Summary: Commneted out #define TLS_ST_OK.
+
+	* configure.ac 2.129:
+	Summary: Added AV_CHECK_LIB for opencv_*video* etc.
+
+	* configure.ac 2.128: Summary: Added check for -llmdb.
+
+	* Analysis.C 2.1232: Summary: Corrected #endif in AnalyseExportWadm().
+
+	* configure.ac 2.127: Stepped to 0.37.
+
+	* DataBase.C 2.1015:
+	Summary: Moved bool middle_frame_trick = true in GenerateSentencesNeuralTalk().
+
+	* Analysis.C 2.1231, CbirAlgorithm.C 2.41, DataBase.C 2.1014, DataBase.h 2.557, Index.C 2.89, Query.C 2.643:
+	Mainly increased char buffer sizes to avoid warnings by gcc version 8.2.0.
+
+2018-11-23  jormal  <jormal@cs-271>
+
+	* Connection.C 2.383:
+	Summary: Switch (back?) to use xmlReadMemory() instead of xmlParseMemory() in ParseXML().
+
+	* Analysis.C 2.1230:
+	Added float max_v = 100000 in AnalyseShotBoundaryThreshold().
+
+2018-11-13  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1013: Added ## -> # decoding in TextIndexAllLines().
+
+2018-11-08  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1012:
+	Summary: TextIndexAllLines() should now tolerate () inside text a bit better.
+
+	* Analysis.C 2.1229:
+	Summary: AnalyseObjectInfo() now uses both DataBase::TextIndexRetrieve() and TextIndexLine().
+	AnalyseCreateLabelMap() now has mandatory argument middleframe|kf1.
+
+2018-10-30  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1011, DataBase.h 2.556, Analysis.h 2.508, Analysis.C 2.1228:
+	Summary: Added bool do_flush in DataBase::StoreCaptioningResult() and Analysis::ProcessSlaveXmlResultCaption().
+
+2018-10-29  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1010, Analysis.C 2.1227, PicSOM.C 2.593, PicSOM.h 2.308:
+	Summary: In textline_t renamed: str()->str_common(), parse()->txt_decode(), added: txt_display(), txt_encode().
+
+	* Analysis.C 2.1226: Improved AnalyseTrecvidVttOutput().
+
+2018-10-21  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1009: Minor bug fixes...
+
+2018-10-19  jormal  <jormal@cs-271>
+
+	* Analysis.h 2.507, Analysis.C 2.1225:
+	Summary: Made bool reextract_zero_vectors of ExtractFeatures() an interpreted variable that now defaults to false whereas it was true.
+
+	* Analysis.h 2.506, Analysis.C 2.1224:
+	Summary: Added AnalyseCreateLabelMap().
+
+	* Util.C 2.72:
+	Summary: Added recognition of spec=...proper... in WashString().
+
+	* DataBase.C 2.1008:
+	Summary: ReadCOCOjsoncpp() now creates gt-raw or alternatibely gt-precooked.
+
+2018-10-18  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1007, DataBase.h 2.555:
+	Added GroundTruthNchildren() and (expr,n).
+
+	* PicSOM.C 2.592: Summary: Added TIFF and GIF in SolveVersionData().
+
+	* configure.ac 2.126: Summary: Added check for tiffio.h .
+
+	* Util.C 2.71:
+	Summary: Added application/octet-stream => image/gif in libmagic_mime_type().
+
+	* DataBase.C 2.1006:
+	Summary: ConvertGlobalToLocalDiskName() now recognizes names that are already local.
+
+2018-10-12  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1005, DataBase.h 2.554, Analysis.C 2.1223:
+	Video frame extraction should now work also for imagesets.
+
+2018-10-11  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1222:
+	ExtractMedia() now uses filename instead of label.jpeg.
+
+	* Analysis.C 2.1221: Also imageset is now handled in AnalyseDisplay().
+
+	* DataBase.C 2.1004, DataBase.h 2.553:
+	Summary: Added TextIndexAllLines() that all other TextIndexLine*(*) use.
+	Added insertallow_no_target that defaults to the old false behavior.
+
+	* Util.C 2.70, Util.h 2.91, Analysis.h 2.505, Analysis.C 2.1220:
+	Summary: Added Analysis::AnalyseTextWash() and WashString() in Util.C.
+	Extracted WriteOutTextLineData(const textline_t& tl) out of WriteOutTextLineData().
+
+2018-10-10  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1219:
+	Summary: Added keys to escape frame loop in AnalyseDisplay().
+
+	* Makefile.include 2.216: Summary: Added -lgif .
+
+	* Analysis.C 2.1218:
+	Summary: Added looping over image frames in AnalyseDisplay().
+
+	* configure.ac 2.125: Summary: Added checks for GIF.
+
+2018-10-09  jormal  <jormal@cs-271>
+
+	* TimeUtil.h 2.24: Summary: Corrected rounding in SecToString().
+
+	* Analysis.C 2.1217:
+	Summary: Added verbose=4 in AnalyseDumpTextIndex().
+
+2018-10-05  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1003:
+	Summary: Started to use streams from Connection in LuceneOperation().
+
+	* Connection.h 2.132, Connection.C 2.382:
+	Summary: Added rfdibuf, wfdobuf, rfdistream and wfdostream.
+
+	* Analysis.C 2.1216: Summary: Added some lucene debugs.
+
+	* Connection.C 2.381: Summary: Commented out erroneous use of sync().
+
+2018-10-04  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1215:
+	Changed and added verbostities in AnalyseDumpTextIndex().
+
+	* DataBase.h 2.552, DataBase.C 2.1002:
+	Summary: Added new versions of TextIndexRetrieve() and TextIndexUpdate() with string arguments.
+
+	* PicSOM.C 2.591: Corrected a spacing bug in textline_t::str(),
+
+	* Analysis.h 2.504, Analysis.C 2.1214:
+	Added AnalyseTextIndexUpdateLabels().
+
+	* DataBase.C 2.1001:
+	Summary: Commented out call to AddCreatedFile() in CopyFileFromGlobalToLocalDisk().
+
+2018-10-02  jormal  <jormal@cs-271>
+
+	* PicSOM.C 2.590, PicSOM.h 2.307, DataBase.C 2.1000, DataBase.h 2.551, Analysis.C 2.1213:
+	Implemented textindex part of AnalyseExportWadm().
+	Added index and field in textline_t.
+	Split DataBase::TextIndexLines() to 2 and TextIndexLine().
+	Added field argument to TextIndexLine*().
+
+2018-09-25  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1212, VectorIndex.h 2.52, VectorIndex.C 2.106:
+	Added key_name argument to AnalyseExportLmdbFeatures().
+	Added key argument to LmdbDataStoreFeature().
+
+	* Analysis.C 2.1211, Analysis.h 2.503, DataBase.C 2.999, DataBase.h 2.550:
+	Added AnalyseUpdateObjectInfo() and SplitSlavesAndAnalyse() it uses.
+
+	* Analysis.C 2.1210, Analysis.h 2.502: Added AnalyseExportWadm().
+
+2018-09-14  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1209, DataBase.C 2.998:
+	Improved AnalyseSqlUpdate() to handle prefixing of labels, names and urls.
+
+2018-09-11  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1208, Analysis.h 2.501:
+	Renamed AnalyseDumpFakeTextIndex() to AnalyseDumpTextIndex() and
+	added verbose=2 functionality in it.
+
+	* DataBase.C 2.997: Some minor improvements in logging.
+
+2018-08-31  jormal  <jormal@cs-271>
+
+	* object_info.h 2.6: Added missing "{" after "P:" in dump_nonl().
+
+	* Analysis.C 2.1207:
+	Summary: AnalyseDisplay() now llops videos and show their filenames.
+
+2018-08-15  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1206: Summary: Corrected AnalysePythonTest().
+
+	* Analysis.C 2.1205: Corrected AnalysePythonTest().
+
+	* DataBase.C 2.996, DataBase.h 2.549, Analysis.C 2.1204, Makefile.include 2.215:
+	Summary: Continued python3 support.
+
+	* Makefile.include 2.214, PicSOM.h 2.306: Added support to python3.
+
+	* Analysis.C 2.1203:
+	IMproved argument interpretation of AnalyseSubtitles().
+
+	* Makefile.include 2.213, Makefile 2.140, PicSOM.C 2.589:
+	Removed out-dated imgrobot stuff.
+
+2018-08-06  jormal  <jormal@cs-271>
+
+	* PicSOM.C 2.588:
+	Failing getloadavg() won't anymore stop the show in AddToXMLstatus().
+
+	* DataBase.C 2.995: Changed FeatureDataNumPy() to obey angry.
+
+2018-08-03  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1202: Added 2nd mode in AnalyseTextRetrieve().
+
+	* Analysis.C 2.1201, Analysis.h 2.500, DataBase.C 2.994, DataBase.h 2.548, VectorIndex.C 2.105, VectorIndex.h 2.51:
+	Added AnalyseExportLmdbFeatures() and support needed.
+
+2018-08-01  jormal  <jormal@cs-271>
+
+	* DataBase.h 2.547, PicSOM.C 2.587:
+	Summary: Added support for ubunti bionic and LMDBLIBS.
+
+	* configure.ac 2.124: Summary: Added test for lmdb.h.
+
+	* Makefile.include 2.212:
+	Summary: Added support for ubunti bionic and LMDBLIBS.
+
+2018-07-16  lariah1  <lariah1@cs-271>
+
+	* Analysis.C 2.1200: Update vtt 18 testing data
+
+2018-07-03  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.993:
+	StoreCaptioningResult() now reports more errors and can use textindex names.
+
+	* Analysis.C 2.1199:
+	ProcessSlaveXmlResultCaption() now checks StoreCaptioningResult() errors.
+
+2018-07-02  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.992, DataBase.h 2.546: Added captioning_textindex2name .
+
+	* configure.ac 2.123:
+	Summary: Commented out AC_CONFIG_MACRO_DIRS([m4]) .
+
+2018-06-29  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1198: Improved AnalyseCOCOOutout().
+
+2018-06-28  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1197, Analysis.h 2.499:
+	Moved AnalyseCOCOoutput() to AnalyseCOCOoutput_old() and wrote a noew one.
+
+	* DataBase.C 2.991, DataBase.h 2.545:
+	Added extra parameter to ExpandDescriptionVariables() to control substitution of _variables.
+
+	* bin_data_main.C 1.10: Documented -cat and checked for error().
+
+2018-06-27  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.990, DataBase.h 2.544:
+	Extracted ExpandDescriptionVariables().
+
+	* Analysis.C 2.1196:
+	ExtractFeatures() now handles some cases with set<> instead of vector<>.
+
+	* DataBase.C 2.989: Changed uselocalzipfiles to default to false.
+
+2018-06-26  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1195, DataBase.C 2.988, DataBase.h 2.543:
+	Renamed *FromTar*() to *FromContainer*().
+	Added bool uselocalzipfiles and used it in ExtractImagesFromContainer().
+
+	* PicSOM.C 2.586:
+	Now also textline_t::parse() understands empty captions...
+
+	* DataBase.C 2.987:
+	TextIndexLines() and NeuralTalkAddCandidate() now tolerate empty caption lines.
+
+	* Analysis.C 2.1194:
+	Added tolerate_missing and empty caption skipping in AnalyseTrecvidVttOutput().
+
+	* DataBase.C 2.986: Changed LuceneTextIndex() to ignore _variables.
+
+	* DataBase.C 2.985, DataBase.h 2.542:
+	Removed unused and non-implemented ExpandAndStoreDescribedCaptionings().
+	Used ExpandDescription() in DescribedCaptioning().
+
+	* DataBase.C 2.984, DataBase.h 2.541:
+	Added ExpandDescription{,Inner}() and used it in DescribedTextIndex().
+
+2018-06-21  jormal  <jormal@cs-271>
+
+	* PicSOM.C 2.585: TempDirPersonal() now sets videofile::tmp_dir() too.
+
+	* Analysis.C 2.1193, bin_data.C 2.33, bin_data.h 2.24:
+	Renamed rlength_x and format_x back to rlength and format.
+	Added verbosity in "vdim error".
+
+2018-06-20  jormal  <jormal@cs-271>
+
+	* DataBase.h 2.540, DataBase.C 2.983:
+	Added timespec sqlite_mod_time and tried to use it in ReallyReadClassFile().
+
+	* DataBase.C 2.982:
+	Changed to use zips instead of tars in COCO. Added logging of zip extraction times.
+
+	* PicSOM.C 2.584, PicSOM.h 2.305: Added bool nvidia_smi_ok.
+
+2018-06-19  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1192, Analysis.h 2.498: Added AnalyseTrecvidVttOutput().
+
+	* DataBase.C 2.981: Commented out logging in TextIndexLines().
+
+2018-06-18  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1191, Analysis.h 2.497, DataBase.C 2.980, DataBase.h 2.539:
+	Added use_textindex and (hopefully) signal-resistent lucene indexing.
+
+	* PicSOM.C 2.583, PicSOM.h 2.304: Added use_slaves and -noslaves.
+
+2018-06-16  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.979, DataBase.h 2.538, Index.C 2.88, Index.h 2.60:
+	Added DataBase::CalculateConceptFeatures().
+
+2018-06-12  jormal  <jormal@cs-271>
+
+	* bin_data_main.C 1.9: Changed output of -c to show also existing data.
+
+2018-06-11  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1190:
+	Summary: Changed AnalyseFeatureTest() and PyFasterRcnn to allow images from command line.
+
+2018-05-29  jormal  <jormal@cs-271>
+
+	* bin_data.h 2.23: Summary: Added option to not include Util.h .
+
+2018-05-28  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.978, DataBase.h 2.537, Analysis.h 2.496, Analysis.C 2.1189:
+	Analysis::Interpret() now recognizes "force=true" used for DataBase::DoAllDetections() etc.
+	DataBase::DoAllCaptionings() now has and obeys force.
+
+	* DataBase.C 2.977, DataBase.h 2.536:
+	Added support for database=COCO(frag=min) and used in DescribedDetection().
+
+	* Makefile 2.139: Added PyFasterRcnn.o .
+
+	* DataBase.C 2.976: Added setting of debug in ExtractVideoFrames().
+
+	* PicSOM.C 2.582: Added debugreads in Interpret().
+
+2018-05-24  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1188, Analysis.h 2.495:
+	Added labelextras used in AnalyseObjectInfo() verbose=512.
+
+	* DataBase.C 2.975:
+	Improved VideoOrSegmentFramesOrdered() and added debugtype and dbgfile in GenerateSentencesNeuralTalk().
+
+2018-05-15  jormal  <jormal@cs-271>
+
+	* Connection.C 2.380:
+	Summary: Added backward compatibility for pre 1.1.0 openssl.
+
+	* Connection.C 2.379: Summary: Updated to use openssl 1.1.0.
+
+2018-04-24  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.974:
+	tempsqlitedb files are now copied to original place only if modified.
+
+2018-04-13  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.973, DataBase.h 2.535:
+	Added MiddleFrameTrick() and used in GenerateNeuraltalkCaptions().
+
+	* Analysis.C 2.1187:
+	Added use of NiceUpperLimit() in AanalyseElanize().
+
+2018-04-12  jormal  <jormal@cs-271>
+
+	* Util.C 2.69, Util.h 2.90: Added NiceUpperLimit().
+
+2018-03-27  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1186:
+	AnalyseElanize() can now use DataBase::TextIndexLines().
+
+	* DataBase.h 2.534, DataBase.C 2.972: Added TextIndexLines().
+	Added use of frame in object_info of video frame images.
+	Optimized VideoOrSegmentFramesOrdered().
+
+	* object_info.h 2.5: Added frame.
+
+2018-03-23  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.971:
+	Summary: Added some bogus code to prevent warining when not using OpenCV.
+
+	* Makefile 2.138: Summary: Added NVCC.
+
+	* ontology.C 2.4: Summary: Added protections against missign wn.h.
+
+2018-03-16  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1185:
+	Added (now hard-coded) label_extras in AnalyseObjectInfo().
+	Corrected bug in relative_video_url in AnalyseElanize().
+	Added vecsets_bylabel CreateElanCsvConfPfsx().
+
+	* PicSOM.C 2.581: Added PATH and PYTHONPATH in CreateEnvironment().
+
+2018-03-09  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.970: Corrected bug in ReadCat2Wn().
+
+	* Analysis.C 2.1184, cuda-Analysis.cu 1.2: Summary: Added try_vecAdd().
+
+2018-03-07  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1183, Analysis.h 2.494, DataBase.C 2.969:
+	Added AnalyseUpdateImageInfo().
+
+2018-02-28  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.968:
+	GenerateSentencesNeuralTalk() now obeys spec["database"].
+
+2018-02-27  jormal  <jormal@cs-271>
+
+	* DataBase.h 2.533, DataBase.C 2.967:
+	Added graph attribute related things.
+
+2018-02-14  jormal  <jormal@cs-271>
+
+	* ontology.C 2.3, ontology.h 2.3, Analysis.C 2.1182, DataBase.C 2.966:
+	Improved CreateWordnetOntology().
+
+2018-02-12  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.965, DataBase.h 2.532:
+	Summary: Added ontology-related methods.
+
+	* Analysis.C 2.1181:
+	Summary: Added call to DataBase::CreateWordnetOntology().
+
+	* PicSOM.C 2.580: Summary: Corrected CAFFE2 includes.
+
+	* ontology.C 2.2, ontology.h 2.2:
+	Summary: Changed data types and added wordnet-related methods().
+
+2018-02-09  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.964, DataBase.h 2.531: Added VG_stats().
+
+	* Analysis.C 2.1180, DataBase.C 2.963, DataBase.h 2.530:
+	Added DataBase::ReadGraph() and allowed |-separated alternatives in VG_find().
+
+	* DataBase.C 2.962:
+	Added out-commented sanity checking of visualgenome relationships.json.
+
+	* Analysis.C 2.1179: Improved AnalyseWordNetTest().
+
+	* Analysis.C 2.1178: Tried to improve wordnet usage.
+
+2018-02-08  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.961, DataBase.h 2.529: Added first version of cat2wn.
+
+	* DataBase.h 2.528, DataBase.C 2.960, Analysis.h 2.493, Analysis.C 2.1177:
+	Added Analysis::AnalyseVisualGenomeTest() and DataBase::FindByGraph() etc.
+	First version of DataBase::graph_item and graph.
+
+2018-02-07  jormal  <jormal@cs-271>
+
+	* Makefile.include 2.211, configure.ac 2.122, PicSOM.C 2.579, PicSOM.h 2.303, Analysis.h 2.492, Analysis.C 2.1176, DataBase.h 2.527:
+	Started to use caffe2.
+
+2018-01-30  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1175:
+	Separated raw and normalized vectors in WordHist::w2v_data.
+
+2018-01-29  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.959, DataBase.h 2.526:
+	Added externalmetadata_param and frag and used them in ReadVisualGenome().
+
+	* Analysis.C 2.1174: Used Picsom()->Path() in AnalyseWord2VecTest().
+
+2018-01-11  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1173, DataBase.C 2.958:
+	Improved AnalyseNeuraltalkTest() and GenerateSentencesNeuralTalk().
+
+2018-01-10  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.957: Added python paths for neuraltalkTheano.
+
+	* DataBase.C 2.956:
+	Changed GenerateSentencesNeuralTalk() to use PicSO::Root().
+
+	* PicSOM.C 2.578: Added display of Root() in startup.
+
+	* Makefile.include 2.210:
+	Summary: ISCIS is again set correctly. (hopefully)
+
+	* Makefile.include 2.209: Summary: Updated for laptop Ubuntu 17.10.
+
+	* Analysis.C 2.1172, PicSOM.C 2.577:
+	Summary: Changed to check against HAVE_OPENCV2_CORE_CUDA_HPP according to OpenCV 3.
+
+	* Makefile.include 2.208:
+	Summary: Added Python support in DESKTOP environment.
+
+	* Makefile.include 2.207: Summary: Improved for xenial as in CS dept.
+
+	* Analysis.C 2.1171, DataBase.C 2.955, DataBase.h 2.525:
+	Improved support for VisualGenome, especially bbox definitions for objects and regions in url field.
+
+2018-01-04  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.954, DataBase.h 2.524:
+	Implemented some VisualGenome structures.
+
+2018-01-02  jormal  <jormal@cs-271>
+
+	* PicSOM.C 2.576:
+	Changed to check HAVE_CAFFE_CAFFE_HPP instead of CAFFE_VERSION.
+
+	* Makefile.include 2.206: Set INCLUDETF empty.
+
+	* Makefile.include 2.205: Moved to OpenCV 3.3.0 and CUDA 8.0.61.
+
+	* configure.ac 2.121: Added check for opencv2/core/cuda.hpp .
+
+	* TSSOM.C 2.207, Query.C 2.642: Removed LabelP().
+
+	* PicSOM.C 2.575: Removed LabelP().
+	Moved to OpenCV 3.3.0.
+	Added VG_image_data.
+
+	* InvertedIndex.C 2.6: Removed LabelP().
+
+	* DataBase.C 2.953, DataBase.h 2.523: Removed LabelP().
+	Added VG_image_data.
+
+	* Analysis.C 2.1170: Removed LabelP().
+	Moved to OpenCV 3.3.0.
+
+	* Analysis.h 2.491: Removed LabelP().
+
+2017-12-21  jormal  <jormal@cs-271>
+
+	* PicSOM.C 2.574:
+	Summary: Added explanation for getCudaEnabledDeviceCount() output.
+
+	* PicSOM.C 2.573:
+	Summary: Added another display of CUDA driver and runtime.
+
+2017-11-29  jormal  <jormal@cs-271>
+
+	* PicSOM.C 2.572:
+	Summary: Added #if #endif around caffe_expand_task() call.
+
+2017-11-28  jormal  <jormal@cs-271>
 
 	* configure.ac 2.120: Stepped to 0.36
 
@@ -7,25 +591,25 @@
 	* Analysis.C 2.1169:
 	Commented out DetectionName() test in AnalyseTest().
 
-2017-11-26  jormal  <jormal@cs-170>
+2017-11-26  jormal  <jormal@cs-271>
 
 	* Analysis.C 2.1168, DataBase.C 2.952, DataBase.h 2.522, Query.C 2.641, Query.h 2.336:
 	Added DataBase::DetectionName() and Query::SelectedIndices().
 
-2017-11-14  jormal  <jormal@cs-170>
+2017-11-14  jormal  <jormal@cs-271>
 
 	* Analysis.C 2.1167: Changed verbose levels in AnalyseGT().
 
-2017-11-03  jormal  <jormal@cs-170>
+2017-11-03  jormal  <jormal@cs-271>
 
 	* Query.C 2.640: Summary: Made g++ 7.2.0 happy.
 
-2017-10-11  jormal  <jormal@cs-170>
+2017-10-11  jormal  <jormal@cs-271>
 
 	* DataBase.h 2.521, DataBase.C 2.951:
 	Summary: Added class loop in DoAllDetections() and split_class_names_cache.
 
-2017-10-09  jormal  <jormal@cs-170>
+2017-10-09  jormal  <jormal@cs-271>
 
 	* Analysis.C 2.1166:
 	Summary: Added #if defined(HAVE_JSON_JSON_H) in AnalyseTest().
@@ -34,7 +618,7 @@
 
 	* Makefile.include 2.203: Many updates...
 
-2017-10-05  jormal  <jormal@cs-170>
+2017-10-05  jormal  <jormal@cs-271>
 
 	* Util.C 2.68: Summary: Added logic for ../ in FullPath().
 
@@ -43,16 +627,16 @@
 	* Analysis.C 2.1165:
 	Summary: Added Sql{Begin,End}Transaction() in InsertObjects().
 
-2017-08-16  jormal  <jormal@cs-170>
+2017-08-16  jormal  <jormal@cs-271>
 
 	* Analysis.C 2.1164, PicSOM.C 2.570, PicSOM.h 2.302: Adedd UnZip().
 
-2017-08-09  jormal  <jormal@cs-170>
+2017-08-09  jormal  <jormal@cs-271>
 
 	* Analysis.C 2.1163, DataBase.h 2.520, DataBase.C 2.949:
 	Summary: Added DataBase::ContainsImages() and TarToZip().
 
-2017-08-08  jormal  <jormal@cs-170>
+2017-08-08  jormal  <jormal@cs-271>
 
 	* DataBase.C 2.948:
 	Conditionalized use of ZIP_FL_ENC_GUESS for zip_get_name().
@@ -64,7 +648,7 @@
 	// and /// expand to $auxid{} evaluated in GroundTruthAuxid().
 	//foo means auxid=="foo" ///foo means auxid=="foo" || auxid =~ /\/foo$/ .
 
-2017-06-20  jormal  <jormal@cs-170>
+2017-06-20  jormal  <jormal@cs-271>
 
 	* Makefile.am 2.37: Summary: Removed missing-c-utils.C.
 
@@ -76,7 +660,7 @@
 	* Analysis.C 2.1161:
 	Summary: AnalyseTest() now works on openblas and caffe pthreads.
 
-2017-06-14  jormal  <jormal@cs-170>
+2017-06-14  jormal  <jormal@cs-271>
 
 	* Analysis.C 2.1160, DataBase.h 2.518, DataBase.C 2.946:
 	Summary: StoreDetectionResult() now has bool incore argument.
@@ -87,14 +671,14 @@
 
 	* Util.C 2.66, Util.h 2.89: Summary: Added OpenBlasVersion().
 
-2017-05-24  jormal  <jormal@cs-170>
+2017-05-24  jormal  <jormal@cs-271>
 
 	* PicSOM.C 2.566:
 	Summary: Added creation of .../tmp dir for imagefile::tmp_dir().
 
 	* PicSOM.h 2.301: Summary: Added Quiet(bool).
 
-2017-05-09  jormal  <jormal@cs-170>
+2017-05-09  jormal  <jormal@cs-271>
 
 	* DataBase.h 2.517, DataBase.C 2.945:
 	Summary: InsertOriginsInfo() now updates origins_entry_cache_map, improved ClearObjects().
@@ -111,11 +695,11 @@
 	* configure.ac 2.118:
 	Summary: Added message about missing cuda_runtime.h.
 
-2017-05-03  jormal  <jormal@cs-170>
+2017-05-03  jormal  <jormal@cs-271>
 
 	* Query.C 2.638: Summary: setup=xxx now effects also analysis if set.
 
-2017-04-28  jormal  <jormal@cs-170>
+2017-04-28  jormal  <jormal@cs-271>
 
 	* ContextState.h 2.8: Changed to go without missg-c-utils.[ch].
 
@@ -131,7 +715,7 @@
 	* Analysis.C 2.1159, Connection.C 2.378, Connection.h 2.131, DataBase.C 2.944, DataBase.h 2.516, ModifiableFile.h 2.4, PicSOM.C 2.564, PicSOM.h 2.300, PicSOMserver.h 2.29, Query.C 2.637, Query.h 2.335, RemoteHost.h 2.13, RwLock.h 2.10, TicTac.h 2.10, TimeUtil.h 2.23, Util.C 2.65, bin_data.h 2.21, missing-c-utils.C 2.16, missing-c-utils.h 2.26:
 	Changed to go without missg-c-utils.[ch].
 
-2017-04-07  jormal  <jormal@cs-170>
+2017-04-07  jormal  <jormal@cs-271>
 
 	* acinclude.m4 2.12: Summary: Added AX_PREFIX_CONFIG_H vol 2.
 
@@ -140,7 +724,7 @@
 	* PicSOM.C 2.563, PicSOM.h 2.299:
 	Summary: Implemented Main(const vector<string>&,...).
 
-2017-04-06  jormal  <jormal@cs-170>
+2017-04-06  jormal  <jormal@cs-271>
 
 	* missing-c-utils.h 2.25: Summary: Changed to use picsom-config.h.
 
@@ -148,7 +732,7 @@
 
 	* picsom-config.h 2.1: Summary: Initila version.
 
-2017-03-16  jormal  <jormal@cs-170>
+2017-03-16  jormal  <jormal@cs-271>
 
 	* DataBase.C 2.943: Summary: Better with HAVE_GCRYPT_H undef.
 
@@ -2279,7 +2863,7 @@
 
 	* PicSOM.h 2.258, PicSOM.C 2.460: Added ! to dtw syntax.
 
-2014-07-08  satoru  <satoru@cs-170>
+2014-07-08  satoru  <satoru@cs-271>
 
 	* Analysis.C 2.945: modify wordnet score
 
@@ -2389,7 +2973,7 @@
 
 	* bin_data.h 2.17: Added "documentation" of the header structure.
 
-2014-06-06  satoru  <satoru@cs-170>
+2014-06-06  satoru  <satoru@cs-271>
 
 	* DataBase.C 2.750: *** empty log message ***
 
@@ -2403,7 +2987,7 @@
 	* Analysis.C 2.928:
 	Added check for detections.size()!=1 in AnalyseTrecvidMedOutputES().
 
-2014-06-05  satoru  <satoru@cs-170>
+2014-06-05  satoru  <satoru@cs-271>
 
 	* DataBase.C 2.746: *** empty log message ***
 
@@ -2414,7 +2998,7 @@
 	* Analysis.h 2.409, Analysis.C 2.927:
 	Extracted AnalyseTrecvidMedXML() and added ThreeDigits() used in it.
 
-2014-06-05  satoru  <satoru@cs-170>
+2014-06-05  satoru  <satoru@cs-271>
 
 	* DataBase.C 2.744: *** empty log message ***
 
@@ -2422,7 +3006,7 @@
 
 	* DataBase.C 2.743: TrecvidMedEvent() now adds dummy contents.
 
-2014-06-04  satoru  <satoru@cs-170>
+2014-06-04  satoru  <satoru@cs-271>
 
 	* DataBase.C 2.742: up definition
 
@@ -7553,7 +8137,7 @@
 	* PicSOM.h 2.171, PicSOM.C 2.270:
 	Added -gc switch for launching google-chrome.
 
-2010-09-15  hezhang  <hezhang@cs-170>
+2010-09-15  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.539: Some comments in Query::DetectGazeSampleFrequency()
 
@@ -7578,7 +8162,7 @@
 	Finalized Analysis::CreateVideoCollage().
 	Addd imagedata::isempty() and used it in DataBase::CreateImage().
 
-2010-09-13  hezhang  <hezhang@cs-170>
+2010-09-13  hezhang  <hezhang@cs-271>
 
 	* Query.h 2.280, Query.C 2.536:
 	Added a new function to detect automatically the gaze sampling frequency: Query::DetectGazeSampleFrequency()
@@ -7741,7 +8325,7 @@
 	* PicSOMserver.C 2.43, picsom-soap.C 2.31:
 	Added parsing of ajaxrespone elements.
 
-2010-07-02  hezhang  <hezhang@cs-170>
+2010-07-02  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.529:
 	Added alternative sampling frequency (50 Hz or 120 Hz) in Query::CalculateGazeFeatures()
@@ -7884,7 +8468,7 @@
 
 	* Analysis.C 2.520, Analysis.h 2.262: Nothing important.
 
-2010-06-14  jukujala  <jukujala@cs-170>
+2010-06-14  jukujala  <jukujala@cs-271>
 
 	* CbirPinView.C 2.35, CbirPinView.h 2.12:
 	added kerneltype parameter = linr|gaus, also fixed ridge and linrel=Comb somewhat
@@ -7923,7 +8507,7 @@
 	* DataBase.C 2.335:
 	Fixed bug in GroundTruthRandcut(). Did not pass all parameters to GroundTruthCommons().
 
-2010-06-08  jukujala  <jukujala@cs-170>
+2010-06-08  jukujala  <jukujala@cs-271>
 
 	* CbirPinView.C 2.33, CbirPinView.h 2.11, Makefile.include 2.98, Analysis.C 2.517:
 	Added Comb as an option to linrel
@@ -7967,7 +8551,7 @@
 	* Query.h 2.267, Query.C 2.513, PicSOM.C 2.248:
 	Improvements in speech recognizer integration.
 
-2010-05-27  jukujala  <jukujala@cs-170>
+2010-05-27  jukujala  <jukujala@cs-271>
 
 	* Query.C 2.512, Query.h 2.266:
 	added default_gaze_relevance to class member of Query, it defines relevance of unseen images, mods in constructor, Interpret, CopySome group a
@@ -8043,12 +8627,12 @@
 	* DataBase.C 2.329, DataBase.h 2.190:
 	ConditionallyReadClassFile() now has bool force argument. Corrected bug in ReallyReadClassFile().
 
-2010-05-07  hezhang  <hezhang@cs-170>
+2010-05-07  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.507:
 	Commented out some debugging lines for fastening the picsom parsing speed in Query::ProcessAjaxDataGaze()
 
-2010-05-07  jukujala  <jukujala@cs-170>
+2010-05-07  jukujala  <jukujala@cs-271>
 
 	* Query.C 2.506: possible bug fix for center column of fixations
 
@@ -8080,7 +8664,7 @@
 	* Makefile.include 2.97:
 	Reverted back to 2.95 with no MAGICKTYPE forced.
 
-2010-05-07  jukujala  <jukujala@cs-170>
+2010-05-07  jukujala  <jukujala@cs-271>
 
 	* Query.C 2.505: unseen images have relevance of 0.25
 
@@ -8089,7 +8673,7 @@
 	* Analysis.C 2.502, Analysis.h 2.256:
 	Added loopid and recognition of %l in ExpandFileName().
 
-2010-05-06  jukujala  <jukujala@cs-170>
+2010-05-06  jukujala  <jukujala@cs-271>
 
 	* Analysis.C 2.501, Makefile.include 2.96, Query.C 2.504:
 	eye movement relevance for unseen images is now 0.4
@@ -8136,7 +8720,7 @@
 
 	* Util.C 2.27, Util.h 2.52: Some improvements to ProgressBar.
 
-2010-05-03  hezhang  <hezhang@cs-170>
+2010-05-03  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.503:
 	Reverted to the last version: 'int fix = 2', still use center eye fixation as default in Query::ConditionallyCalculateErfFeatures()
@@ -8149,7 +8733,7 @@
 	* Analysis.C 2.496, DataBase.C 2.325, DataBase.h 2.187:
 	Added further (but perhaps not ultimate) support for labelformat!=2+2+2+2.
 
-2010-04-30  hezhang  <hezhang@cs-170>
+2010-04-30  hezhang  <hezhang@cs-271>
 
 	* Query.h 2.263:
 	Replaced 'gaze_fixation' with 'gaze_fixation_center' in  class erf_image_data()
@@ -8160,12 +8744,12 @@
 	* Query.C 2.500:
 	Replaced 'gaze_fixation' with 'gaze_fixation_center' in functions of *Query::ProcessAjaxDataGaze()* and *const Query::erf_image_data * *Query::CalculateGazeFeatures()* and **
 
-2010-04-29  hezhang  <hezhang@cs-170>
+2010-04-29  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.499:
 	Added 'const vector<GazeData>& colfixation = col.coorddata(false, f, true)' in Query::CalculateGazeFeatures()
 
-2010-04-28  hezhang  <hezhang@cs-170>
+2010-04-28  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.498:
 	Show: 'fix_left' and 'fix_center' and 'fix_right' sizes in Query::ShowErfRelevances()
@@ -8274,7 +8858,7 @@
 	* Analysis.h 2.251, Analysis.C 2.490:
 	Added possibility to skip nonexistent .dat files in Analysis::CalculateMapClassProbabilities().
 
-2010-04-12  hezhang  <hezhang@cs-170>
+2010-04-12  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.491:
 	Modified: push back fixations according to eyes in Query::ProcessAjaxDataGaze()
@@ -8292,12 +8876,12 @@
 
 	* Query.h 2.257: Added 2x out-commented erf_image_data::coorddata().
 
-2010-04-11  hezhang  <hezhang@cs-170>
+2010-04-11  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.488:
 	Added some debugging info to show left/right fxiations on collage in Query::CalculateGazeFeatures()
 
-2010-04-10  hezhang  <hezhang@cs-170>
+2010-04-10  hezhang  <hezhang@cs-271>
 
 	* Query.h 2.256:
 	Newly declare: vector<uiart::GazeData> gaze_fixation_left, gaze_fixation_right in class erf_image_data()
@@ -8329,7 +8913,7 @@
 	Added simple utility function which strips last "word" separated by -
 	or other char.
 
-2010-04-07  hezhang  <hezhang@cs-170>
+2010-04-07  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.485: Modified in Query::ProcessAjaxDataGaze()
 
@@ -8344,7 +8928,7 @@
 
 	* picsom.C 2.49: Added passing of -q to PicSOM::PicSOM().
 
-2010-04-06  hezhang  <hezhang@cs-170>
+2010-04-06  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.484:
 	Added checks on the order of eyes in Query::ProcessAjaxDataGaze()
@@ -8535,7 +9119,7 @@
 	* PicSOM.C 2.234, PicSOM.h 2.157:
 	Now tries /wrk/imagedb/picsom as default directory as well.
 
-2010-03-04  hezhang  <hezhang@cs-170>
+2010-03-04  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.474:
 	Added Jussi's left/right eye changes in  Query::ConditionallyCalculateErfFeatures()
@@ -8585,17 +9169,17 @@
 
 	* configure.ac 2.62: Replaced AC_MSG_ERROR etc. with echo.
 
-2010-02-25  hezhang  <hezhang@cs-170>
+2010-02-25  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.469:
 	Modified: added braces around *break* in  Query::CalculateGazeFeatures()
 
-2010-02-23  hezhang  <hezhang@cs-170>
+2010-02-23  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.468:
 	Added *bool normalize* to control whether normalizatino needed in Query::CalculateGazeFeatures()
 
-2010-02-19  hezhang  <hezhang@cs-170>
+2010-02-19  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.467:
 	Added break when finding first sample in fixation; Also commented out the normalizations for some eye features in Query::CalculateGazeFeatures()
@@ -8665,7 +9249,7 @@
 	* SVM.C 2.12, SVM.h 2.12:
 	Added SVM::GridSearch() and helper functions. Also seq_t, seq_param_t types for sequences of parameters and parameter pairs.
 
-2010-01-25  hezhang  <hezhang@cs-170>
+2010-01-25  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.464:
 	Added variable: SamplingFrequency(=20ms) in Query::CalculateGazeFeatures()
@@ -8794,7 +9378,7 @@
 	Extracted Query::ErfCheckAndSet_setaspect() that recognizes "toggle".
 	ConditionallyCalculateErfFeatures() now toggles ptrc-1 relevance.
 
-2009-12-02  hezhang  <hezhang@cs-170>
+2009-12-02  hezhang  <hezhang@cs-271>
 
 	* Makefile.include 2.83:
 	Uses csoap-config from PREFDIR/bin/ if not found otherwise.
@@ -9114,7 +9698,7 @@
 	* CbirPinView.C 2.5:
 	Octave communication is now implemented in CbirRound().
 
-2009-11-10  hezhang  <hezhang@cs-170>
+2009-11-10  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.437:
 	Now feature maxAngle has been corrected from Arto's bug in Matlab (This has just been confirmed by Arto yesterday) in Query::CalculateGazeFeatures()
@@ -9190,7 +9774,7 @@
 	Corrected bug with erfsplitdata in ProcessAjaxRequest().
 	Corrected size_t subtraction bug with distPrev in CalculateGazeFeatures().
 
-2009-11-03  hezhang  <hezhang@cs-170>
+2009-11-03  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.432:
 	Something wrong for feature distPrev: too huge for some images (e.g. img=6300 gives distPrev = 4.29497e+09 but true value is 2.2361) in Query::CalculateGazeFeatures()
@@ -9215,7 +9799,7 @@
 	* Query.h 2.230, Query.C 2.428:
 	Added ErfImageDataFixation() and used for distPrev in CalculateGazeFeatures.
 
-2009-10-30  hezhang  <hezhang@cs-170>
+2009-10-30  hezhang  <hezhang@cs-271>
 
 	* DataBase.C 2.306:
 	Now GazeRelevance() reads the correct gaze-relevance-gaze-33.ss file
@@ -9237,7 +9821,7 @@
 	* Query.C 2.426, Query.h 2.229:
 	Added Query::classresult, extracted DoClassificationTsSom().
 
-2009-10-30  hezhang  <hezhang@cs-170>
+2009-10-30  hezhang  <hezhang@cs-271>
 
 	* DataBase.h 2.176, DataBase.C 2.304, Query.C 2.425:
 	Reversed to previous version
@@ -9287,7 +9871,7 @@
 	* Analysis.C 2.450:
 	InsertImageNetSynset() now checks children of skipped synsets.
 
-2009-10-19  hezhang  <hezhang@cs-170>
+2009-10-19  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.421:
 	Rremove combination check: && fix==-1; Shorten the code for numInsideFix(numOutsideFix) in Query::CalculateGazeFeatures()
@@ -9299,7 +9883,7 @@
 	* DataBase.C 2.298, Query.C 2.419, Query.h 2.226:
 	Added bool unselect argument in Query::SelectIndices(), used it in DataBase::AddClassModel().
 
-2009-10-18  hezhang  <hezhang@cs-170>
+2009-10-18  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.418:
 	Now fixed the negative problem of feature numOutsideFix in Query::CalculateGazeFeatures()
@@ -9313,7 +9897,7 @@
 	* Query.C 2.417:
 	Now replace ProcessAjaxImagesCenter() with ProcessAjaxImages(), which can process center eye as well (int left = 0/1/2).
 
-2009-10-17  hezhang  <hezhang@cs-170>
+2009-10-17  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.416:
 	Now a temporary version to calculate gaze center features (Hard coding parameter left == 2 in ProcessAjaxImages()
@@ -9323,7 +9907,7 @@
 	* Analysis.C 2.449, Analysis.h 2.238:
 	Added skipexisting option for skipping existing imagenet synsets.
 
-2009-10-15  hezhang  <hezhang@cs-170>
+2009-10-15  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.415:
 	Changes: temporary assuming that do_r == do_c to compare results with Arto's features to each image, instead of using ProcessAjaxImagesCenter() in ProcessAjaxDataGaze(); And then set eye = 1, which is actually producing the results of eye = 2 (center eye)
@@ -9335,7 +9919,7 @@
 
 	* Analysis.C 2.448: Fixed old debug-leftover...
 
-2009-10-15  hezhang  <hezhang@cs-170>
+2009-10-15  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.413:
 	ProcessAjaxDataGaze(const XmlDom& cont) now can read center eye element from tab00.xml
@@ -9455,7 +10039,7 @@
 	* PicSOMserver.C 2.34, PicSOMserver.h 2.24, picsom-soap.C 2.23:
 	Added query() in picsom-soap and PicSOMserver::Query*().
 
-2009-10-03  hezhang  <hezhang@cs-170>
+2009-10-03  hezhang  <hezhang@cs-271>
 
 	* DataBase.C 2.291:
 	Added accesses to new files: gaze-coord-norm-left-test01-user01.txt in NormalizeGazeCoordInCollage() and gaze-relevance-left-test01-user01-gaze-33.ss in GazeRelevance()
@@ -9545,7 +10129,7 @@
 	* PicSOM.C 2.198:
 	Modified SetChildLimits() to fix warnings caused by 64bit rlim_t in Mac OS X 10.6.
 
-2009-09-22  hezhang  <hezhang@cs-170>
+2009-09-22  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.395:
 	delele some commented-out lines in Query::CalculateGazeFeatures()
@@ -9556,7 +10140,7 @@
 	Added ProcessAjaxImagesCenter() plus 2 extra arguments in ProcessXMLimgData().
 	Improved CalculateGazeFeatures() to better match Arto's implementation.
 
-2009-09-21  hezhang  <hezhang@cs-170>
+2009-09-21  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.393:
 	Now gaze cenger is solved using one for() loop in Query::SloveGazeCenter()
@@ -9568,13 +10152,13 @@
 	Improved Query::Retrieve() and other to handle ajax data better.
 	Improved Query::ProcessAjaxDataGaze() to solve center eye coordinates.
 
-2009-09-21  hezhang  <hezhang@cs-170>
+2009-09-21  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.391: Another correction in ProcessAjaxDataGaze()
 
 	* Query.C 2.390: Corrections in ProcessAjaxDataGaze()
 
-2009-09-18  hezhang  <hezhang@cs-170>
+2009-09-18  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.389:
 	Added checks: if(e==2) then center eye; if(e==3) then average left and right eyes; in Query::CalculateGazeFeatures()
@@ -9586,7 +10170,7 @@
 	Added XmlDom argument in ConditionallyCalculateErfFeatures().
 	Improved ShowErfRelevances() to show multiple relevances.
 
-2009-09-17  hezhang  <hezhang@cs-170>
+2009-09-17  hezhang  <hezhang@cs-271>
 
 	* Query.h 2.210:
 	Newly declared: bool SolveGazeCenter(erf_image_data&) in class erf_image_data{}
@@ -9639,7 +10223,7 @@
 	Changed AC_CHECK_FUNCS(ilaenv_) to be non fatal.
 	Cleaned some.
 
-2009-09-15  hezhang  <hezhang@cs-170>
+2009-09-15  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.383:
 	Cleaned up commented codes in Query::CalculateGazeFeatures() & Query::ConditionallyCalculateErfFeatures()
@@ -9669,7 +10253,7 @@
 	In Query::AddToXMLobjects() renamed <*imagelist> to <*objectlist>.
 	Changed many DataBase,Query,TSSOM,Valued::AddToXML*() to use XmlDom.
 
-2009-09-15  ajanki  <ajanki@cs-170>
+2009-09-15  ajanki  <ajanki@cs-271>
 
 	* PicSOMserver.C 2.30, PicSOMserver.h 2.22, Util.C 2.18:
 	fixed "Mismatched free() / delete / delete []" reported by valgrind
@@ -9704,7 +10288,7 @@
 
 	* PicSOM.h 2.140: Changed to #undef SIMPLE_BASED_QUERY .
 
-2009-09-09  hezhang  <hezhang@cs-170>
+2009-09-09  hezhang  <hezhang@cs-271>
 
 	* Query.h 2.207:
 	Declared a new function: vector<float> Query::SolveGazeCenter(erf_image_data& aid, const erf_image_data& col, int eye)
@@ -9741,7 +10325,7 @@
 	Added Analysis::SetXmlResultOK().
 	PicSOM::ExpandDataBasePath() now handles database=foo(bar=gnat).
 
-2009-09-08  hezhang  <hezhang@cs-170>
+2009-09-08  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.377:
 	Added checks for left eye, right eye and center eye: (left+right)/2 in Query::ConditionallyCalculateErfFeatures()
@@ -9772,7 +10356,7 @@
 	* Analysis.C 2.433, Connection.C 2.143, PicSOM.C 2.190, missing-c-utils.C 2.12, missing-c-utils.h 2.19, configure.ac 2.48:
 	Added configure check for nanosleep(), used it in PicSOM::MainLoop().
 
-2009-09-07  hezhang  <hezhang@cs-170>
+2009-09-07  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.375:
 	Added check: if (e == 0) then calculate left eye features; if (e == 1) then calculate right eye features
@@ -9850,12 +10434,12 @@
 	* DataBase.C 2.270, Query.C 2.368, acinclude.m4 2.2:
 	Small changes to make CentOS 5.3 happy.
 
-2009-08-30  hezhang  <hezhang@cs-170>
+2009-08-30  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.367:
 	Modified: eucliDist = dx*dx + dy*dy in CalculateGazeFeatures()
 
-2009-08-28  hezhang  <hezhang@cs-170>
+2009-08-28  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.366:
 	Added checks on features: firstFixLen, distPrev, durPrev in  CalculateGazeFeatures()
@@ -9863,7 +10447,7 @@
 	* Query.C 2.365:
 	Corrected bugs of features: nJumpsFix, LandXFix, landYFix, exitXFix, exitYFix in  CalculateGazeFeatures()
 
-2009-08-27  hezhang  <hezhang@cs-170>
+2009-08-27  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.364:
 	 Modified: nbreaksF = gdfixation[i].start_time-gdfixation[i-1].start_time;(minus between two TimeSpec classes)
@@ -9885,7 +10469,7 @@
 	* DataBase.C 2.268, DataBase.h 2.157, Analysis.C 2.427, Analysis.h 2.230:
 	Added Analysis::AnalyseSqlDump(), DataBase::SqlDump*().
 
-2009-08-26  hezhang  <hezhang@cs-170>
+2009-08-26  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.363:
 	nbreaksR = gdsample_l[i].start_time-gdsample_l[i-1].start_time;(minus between two TimeSpec classes)
@@ -9901,7 +10485,7 @@
 	Renamed Query::debug_gaze_* to debug_erf_*.
 	Added sample counts in Query::ShowErfRelevances().
 
-2009-08-21  hezhang  <hezhang@cs-170>
+2009-08-21  hezhang  <hezhang@cs-271>
 
 	* PicSOM.C 2.183: Fixed length of -Dgaze_relevance substr.
 
@@ -10145,12 +10729,12 @@
 	* Query.C 2.351:
 	Added detection of zero width/height in AjaxImageListToCollage().
 
-2009-07-01  hezhang  <hezhang@cs-170>
+2009-07-01  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.350:
 	Bug: feature:distPrev needs global coordinates, which we don't have! Need help from Jorma! in  CalculateGazeFeatures()
 
-2009-06-29  hezhang  <hezhang@cs-170>
+2009-06-29  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.349:
 	Added final two features: distPrev,  durPrev in  CalculateGazeFeatures()
@@ -10207,12 +10791,12 @@
 	* DataBase.C 2.255, DataBase.h 2.149:
 	Added GazeRelevance(), removed verbosity in NormalizeGazeCoordInCollage().
 
-2009-06-17  hezhang  <hezhang@cs-170>
+2009-06-17  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.342:
 	Added a general check for 16 raw data features in  CalculateGazeFeatures()
 
-2009-06-15  hezhang  <hezhang@cs-170>
+2009-06-15  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.341:
 	Added features: firstFixLen, firstFixNum in CalculateGazeFeatures()
@@ -10220,12 +10804,12 @@
 	* Query.C 2.340:
 	For features nJump1, nJump2, nJumpsFix : change 'float' to 'double' type  in CalculateGazeFeatures()
 
-2009-06-13  hezhang  <hezhang@cs-170>
+2009-06-13  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.339:
 	Added features: xSpreadFix, ySpreadFix, elongationFix in CalculateGazeFeatures()
 
-2009-06-12  hezhang  <hezhang@cs-170>
+2009-06-12  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.338:
 	Added (normalized) features: landXFix, landYFix, exitXFix, exitYFix in CalculateGazeFeatures()
@@ -10234,11 +10818,11 @@
 
 	* Query.C 2.336: include<cmath> for CalculateGazeFeatures()
 
-2009-06-11  hezhang  <hezhang@cs-170>
+2009-06-11  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.335: Added feature: nJumpsFix in CalculateGazeFeatures()
 
-2009-06-10  hezhang  <hezhang@cs-170>
+2009-06-10  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.334: Modified in CalculateGazeFeatures()
 
@@ -10274,12 +10858,12 @@
 	Added DataBase::AddToContext() and ConditionallyAddToContext().
 	Added PicSOM::LoadContext() and recognition of -context db:label.
 
-2009-06-08  hezhang  <hezhang@cs-170>
+2009-06-08  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.329:
 	changed two places to FindChild() in ProcessAjaxDataGaze()
 
-2009-06-05  hezhang  <hezhang@cs-170>
+2009-06-05  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.328:
 	Modified some features when divided by zero in CalculateGazeFeatures()
@@ -10297,7 +10881,7 @@
 	* Query.C 2.324:
 	In CalculateGazeFeatures() added some checks to handle empty gdsample_l.
 
-2009-06-04  hezhang  <hezhang@cs-170>
+2009-06-04  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.323:
 	testing features: landX, landY, exitX, exitY, nJumps1, nJumps2 in CalculateGazeFeatures ()
@@ -10309,12 +10893,12 @@
 	* ContextState.C 2.8, ContextState.h 2.6:
 	Added handling of wlan, gps and accel data. Is now added in AddToXML().
 
-2009-06-04  hezhang  <hezhang@cs-170>
+2009-06-04  hezhang  <hezhang@cs-271>
 
 	* DataBase.C 2.252:
 	Now ignores lines with \r as well in NormalizeGazeCoordInCollage().
 
-2009-06-03  hezhang  <hezhang@cs-170>
+2009-06-03  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.321: reconstruct features: coverage, normCoverage
 
@@ -10326,7 +10910,7 @@
 	ProcessXMLimgData() now doesn't normalize coordinates to the original size.
 	CalculateGazeFeatures() now shows debugging information on image sizes.
 
-2009-06-03  hezhang  <hezhang@cs-170>
+2009-06-03  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.319: reconstruct features: numOutside, ratioInsideOutside
 
@@ -10351,7 +10935,7 @@
 	* PicSOM.C 2.172, Analysis.C 2.419, Analysis.h 2.226:
 	Analysis::ProcessObjectRequest() now has also objectspec argument.
 
-2009-06-02  hezhang  <hezhang@cs-170>
+2009-06-02  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.318: reconstruct feature: speed
 
@@ -10360,7 +10944,7 @@
 	* Query.C 2.317:
 	Added check for samples inside fixations in CalculateGazeFeatures().
 
-2009-06-02  hezhang  <hezhang@cs-170>
+2009-06-02  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.316: reconstruct feature: xSpread, ySpread, elongation
 
@@ -10386,7 +10970,7 @@
 
 	* ContextState.C 2.5: AddToXML now emits <variable name="" value=""/>.
 
-2009-05-31  hezhang  <hezhang@cs-170>
+2009-05-31  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.314: reconstruct feature: numMeasurements
 
@@ -10642,7 +11226,7 @@
 	* PicSOMserver.h 2.3, PicSOMserver.C 2.5:
 	Added Classify() and another SoapSetKeyVal().
 
-2009-05-07  hezhang  <hezhang@cs-170>
+2009-05-07  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.304: For some features: check if denominator is zero
 
@@ -10685,15 +11269,15 @@
 
 	* Makefile 2.60: Added PicSOMserver in CVS_CH.
 
-2009-05-02  hezhang  <hezhang@cs-170>
+2009-05-02  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.303: Added mechanisim to calculate feature:coverage
 
-2009-05-01  hezhang  <hezhang@cs-170>
+2009-05-01  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.302: In <img> element: push_back x and y coords as well
 
-2009-04-30  hezhang  <hezhang@cs-170>
+2009-04-30  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.301: added features: xSpread, ySpread, elongation, speed
 
@@ -10711,7 +11295,7 @@
 	Added url, db, label and index in Query::erf_image_data.
 	Added negative_weight in Query and CbirPicsom.
 
-2009-04-29  hezhang  <hezhang@cs-170>
+2009-04-29  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.298:
 	 Modified and then Added: mechanism for calculating feature numOutsideFix for image
@@ -10724,7 +11308,7 @@
 	* Analysis.C 2.411, Analysis.h 2.223:
 	Added gt_pn, gt_np, gt_p0, gt_0p, gt_0n, gt_n0 and 2x NoisyRFBvalue().
 
-2009-04-28  hezhang  <hezhang@cs-170>
+2009-04-28  hezhang  <hezhang@cs-271>
 
 	* Query.h 2.191:
 	In class erf_image_data: added member vector<html_image_data> img_position_left, img_position_right and  img_position_fixation (store the <img> element info for each measurement)
@@ -10732,7 +11316,7 @@
 	* Query.C 2.297:
 	 (1) push_back <img> element for eyel, eyer, and fix; (2) On image 00007606: testing numMeasurements for left and right eyes respectively, as weöll as the  numFix
 
-2009-04-26  hezhang  <hezhang@cs-170>
+2009-04-26  hezhang  <hezhang@cs-271>
 
 	* Query.h 2.190:
 	 Added erf_image_data member: vector<html_image_data> img_position
@@ -10740,11 +11324,11 @@
 	* Query.C 2.296:
 	push_back if <img> element for eyelobject exists (it makes it easy to calculate gaze features)
 
-2009-04-24  hezhang  <hezhang@cs-170>
+2009-04-24  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.295:  now can read samples from tab00.xml
 
-2009-04-23  hezhang  <hezhang@cs-170>
+2009-04-23  hezhang  <hezhang@cs-271>
 
 	* Query.h 2.189:  change back to version 2.186 by Jorma
 
@@ -10875,7 +11459,7 @@
 	Used ajax_image_data and AjaxImageData() in ProcessAjaxData{Keyboard,Gaze}()
 	and ProcessXMLimgData().
 
-2009-04-07  hezhang  <hezhang@cs-170>
+2009-04-07  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.282:
 	Query::ProcessAjaxDataGaze() has been modified to show vector gd for testing its valadity.
@@ -10883,7 +11467,7 @@
 	* Query.C 2.281:
 	Query::ProcessAjaxDataGaze() now can read multiple samples and fixations, which are all stored sequentially into vector gd.
 
-2009-04-06  hezhang  <hezhang@cs-170>
+2009-04-06  hezhang  <hezhang@cs-271>
 
 	* Query.C 2.280:
 	Query::ProcessAjaxDataGaze(): modified to read multiple samples now...
@@ -10897,7 +11481,7 @@
 	* XMLutil.h 2.37: Renamed FirstChildIsElement->FirstElementChild().
 	Renamed NextIsElement->NextElement().
 
-2009-04-02  hezhang  <hezhang@cs-170>
+2009-04-02  hezhang  <hezhang@cs-271>
 
 	* XMLutil.h 2.36:
 	Added 2 new functions: FirstChildIsElement() and  NextIsElement() to make sure the Next() node is a valid xml element.

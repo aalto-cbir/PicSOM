@@ -1,4 +1,63 @@
-2017-05-24  jormal  <jormal@cs-170>
+2018-11-09  jormal  <jormal@cs-271>
+
+	* imagefile-opencv.C 1.34:
+	Summary: open_read_impl() now understands also "application/gzip".
+
+2018-10-18  jormal  <jormal@cs-271>
+
+	* imagefile-opencv.C 1.33: Summary: Used #ifdef HAVE_TIFFIO_H.
+
+2018-10-12  jormal  <jormal@cs-271>
+
+	* imageapp.C 1.37: Various changes.
+
+2018-10-11  jormal  <jormal@cs-271>
+
+	* imagedata.h 1.113: Summary: Now accepts also 1x1x sized subimage().
+
+	* imagefile-opencv.C 1.32: Summary: Corrected a bug in GIF subimages...
+
+	* imagefile-opencv.C 1.31: Implemented partial GIF image decoding.
+
+	* imagefile-opencv.C 1.30:
+	Summary: Added some debugging outputs for GIF.
+
+	* imagefile-opencv.C 1.29:
+	Summary: Now works also with image-specific GIF colormaps.
+
+	* imagefile-opencv.C 1.28: Summary: Now works with GIFLIB_MAJOR<4.
+
+2018-10-10  jormal  <jormal@cs-271>
+
+	* imagefile-opencv.C 1.27:
+	Summary: Added list of per-frame imagedatas for GIF images.
+
+	* imagefile-opencv.C 1.26: Summary: Started to write support for GIF.
+	Added but did not test extensions to TIFF support.
+
+	* imagedata.h 1.112:
+	Summary: force_three_channels() should now work with any number of channels.
+
+2018-09-12  jormal  <jormal@cs-271>
+
+	* videofile.C 1.50: Added -nostdin in ffmpeg calls.
+
+2018-06-21  jormal  <jormal@cs-271>
+
+	* videofile.h 1.30, videofile.C 1.49:
+	Changed avconvname() to consider also local_bin()+"/ffmpeg".
+	Renamed some *temp_dir* to *temp_dir* to be consistent with imagefile.
+
+2018-05-28  jormal  <jormal@cs-271>
+
+	* videofile.C 1.48: Changed to use ffmpeg instead of libav.
+
+2018-03-23  jormal  <jormal@cs-271>
+
+	* imagefile-unimpl.C 1.10:
+	Summary: Updated to match the current interfaces.
+
+2017-05-24  jormal  <jormal@cs-271>
 
 	* imagefile.h 1.55: Summary: Added unlink_tmp_file().
 
@@ -8,7 +67,7 @@
 	* imagefile.h 1.53:
 	Summary: Added move contructor to facilitate unstringify().
 
-2017-04-28  jormal  <jormal@cs-170>
+2017-04-28  jormal  <jormal@cs-271>
 
 	* imagedata.h 1.111: Changed to go without missg-c-utils.[ch].
 

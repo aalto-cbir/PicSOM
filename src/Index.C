@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Index.C,v 2.87 2017/06/20 08:15:09 jormal Exp $
+// -*- C++ -*-  $Id: Index.C,v 2.89 2018/12/15 23:07:51 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -17,7 +17,7 @@
 
 namespace picsom {
   static const string Index_C_vcid =
-    "@(#)$Id: Index.C,v 2.87 2017/06/20 08:15:09 jormal Exp $";
+    "@(#)$Id: Index.C,v 2.89 2018/12/15 23:07:51 jormal Exp $";
 
   ///
   Index *Index::list_of_indices;
@@ -270,14 +270,17 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool Index::CalculateFeatures(vector<size_t>& idxvin,
+  bool Index::CalculateFeatures(const vector<size_t>& idxvin,
 				list<incore_feature_t>& incore,
 				set<string>& done_segm,
-				XmlDom& xml, bin_data *raw) {
+				const XmlDom& xml, bin_data *raw) {
     string tname = "CalculateFeatures<"+Name()+">";
 
     if (idxvin.size() && incore.size())
       return ShowError(tname+"only one type of input allowed");
+
+    bool is_concepts = featuremethodname=="concepts";
+    bool extract_images = !is_concepts;
 
     set<size_t> idxset;
     vector<size_t> idxv;
@@ -345,9 +348,12 @@ namespace picsom {
     // if (img=="")
     //   return ShowError(hdr, "ObjectPathEvenExtract() failed");
 
-    list<string> imgs = db->ObjectPathsEvenExtract(idxv);
-    if (idxv.size() && imgs.size()==0)
-      return ShowError(hdr, "ObjectPathEvenExtract() failed");
+    list<string> imgs;
+    if (extract_images) {
+      imgs = db->ObjectPathsEvenExtract(idxv);
+      if (idxv.size() && imgs.size()==0)
+	return ShowError(hdr, "ObjectPathEvenExtract() failed");
+    }
 
     bool allow_local_features = false;
     string outdir;
@@ -366,7 +372,7 @@ namespace picsom {
 	CalculateSegmentation(idxv);
 	done_segm.insert(cmdstr);
       } else
-	WriteLog("Reusing existing segmentation");
+	WriteLog("Re-using existing segmentation");
     }
   
     Tic(tname.c_str());
@@ -432,7 +438,8 @@ namespace picsom {
     set<string> tmpfnames;
     vector<string> files;
 
-    list<string> fnamelist = db->ObjectPathsEvenExtract(idxv);
+    // list<string> fnamelist = db->ObjectPathsEvenExtract(idxv);
+    list<string> fnamelist = imgs;
     for (auto i=fnamelist.begin(); i!=fnamelist.end(); i++) {
       string fname = *i;
 
@@ -488,6 +495,7 @@ namespace picsom {
     int r = 1;
 
     bool threads = db->UsePthreadsFeatures() && files.size()>1;
+
     if (files.size())
       WriteLog("Extracting "+Name()+" features for "+ToStr(files.size())
 	       +" files starting <"+files.front()+">"
@@ -497,6 +505,11 @@ namespace picsom {
 	       +" INCORE objects starting <"+incore.front().first.first
 	       +","+incore.front().first.second+">"
 	       +(threads?" in threads":""));
+    else if (is_concepts && idxv.size())
+      WriteLog("Extracting "+Name()+" CONCEPT features for "+
+	       ToStr(idxv.size())+" objects starting <"+
+	       db->Label(idxv[0])+">"
+	       +(threads?" in threads":""));
     else
       return ShowError(tname+" no objects left");
 
@@ -505,16 +518,22 @@ namespace picsom {
 
     Feature::SetTempDir(db->TempDir());
 
-    if (calculate_internal) {
-      cmd_files[0] = "*picsom-features-internal*";
+    if (featuremethodname=="concepts") {
+      r = db->CalculateConceptFeatures(this, idxv, files, incore, featresp) 
+	? 0 : 1;
 
-      if (threads)
-	r = CalculateFeaturesPthreads(cmd, files, *featresp);
-      else
-	r = Feature::Main(cmd_files, incore, featresp);
+    } else {
+      if (calculate_internal) {
+	cmd_files[0] = "*picsom-features-internal*";
+	
+	if (threads)
+	  r = CalculateFeaturesPthreads(cmd, files, *featresp);
+	else
+	  r = Feature::Main(cmd_files, incore, featresp);
 
-    } else
-      r = Picsom()->ExecuteSystem(cmd_files, true, false, false);
+      } else
+	r = Picsom()->ExecuteSystem(cmd_files, true, false, false);
+    }
 
     for (auto i=tmpfnames.begin(); i!=tmpfnames.end(); i++)
       if (!Unlink(*i))
@@ -884,7 +903,7 @@ namespace picsom {
 	if (!p || !*p)
 	  continue;
       
-	char fname[1024];
+	char fname[2048];
 	sprintf(fname, "%s%s/%s%s", p, i?"/features":"", n, ext?ext:"");
 	// cout << "Index::FindFile("<<fname << ") -> "<<FileExists(fname)<<endl;
 

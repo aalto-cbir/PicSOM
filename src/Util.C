@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Util.C,v 2.68 2017/10/05 12:39:11 jormal Exp $
+// -*- C++ -*-  $Id: Util.C,v 2.72 2018/10/19 16:53:20 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -39,7 +39,7 @@
 
 namespace picsom {
   static const string Util_C_vcid =
-  "@(#)$Id: Util.C,v 2.68 2017/10/05 12:39:11 jormal Exp $";
+  "@(#)$Id: Util.C,v 2.72 2018/10/19 16:53:20 jormal Exp $";
 
   static bool do_abort = false;
   static int locate_file_debug = 0;
@@ -1391,11 +1391,12 @@ namespace picsom {
 
     static multimap<string,string> prefer;
     if (prefer.empty()) {
-      prefer.insert(make_pair("audio/X-HX-AAC-ADTS", "video/mpeg"));
-      prefer.insert(make_pair("audio/X-HX-AAC-ADTS", "video/mp2p"));
-      prefer.insert(make_pair("audio/X-HX-AAC-ADTS", "video/mpv"));
-      prefer.insert(make_pair("image/x-3ds",         "image/tiff"));
-      prefer.insert(make_pair("image/x-3ds",         "image/gif" ));
+      prefer.insert(make_pair("audio/X-HX-AAC-ADTS", 	  "video/mpeg"));
+      prefer.insert(make_pair("audio/X-HX-AAC-ADTS", 	  "video/mp2p"));
+      prefer.insert(make_pair("audio/X-HX-AAC-ADTS", 	  "video/mpv" ));
+      prefer.insert(make_pair("image/x-3ds",         	  "image/tiff"));
+      prefer.insert(make_pair("image/x-3ds",         	  "image/gif" ));
+      prefer.insert(make_pair("application/octet-stream", "image/gif" ));
     }
 
 #ifndef NO_PTHREADS
@@ -1692,6 +1693,59 @@ namespace picsom {
     return "";
 #endif // HAVE_DLFCN_H
   }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  double NiceUpperLimit(double v, size_t /*method*/) {
+    if (v<=0)
+      return 0;
+    double r  = log10(v);
+    double rf = floor(r);
+    double rr = pow(10, rf);
+    double x  = v/rr;
+    double xc = ceil(x);
+    return xc*rr;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string WashString(const string& ins, const string& spec) {
+    bool proper = spec.find("proper")!=string::npos;
+
+    string s = " "+ins+" ";
+    for (size_t i=0; i<s.size(); i++)
+      if (s[i]>='A' && s[i]<='Z')
+	s[i] += 32;
+    for (size_t i=0; i<s.size(); i++)
+      if (s[i]!='#' && (s[i]<'a' || s[i]>'z') && !(s[i]>='0' && s[i]<='9'))
+	s[i] = 32;
+    for (;;) {
+      size_t p = s.find(" ## ");
+      if (p==string::npos)
+	break;
+      if (proper)
+	s.replace(p, 4, " <proper> ");
+      else
+	s.replace(p, 4, " # ");
+    }
+    for (size_t i=0; i<s.size(); i++)
+      if (s[i]=='#')
+	s[i] = 32;
+    for (;;) {
+      size_t p = s.find("  ");
+      if (p==string::npos)
+	break;
+      s.erase(p, 1);
+    }
+    size_t p = s.find_first_not_of(" ");
+    s.erase(0, p);
+    p = s.find_last_not_of(" ");
+    s.erase(p+1);
+    
+    return s;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
 
 } // namespace picsom
 

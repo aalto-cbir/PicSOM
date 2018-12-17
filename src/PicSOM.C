@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: PicSOM.C,v 2.571 2017/11/28 00:03:19 jormal Exp $
+// -*- C++ -*-  $Id: PicSOM.C,v 2.593 2018/10/29 21:04:46 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -49,13 +49,17 @@
 #include <sys/utsname.h>
 #endif // HAVE_SYS_UTSNAME_H
 
-#if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
-#include <opencv2/core/core.hpp>
-#endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
-
-#if defined(HAVE_OPENCV2_CORE_GPUMAT_HPP) && defined(PICSOM_USE_OPENCV)
-#include <opencv2/core/gpumat.hpp>
-#endif // HAVE_OPENCV2_CORE_GPUMAT_HPP && PICSOM_USE_OPENCV
+#if defined(PICSOM_USE_OPENCV)
+#  if defined(HAVE_OPENCV2_CORE_CORE_HPP)
+#  include <opencv2/core/core.hpp>
+#  endif // HAVE_OPENCV2_CORE_CORE_HPP
+#  if defined(HAVE_OPENCV2_CORE_CUDA_HPP)
+#  include <opencv2/core/cuda.hpp>
+#  endif // HAVE_OPENCV2_CORE_CUDA_HPP
+#  if defined(HAVE_OPENCV2_CORE_GPUMAT_HPP)
+#  include <opencv2/core/gpumat.hpp>
+#  endif // HAVE_OPENCV2_CORE_GPUMAT_HPP
+#endif // PICSOM_USE_OPENCV
 
 #ifdef HAVE_OPENSSL_SSL_H
 #include <openssl/opensslv.h>
@@ -101,6 +105,10 @@ static string foo = string(license)+string(dblicense);
 #ifdef HAVE_THRIFT_THRIFT_H
 //#include <thrift/version.h>
 #endif // HAVE_THRIFT_THRIFT_H
+
+#if defined(HAVE_CAFFE2_CORE_MACROS_H) && defined(PICSOM_USE_CAFFE2)
+#include <caffe2/core/init.h>
+#endif // HAVE_CAFFE2_CORE_MACROS_H && PICSOM_USE_CAFFE2
 
 #if defined(PICSOM_HAVE_OCTAVE) && defined(PICSOM_USE_OCTAVE)
 // config.h conflicts:
@@ -154,6 +162,14 @@ extern "C" {
 #include <tensorflow/core/public/version.h>
 #endif // PICSOM_USE_TENSORFLOW
 
+#ifdef HAVE_TIFFIO_H
+#include <tiffio.h>
+#endif // HAVE_TIFFIO_H
+
+#ifdef HAVE_GIF_LIB_H
+#include <gif_lib.h>
+#endif // HAVE_GIF_LIB_H
+
 #ifdef PICSOM_USE_PYTHON
 #undef _POSIX_C_SOURCE
 #undef _XOPEN_SOURCE
@@ -175,7 +191,7 @@ extern "C" {
 
 namespace picsom {
   const string PicSOM_C_vcid =
-    "@(#)$Id: PicSOM.C,v 2.571 2017/11/28 00:03:19 jormal Exp $";
+    "@(#)$Id: PicSOM.C,v 2.593 2018/10/29 21:04:46 jormal Exp $";
 
   int PicSOM::debug_times  = 0;
   int PicSOM::debug_mem    = 0;
@@ -207,14 +223,11 @@ namespace picsom {
 
   PicSOM::version_data_type PicSOM::version_data;
 
-  bool PicSOM::has_features_internal = true;
+  bool PicSOM::has_features_internal     = true;
   bool PicSOM::has_segmentation_internal = true;
+  bool PicSOM::has_imgrobot_internal     = false;
 
-#ifdef HAS_IMGROBOT_INTERNAL
-  bool PicSOM::has_imgrobot_internal = true;
-#else
-  bool PicSOM::has_imgrobot_internal = false;
-#endif // HAS_IMGROBOT_INTERNAL
+  static bool caffe2_initialized = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -243,12 +256,13 @@ namespace picsom {
 
     myname_str = mybinary_str = arg.size() ? arg[0] : "";
 
-#if defined(HAVE_GLOG_LOGGING_H) && defined(PICSOM_USE_CAFFE)
-    if (!Feature::GlogInitDone())
+#if defined(HAVE_GLOG_LOGGING_H) && (defined(PICSOM_USE_CAFFE)||defined(PICSOM_USE_CAFFE2))
+    // should test something like google::IsGoogleLoggingInitialized()
+    if (!Feature::GlogInitDone() && !caffe2_initialized)
       google::InitGoogleLogging(myname_str.c_str());
     FLAGS_logtostderr = 0;
     Feature::GlogInitDone(true);
-#endif // HAVE_GLOG_LOGGING_H && PICSOM_USE_CAFFE
+#endif // HAVE_GLOG_LOGGING_H && PICSOM_USE_CAFFE||CAFFE2
 
     listen_connection = mpi_listen_connection =
       soap_server = speech_recognizer = NULL;
@@ -277,6 +291,7 @@ namespace picsom {
 
     gpupolicy = 0;
     gpudevice = -1;
+    nvidia_smi_ok = true;
 
     development    = true;
     defaultdirpath = true;
@@ -339,8 +354,13 @@ namespace picsom {
 
     LoggingModeTimestampIdentity();
 
-    if (env.find("_CONDOR_JOB_AD")==env.end())
+    if (env.find("_CONDOR_JOB_AD")==env.end()) {
       gpudevice = SolveGpuDevice();
+      if (gpudevice==-2) {
+	nvidia_smi_ok = false;
+	gpudevice = -1;
+      }
+    }
     Feature::GpuDeviceId(gpudevice);
 
     int mypid = getpid();
@@ -353,6 +373,7 @@ namespace picsom {
 #else
     use_mpi_slaves = false;
 #endif // PICSOM_USE_MPI
+    use_slaves = true;
 
     CleanUpBogusDirs();
 
@@ -671,6 +692,18 @@ namespace picsom {
     MPI::Init();
 #endif // PICSOM_USE_MPI
 
+#if defined(HAVE_CAFFE2_CORE_MACROS_H) && defined(PICSOM_USE_CAFFE2)
+    if (true) {
+      int argc = 1;
+      char** argv = new char*[2];
+      argv[0] = new char[10];
+      strcpy(argv[0], "hello");
+      argv[1] = NULL;
+      caffe2::GlobalInit(&argc, &argv);
+      caffe2_initialized = true;
+    }
+#endif // HAVE_CAFFE2_CORE_MACROS_H && PICSOM_USE_CAFFE2
+
     Connection::InitializeSSL();
 
     ostream& errout = cerr;
@@ -707,13 +740,8 @@ namespace picsom {
       if (mode=="s")
 	return Segmentation::Main(psargs);
       
-      if (mode=="r") {
-#ifdef HAS_IMGROBOT_INTERNAL
-	return ImgRobot::Main(0, NULL);
-#else
+      if (mode=="r")
 	return Usage(args[0], "imgrobot not included");
-#endif // HAS_IMGROBOT_INTERNAL
-      }
       
       if (mode=="h" || mode=="H" || mode=="?")
 	return Usage(args[0]);
@@ -763,9 +791,6 @@ namespace picsom {
     cerr << "  -p or no mode switch : normal picsom operation" << endl;
     cerr << "  -f : feature extraction mode" << endl;
     cerr << "  -s : segmentation mode" << endl;
-#ifdef HAS_IMGROBOT_INTERNAL
-    cerr << "  -r : image robot mode" << endl;
-#endif
     cerr << "  -h : show this help text" << endl;
     return 2;
   }
@@ -780,6 +805,9 @@ namespace picsom {
 #endif //  HAVE_DECL_ENVIRON
 
     set<string> vars;
+    vars.insert("PATH");
+    vars.insert("PYTHONPATH");
+    vars.insert("LOADEDMODULES");
     vars.insert("CUDA_VISIBLE_DEVICES");
     vars.insert("JOB_ID");
     vars.insert("JOB_NAME");
@@ -1370,6 +1398,11 @@ bool PicSOM::DoSshForwarding(int p) {
   /////////////////////////////////////////////////////////////////////////////
 
   bool PicSOM::SetSlaveInfo(const string& hosts) {
+    if (!use_slaves) {
+      WriteLog("Use of slaves prevented.");
+      return true;
+    }
+
     bool force_fast = ForceFastSlave();
 
     vector<string> l = SplitInCommasObeyParentheses(hosts);
@@ -3578,7 +3611,7 @@ bool PicSOM::DoSshForwarding(int p) {
     return (str[i]-'0')*1000+(str[i+1]-'0')*100+TwoDigitsToInt(str, i+2);
   }
 
-  ///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
   bool PicSOM::CommandLineParsing(const vector<string>& args) {
     bool args_ok = true;
@@ -3758,6 +3791,15 @@ bool PicSOM::DoSshForwarding(int p) {
       }
 
       /*>
+	-nometa
+	Sets external metadata parsing to false
+      */
+      if (astr=="-nometa") {
+	DataBase::ParseExternalMetadata(false);
+	continue;
+      }
+
+      /*>
 	-pidfile file
 	Saves pid in given file
       */
@@ -3846,6 +3888,15 @@ bool PicSOM::DoSshForwarding(int p) {
       */
       if (astr=="-nobg") {
 	allow_fork = false;
+	continue;
+      }
+
+      /*>
+	-noslaves
+        Set a flag that makes slave specificatio ineffective.
+      */
+      if (astr=="-noslaves") {
+	use_slaves = false;
 	continue;
       }
 
@@ -5813,7 +5864,7 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     vector<string> cmd { smi, "-q", "-d", "UTILIZATION"	/*, "2>&1"*/ };
     auto rr = ShellExecute(cmd, false, verbose);
     if (rr.first==false)
-      return -1;
+      return -2;
 
     vector<string> l = rr.second;
 
@@ -6047,6 +6098,9 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 #if defined(CAFFE_VERSION) && defined(PICSOM_USE_CAFFE)
     pieces.push_back("caffe_" CAFFE_VERSION);
 #endif // CAFFE_VERSION && PICSOM_USE_CAFFE
+#if defined(CAFFE2_VERSION) && defined(PICSOM_USE_CAFFE2)
+    pieces.push_back("caffe2_"+ToStr(CAFFE2_VERSION));
+#endif // CAFFE2_VERSION && PICSOM_USE_CAFFE2
 #ifdef GOOGLE_PROTOBUF_VERSION
     pieces.push_back("protobuf_"+ToStr(GOOGLE_PROTOBUF_VERSION));
 #endif // GOOGLE_PROTOBUF_VERSION
@@ -6103,6 +6157,10 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     pieces.push_back("sqlite3_" SQLITE_VERSION
       " ("+string(sqlite3_libversion())+")");
 #endif // HAVE_SQLITE3_H
+#ifdef HAVE_LMDB_H
+    pieces.push_back(MDB_VERSION_STRING
+		     " ("+string(mdb_version(NULL, NULL, NULL))+")");
+#endif // HAVE_LMDB_H
 #ifdef HAVE_MAGIC_H
     pieces.push_back("libmagic");
 #endif // HAVE_MAGIC_H
@@ -6159,6 +6217,15 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     pieces.push_back("libzip_" LIBZIP_VERSION);
 #endif // HAVE_ZIP_H
 
+#ifdef TIFFLIB_VERSION
+    pieces.push_back("TIFF_" stringize(TIFFLIB_VERSION));
+#endif // TIFFLIB_VERSION
+
+#ifdef GIFLIB_MAJOR
+    pieces.push_back("giflib_" stringize(GIFLIB_MAJOR) "."
+		     stringize(GIFLIB_MINOR) "." stringize(GIFLIB_RELEASE));
+#endif // GIFLIB_MAJOR     
+
     string piecestr = JoinWithString(pieces, ", ");
     for (size_t split=60; piecestr.size()>split; split+=60) {
       size_t p = piecestr.rfind(", ", split);
@@ -6188,10 +6255,6 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     SetVersionData("TensorFlow", string(TF_VERSION_STRING)+" ("+")");
 #endif // TF_VERSION_STRING
 
-#ifdef HAS_IMGROBOT_INTERNAL
-    SetVersionData("HAS_IMGROBOT_INTERNAL",  "*** defined ***");
-#endif // HAS_IMGROBOT_INTERNAL
-
 #ifdef USE_GVT
     SetVersionData("USE_GVT",  "*** defined ***");
 #endif // USE_GVT
@@ -6204,77 +6267,87 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     SetVersionData("PICSOM_USE_READLINE",  "*** defined ***");
 #endif // PICSOM_USE_READLINE
 
-#if defined(HAVE_OPENCV2_CORE_GPUMAT_HPP) && defined(PICSOM_USE_OPENCV)
+#if defined(HAVE_OPENCV2_CORE_CUDA_HPP) && defined(PICSOM_USE_OPENCV)
 #ifdef PICSOM_USE_TENSORFLOW
     bool show_gpu_mem = false;
 #else
     bool show_gpu_mem = true;
 #endif // PICSOM_USE_TENSORFLOW
 
-    int ncuda = cv::gpu::getCudaEnabledDeviceCount();
-    SetVersionData("cv::gpu::CudaEnabledDeviceCount", ToStr(ncuda));
-    vector<pair<cv::gpu::FeatureSet,string> > fea {
-      { cv::gpu::FEATURE_SET_COMPUTE_10, "10" },
-      { cv::gpu::FEATURE_SET_COMPUTE_11, "11" },
-      { cv::gpu::FEATURE_SET_COMPUTE_12, "12" },
-      { cv::gpu::FEATURE_SET_COMPUTE_13, "13" },
-      { cv::gpu::FEATURE_SET_COMPUTE_20, "20" },
-      { cv::gpu::FEATURE_SET_COMPUTE_21, "21" },
-      { cv::gpu::FEATURE_SET_COMPUTE_30, "30" },
-      { cv::gpu::FEATURE_SET_COMPUTE_35, "35" },
-      { cv::gpu::GLOBAL_ATOMICS, 	 "global_atomics" },
-      { cv::gpu::SHARED_ATOMICS, 	 "shared_atomics" },
-      { cv::gpu::NATIVE_DOUBLE,  	 "native_double"  },
-      { cv::gpu::WARP_SHUFFLE_FUNCTIONS, "warp_shuffle_functions" },
-      { cv::gpu::DYNAMIC_PARALLELISM,    "dynamic_parallelism" }
-    };
+    bool use_opencv_cuda = true;
 
-    if (ncuda!=0) {
-      string cap_built;
-      for (size_t i=0; i<fea.size(); i++) 
-    	if (cv::gpu::TargetArchs::builtWith(fea[i].first))
-    	  cap_built += (cap_built!=""?" ":"")+fea[i].second;
+    if (use_opencv_cuda && nvidia_smi_ok) {
+      int ncuda = cv::cuda::getCudaEnabledDeviceCount();
+      stringstream cmsg;
+      cmsg << ncuda;
+      if (ncuda==0)
+	cmsg << " (no CUDA support in OpenCV)";
+      if (ncuda==-1)
+	cmsg << " (no devices)";
+      SetVersionData("cv::cuda::CudaEnabledDeviceCount", cmsg.str());
+      vector<pair<cv::cuda::FeatureSet,string> > fea {
+	{ cv::cuda::FEATURE_SET_COMPUTE_10, "10" },
+	{ cv::cuda::FEATURE_SET_COMPUTE_11, "11" },
+	{ cv::cuda::FEATURE_SET_COMPUTE_12, "12" },
+	{ cv::cuda::FEATURE_SET_COMPUTE_13, "13" },
+	{ cv::cuda::FEATURE_SET_COMPUTE_20, "20" },
+	{ cv::cuda::FEATURE_SET_COMPUTE_21, "21" },
+	{ cv::cuda::FEATURE_SET_COMPUTE_30, "30" },
+	{ cv::cuda::FEATURE_SET_COMPUTE_35, "35" },
+	{ cv::cuda::GLOBAL_ATOMICS, 	    "global_atomics" },
+	{ cv::cuda::SHARED_ATOMICS, 	    "shared_atomics" },
+	{ cv::cuda::NATIVE_DOUBLE,  	    "native_double"  },
+	{ cv::cuda::WARP_SHUFFLE_FUNCTIONS, "warp_shuffle_functions" },
+	{ cv::cuda::DYNAMIC_PARALLELISM,    "dynamic_parallelism" }
+      };
 
-      string cap_has, cap_ptx, cap_bin;
-      for (int maj=1; maj<5; maj++)
-    	for (int min=0; min<10; min++) {
-    	  if (cv::gpu::TargetArchs::has(maj, min))
-    	    cap_has += (cap_has!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
-    	  if (cv::gpu::TargetArchs::hasPtx(maj, min))
-    	    cap_ptx += (cap_ptx!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
-    	  if (cv::gpu::TargetArchs::hasBin(maj, min))
-    	    cap_bin += (cap_bin!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
-    	}
+      if (ncuda!=0) {
+	string cap_built;
+	for (size_t i=0; i<fea.size(); i++) 
+	  if (cv::cuda::TargetArchs::builtWith(fea[i].first))
+	    cap_built += (cap_built!=""?" ":"")+fea[i].second;
+
+	string cap_has, cap_ptx, cap_bin;
+	for (int maj=1; maj<10; maj++)
+	  for (int min=0; min<10; min++) {
+	    if (cv::cuda::TargetArchs::has(maj, min))
+	      cap_has += (cap_has!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
+	    if (cv::cuda::TargetArchs::hasPtx(maj, min))
+	      cap_ptx += (cap_ptx!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
+	    if (cv::cuda::TargetArchs::hasBin(maj, min))
+	      cap_bin += (cap_bin!=""?" ":"")+ToStr(maj)+"."+ToStr(min);
+	  }
     	  
-      SetVersionData("  compute capability built", cap_built);
-      SetVersionData("  compute capability has", cap_has);
-      SetVersionData("  compute capability ptx", cap_ptx);
-      SetVersionData("  compute capability bin", cap_bin);
-    }
+	SetVersionData("  compute capability built", cap_built);
+	SetVersionData("  compute capability has", cap_has);
+	SetVersionData("  compute capability ptx", cap_ptx);
+	SetVersionData("  compute capability bin", cap_bin);
+      }
 
-    for (int j=0; j<ncuda; j++) {
-      cv::gpu::DeviceInfo di(j);
-      stringstream str;
-      str << di.deviceID() << " \""
-       	  << di.name() << "\" "
-       	  << di.majorVersion() << "." << di.minorVersion() << " "
-	  << "#multiproc=" << di.multiProcessorCount();
+      for (int j=0; j<ncuda; j++) {
+	cv::cuda::DeviceInfo di(j);
+	stringstream str;
+	str << di.deviceID() << " \""
+	    << di.name() << "\" "
+	    << di.majorVersion() << "." << di.minorVersion() << " "
+	    << "#multiproc=" << di.multiProcessorCount();
 
-      if (show_gpu_mem)
-	str << " memory=" << di.freeMemory() << " / "<< di.totalMemory();
+	if (show_gpu_mem)
+	  str << " memory=" << di.freeMemory() << " / "<< di.totalMemory();
     
-      str << " supports=[";
-      bool firsts = true;
-      for (size_t i=0; i<fea.size(); i++) 
-	if (di.supports(fea[i].first)) {
-       	  str << (firsts?"":" ") << fea[i].second;
-	  firsts = false;
-	}
+	str << " supports=[";
+	bool firsts = true;
+	for (size_t i=0; i<fea.size(); i++) 
+	  if (di.supports(fea[i].first)) {
+	    str << (firsts?"":" ") << fea[i].second;
+	    firsts = false;
+	  }
 
-      str << "] compatible=" << (di.isCompatible()?"YES":"NO");
-      SetVersionData("  #"+ToStr(j), str.str());
+	str << "] compatible=" << (di.isCompatible()?"YES":"NO");
+	SetVersionData("  #"+ToStr(j), str.str());
+      }
     }
-#endif // HAVE_OPENCV2_CORE_GPUMAT_HPP && PICSOM_USE_OPENCV
+#endif // HAVE_OPENCV2_CORE_CUDA_HPP && PICSOM_USE_OPENCV
 
     SetVersionData("imagedata", imagedata::version());
     SetVersionData("imagefile", imagefile::version());
@@ -6420,7 +6493,7 @@ bool PicSOM::AddToXMLanalysis(XmlDom& xml, const Analysis *ana,
     s.Element("started",  TimeDotString(start_time));
 
     double load = -1.0;
-    if (getloadavg(&load, 1)==1) {
+    if (getloadavg(&load, 1)==1 || true) {
       stringstream ss;
       ss.precision(2);
       ss << load;
@@ -6603,15 +6676,24 @@ bool PicSOM::AddToXMLanalysis(XmlDom& xml, const Analysis *ana,
     WriteLog(tmp);
 
 #ifdef CUDA_VERSION
-    int cc = 0;
+    stringstream ss;
+    ss << "CUDA";
+    int driverVersion = 0, runtimeVersion = 0, cc = 0;
+    cudaDriverGetVersion(&driverVersion);
+    cudaRuntimeGetVersion(&runtimeVersion);
     cudaGetDeviceCount(&cc);
-    WriteLog("CUDA devicecount="+ToStr(cc));
+    ss << " driver=" << driverVersion/1000 << "." << (driverVersion%100)/10
+       << " runtime=" << runtimeVersion/1000 << "." << (runtimeVersion%100)/10
+       << " devicecount=" << cc;
+
+    WriteLog(ss.str());
     for (int ci=0; ci<cc; ci++) {
       struct cudaDeviceProp cprop;
       cudaGetDeviceProperties(&cprop, ci);
       ostringstream cstr;
-      cstr << "\"" << cprop.name << "\" mem=" << cprop.totalGlobalMem
-	   << " cab=" << cprop.major << "." << cprop.minor
+      cstr << "\"" << cprop.name << "\""
+	   << " mem=" << cprop.totalGlobalMem
+	   << " cap=" << cprop.major << "." << cprop.minor
 	   << " mpc=" << cprop.multiProcessorCount;
       WriteLog(" #"+ToStr(ci)+" : "+cstr.str());
     }
@@ -6622,6 +6704,7 @@ bool PicSOM::AddToXMLanalysis(XmlDom& xml, const Analysis *ana,
     WriteLog("cmdline=", cmdline_str);
     WriteLog("binary=", mybinary_str);
 
+    WriteLog("RootDir()=",        RootDir());
     WriteLog("Path()=",        Path());
     WriteLog("UserHomeDir()=", UserHomeDir());
     WriteLog("UserName()=",    UserName());
@@ -7327,6 +7410,11 @@ bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
     return true;
   }
 
+  if (keystr=="debugimages") {
+    DataBase::DebugImages(intval);
+    return true;
+  }
+
   if (keystr=="debugreads") {
     Connection::DebugReads(boolval);
     return true;
@@ -7461,8 +7549,10 @@ bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
   }
 
   if (keystr=="caffe_expand_task") {
+#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
     extern void caffe_expand_task(size_t);
     caffe_expand_task(intval);
+#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
     return true;
   }
 
@@ -7504,6 +7594,11 @@ bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
     return true;
   }
 
+  if (keystr=="use_slaves") {
+    use_slaves = boolval;
+    return true;
+  }
+
   if (keystr=="use_mpi_slaves") {
     use_mpi_slaves = boolval;
     return true;
@@ -7521,6 +7616,11 @@ bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
   if (keystr=="gpudevice") {
     gpudevice = intval;
     Feature::GpuDeviceId(GpuDeviceId());
+    return true;
+  }
+
+  if (keystr=="parse_external_metadata") {
+    DataBase::ParseExternalMetadata(boolval);
     return true;
   }
 
@@ -8722,6 +8822,9 @@ void PicSOM::SaveAllAndExitSignal(int s) {
 ///////////////////////////////////////////////////////////////////////////////
 
 void PicSOM::SaveAllAndExit() {
+  for (int i=0; i<database.Nitems(); i++)
+    GetDataBase(i)->CloseTextIndices();
+
   SaveOldQueries(true);
   CloseAllConnections();
 #ifdef PICSOM_USE_PTHREADS
@@ -10739,6 +10842,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
       string imgtmp = temp_dir_personal+"/tmp";
       MkDirHier(imgtmp, mode);
       imagefile::tmp_dir(imgtmp);
+      videofile::tmp_dir(imgtmp);
     }
     if (d=="")
       return temp_dir_personal;
@@ -11094,23 +11198,45 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  string textline_t::str(bool full, bool val) const {
+  string textline_t::str_common(bool full, bool val, bool enc) const {
     stringstream ss;
     
-    if (full)
+    if (full) {
       ss << "#" << idx
 	 << (db?" "+db->Label(idx):"")
-	 << " " << (db?db->Name():"no db") 
-	 << " [" << generator << "][" << evaluator << "] ";
+	 << " " << (db?db->Name():"no db") << " ";
+
+      if (index!="")
+	ss << "index=[" << index << "] ";
+      if (field!="")
+	ss << "field=[" << field << "] ";
+      if (generator!="")
+	ss << "generator=[" << generator << "] ";
+      if (evaluator!="")
+	ss << "evaluator=[" << evaluator << "] ";
+    }
 
     if (has_time_set())
       ss << start << " " << end << " ";
-    for (auto i=txt_val.begin(); i!=txt_val.end(); i++) {
-      if (i!=txt_val.begin())
+
+    size_t j = 0;
+    for (auto& i : txt_val) {
+      if (j++)
 	ss << " # ";
-      ss << i->first;
+      string t = i.first;
+      if (enc) {
+	size_t p = 0;
+	for (;;) {
+	  p = t.find('#', p);
+	  if (p==string::npos)
+	    break;
+	  t.insert(p, "#");
+	  p += 2;
+	}
+      }
+      ss << t;
       if (val)
-	ss << " (" << i->second << ")";
+	ss << " (" << i.second << ")";
     }
 	  
     return ss.str();
@@ -11118,8 +11244,8 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool textline_t::parse(const string& sin) {
-    string msg = "textline_t::parse("+sin+") : ", s = sin;
+  bool textline_t::txt_decode(const string& sin) {
+    string msg = "textline_t::txt_decode("+sin+") : ", s = sin;
 
     *this = textline_t();
 
@@ -11131,7 +11257,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
       s.erase(p);
 
     p = s.find_first_not_of("0123456789.: \t");
-    if (p!=0) {
+    if (p!=0 && s.substr(0, 2)!=" (") {
       size_t q = s.find_first_of(" \t");
       if (q==0 || q==string::npos || q>p)
 	return ShowError(msg+"error #1");
@@ -11158,6 +11284,15 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	a.erase(p);
       }
 
+      p = 0;
+      for (;;) {
+	p = a.find("##", p);
+	if (p==string::npos)
+	  break;
+	a.erase(p, 1);
+	p += 1;
+      }
+      
       txt_val.push_back(make_pair(a, val));
     }
 

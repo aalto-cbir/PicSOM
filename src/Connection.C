@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Connection.C,v 2.378 2017/04/28 07:46:06 jormal Exp $
+// -*- C++ -*-  $Id: Connection.C,v 2.385 2018/12/16 11:32:00 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -62,7 +62,7 @@ int WSAAPI getnameinfo(const struct sockaddr*,socklen_t,char*,DWORD,
 
 namespace picsom {
   static const string Connection_C_vcid =
-    "@(#)$Id: Connection.C,v 2.378 2017/04/28 07:46:06 jormal Exp $";
+    "@(#)$Id: Connection.C,v 2.385 2018/12/16 11:32:00 jormal Exp $";
 
   /// A dummy initializer.
   const list<pair<string,string> > Connection::empty_list_pair_string;
@@ -150,6 +150,11 @@ namespace picsom {
     mpi_root = 0;
     mpi_msgtag = 0;
 #endif // PICSOM_USE_MPI
+
+    rfdibuf = NULL;
+    wfdobuf = NULL;
+    rfdistream = NULL;
+    wfdostream = NULL;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -379,7 +384,7 @@ Connection *Connection::CreatePipe(PicSOM *p, const vector<string>& cmd,
   c->type  = conn_pipe;
   c->Identity("*"+ToStr(cmd)+"*");
 
-  sync();
+  // sync();
 
   c->child = fork();
   if (c->child==-1) {
@@ -399,6 +404,14 @@ Connection *Connection::CreatePipe(PicSOM *p, const vector<string>& cmd,
     if (notify)
       c->Notify(true, NULL, true);
     c->notify_delete = notify;
+
+    FILE *ifh = fdopen(c->Rfd(), "r");
+    FILE *ofh = fdopen(c->Wfd(), "w");
+    c->rfdibuf = new __gnu_cxx::stdio_filebuf<char>(ifh, ios_base::in,  1);
+    c->wfdobuf = new __gnu_cxx::stdio_filebuf<char>(ofh, ios_base::out, 1);
+    c->rfdistream = new istream(c->rfdibuf);
+    c->wfdostream = new ostream(c->wfdobuf);
+    
     return c;
   }
 
@@ -4290,13 +4303,17 @@ bool Connection::ReOpenUplink(const char *dumpp) {
     }
 
 #ifdef HAVE_OPENSSL_SSL_H
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define TLS_ST_OK SSL_ST_OK
+#endif // OPENSSL_VERSION_NUMBER
+    
     if (ssl) {
       c->ssl = SSL_new(ssl_ctx);
       if (!c->ssl)
 	ShowError(msg+"SSL_new() failed");
       else if (debug_http) {
 	cout << msg << "SSL_new() successful" << endl;
-	c->ssl->debug = 1;
+	// c->ssl->debug = 1;  // not available anymore in openssl 1.1.0
       }
 
       SSL_set_connect_state(c->ssl);
@@ -4330,10 +4347,11 @@ bool Connection::ReOpenUplink(const char *dumpp) {
       else if (debug_http)
 	cout << msg << "SSL_do_handshake() successful" << endl;
 
-      if (c->ssl->state!=SSL_ST_OK)
-	ShowError(msg+"c->ssl->state!=SSL_ST_OK : "+ToStr(c->ssl->state));
+      if (SSL_get_state(c->ssl)!=TLS_ST_OK)
+	ShowError(msg+"SSL_get_state()!=TLS_ST_OK : "+
+		  ToStr(SSL_get_state(c->ssl)));
       else if (debug_http)
-	cout << msg << "SSL_ST_OK" << endl;
+	cout << msg << "TLS_ST_OK" << endl;
     }
 #endif // HAVE_OPENSSL_SSL_H
 
@@ -6106,6 +6124,11 @@ bool Connection::Close(bool angry, bool notify) {
     int status = 0;
     waitpid(child, &status, WNOHANG|WUNTRACED|WCONTINUED);
 #endif // HAVE_WINSOCK2_H
+
+    delete rfdistream;
+    delete wfdostream;
+    delete rfdibuf;
+    delete wfdobuf;
   }
 
   // rfd = wfd = -1;
@@ -7572,9 +7595,9 @@ bool Connection::RfdOK() {
 
     bool ok = true;
 
-    // SetXMLdoc(xmlReadMemory(buf.c_str(), buf.size(),
-    // 			       NULL, NULL, XML_PARSE_HUGE));
-    SetXMLdoc(xmlParseMemory(buf.c_str(), buf.size()));
+    SetXMLdoc(xmlReadMemory(buf.c_str(), buf.size(),
+			    NULL, NULL, XML_PARSE_HUGE));
+    // SetXMLdoc(xmlParseMemory(buf.c_str(), buf.size()));
 
     if (!HasXMLdoc()) {
       cerr << msg << "xmlReadMemory() failed" << endl

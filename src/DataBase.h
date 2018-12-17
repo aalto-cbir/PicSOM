@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: DataBase.h,v 2.522 2017/11/26 21:31:11 jormal Exp $
+// -*- C++ -*-  $Id: DataBase.h,v 2.557 2018/12/15 23:07:51 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -46,6 +46,10 @@
 #pragma GCC diagnostic pop
 #endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
 
+#if defined(HAVE_CAFFE2_CORE_MACROS_H) && defined(PICSOM_USE_CAFFE2)
+#include <caffe2/core/macros.h>
+#endif // HAVE_CAFFE2_CORE_MACROS_H && PICSOM_USE_CAFFE2
+
 #if defined(HAVE_THC_H)
 #include <THC.h>
 #endif // defined(HAVE_THC_H)
@@ -74,7 +78,7 @@ typedef struct zip_stat zip_stat_t;
 
 namespace picsom {
   static string DataBase_h_vcid =
-    "@(#)$Id: DataBase.h,v 2.522 2017/11/26 21:31:11 jormal Exp $";
+    "@(#)$Id: DataBase.h,v 2.557 2018/12/15 23:07:51 jormal Exp $";
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -626,19 +630,24 @@ namespace picsom {
     static const object_info *DummyObject() { return &object_info::dummy(); }
 
     /// Returns label of i'th object in the database.
-    const char *LabelP(int i) const { return Label(i).c_str(); }
+    // const char *LabelP(int i) const { return Label(i).c_str(); }
 
     /// Returns label of i'th object in the database.
     const string& Label(int i) const {
       try {
 	return _objects.label(i);
       }
-      catch (out_of_range) {
+      catch (const out_of_range&) {
 	ShowError("DataBase::Label() index ", ToStr(i), " not OK, Size()="
 		  +ToStr(_objects.size()));
 	static const string empty;
 	return empty;
       }
+    }
+
+    ///
+    string ZeroPadToLabel(const string& l) const {
+      return string(LabelLength()-l.length(), '0')+l;
     }
 
     /// This fills _objects and tt_stat.
@@ -830,6 +839,9 @@ namespace picsom {
 
     ///
     pair<size_t,size_t> VideoOrSegmentMiddleFrame(size_t, bool = true);
+
+    ///
+    size_t MiddleFrameTrick(size_t, bool);
 
     ///
     string ParentObjectStringByPruning(const string& l) const;
@@ -1311,6 +1323,10 @@ namespace picsom {
     ground_truth GroundTruthSiblings(target_type, const string&, const string&,
 				     const vector<string>&);
     
+    /// Ground truth by parent/child/sibling relations.
+    ground_truth GroundTruthNchildren(target_type, const string&, const string&,
+				      const string&, const vector<string>&);
+    
     /// Ground truth by master/duplicates relations.
     ground_truth GroundTruthDuplicates(target_type,const string&,const string&,
 				       const vector<string>&);
@@ -1576,6 +1592,12 @@ namespace picsom {
     ///
     static void ForceLuceneUnlock(bool f) { force_lucene_unlock = f; }
 
+    ///
+    static bool ParseExternalMetadata() { return parse_external_metadata; }
+
+    ///
+    static void ParseExternalMetadata(bool v) { parse_external_metadata = v; }
+
     /// Finds features which don't have maps but are specified in settings.xml.
     bool SolveExtractions();
 
@@ -1616,12 +1638,22 @@ namespace picsom {
     bool ExpandAndStoreDescribedDetections(const string&,
 					   const list<pair<string,string> >&);
 
-    /// Creates captioning method.
-    bool DescribedCaptioning(const XmlDom&);
+    ///
+    list<pair<string,list<pair<string,string> > > >
+    ExpandDescription(const string&, const list<pair<string,string> >&,
+		      bool);
 
     ///
-    bool ExpandAndStoreDescribedCaptionings(const string&,
-					    const list<pair<string,string> >&);
+    list<pair<string,list<pair<string,string> > > >
+    ExpandDescriptionInner(const string&, const list<pair<string,string> >&,
+			   bool);
+
+    ///
+    list<pair<string,string> >
+    ExpandDescriptionVariables(const list<pair<string,string> >&, bool, bool);
+
+    /// Creates captioning method.
+    bool DescribedCaptioning(const XmlDom&);
 
     /// Creates media extraction method.
     bool DescribedMedia(const XmlDom&);
@@ -1718,7 +1750,8 @@ namespace picsom {
     }
 
     ///
-    imagedata CreateVirtualImage(const string&, const string&) const;
+    imagedata CreateVirtualImage(const string&, const string&,
+				 const string& = "") const;
 
     ///
     imagedata CreateVirtualImage8plus8(const string&, const string&) const;
@@ -1891,7 +1924,7 @@ namespace picsom {
     static string VTTtimeStr(double);
 
     /// Returns image data for given index.
-    imagedata ImageData(size_t);
+    imagedata ImageData(size_t, bool = false, string* = NULL);
 
 #ifdef USE_MRML
     /// HASH table that maps http_path (original file path+name) into picsom
@@ -2647,10 +2680,10 @@ namespace picsom {
     bool IsMissingObject(size_t) const;
 
     ///
-    bool IsImageFromTar(size_t) const;
+    bool IsImageFromContainer(size_t) const;
 
     ///
-    bool IsMissingImageFromTar(size_t) const;
+    bool IsMissingImageFromContainer(size_t) const;
 
     ///
     bool IsMissingObjectInSql(size_t) const;
@@ -2670,44 +2703,59 @@ namespace picsom {
       return IsMissingMediaClip(idx, target_image);
     }
 
+    /// Returns true if AddToXMLmediaclip() needs to be called.
+    bool IsMissingImageSegment(size_t idx) const {
+      return IsMissingMediaClip(idx, target_imagesegment);
+    }
+
     ///
     bool IsMissingMediaClip(size_t, target_type) const;
 
     /// Returns true if videoclip can be created.
     bool IsVideoClip(size_t idx) const {
-      return IsMediaClip(idx, target_video);
+      return IsMediaClip(idx, target_video, target_video);
     }
 
     /// Returns true if audioclip can be created.
     bool IsAudioClip(size_t idx) const {
-      return IsMediaClip(idx, target_sound);
+      return IsMediaClip(idx, target_sound, target_video);
     }
 
-    /// Returns true if audioclip can be created.
+    /// Returns true if image can be created.
     bool IsVideoFrame(size_t idx) const {
-      return IsMediaClip(idx, target_image);
+      return IsMediaClip(idx, target_image, target_video);
+    }
+
+    /// Returns true if image segment can be created.
+    bool IsImageSegment_new(size_t idx) const {
+      return IsMediaClip(idx, target_imagesegment, target_image);
     }
 
     ///
-    bool IsMediaClip(size_t, target_type) const;
+    bool IsMediaClip(size_t, target_type, target_type) const;
 
     ///
-    bool IsImageSegment(size_t idx) const {
+    bool IsImageSegment_old(size_t idx) const {
       return ObjectsTargetTypeContains(idx, target_image) &&
 	ObjectsTargetTypeContains(idx, target_segment);
     }
 
     ///
-    bool ExtractImageFromTar(size_t);
+    bool ExtractImageFromContainer(size_t);
 
     ///
-    bool ExtractImagesFromTar(const vector<size_t>&);
+    bool ExtractImagesFromContainer(const vector<size_t>&);
 
     ///
-    bool ExtractFromTarCommon(size_t, string&, string&, string&, string&);
+    bool ExtractFromContainerCommon(size_t, string&, string&, string&, string&);
 
     ///
     bool ExtractMediaClip(size_t idx, const target_type tt, bool);
+
+    ///
+    bool ExtractImageSegment(size_t idx, bool subd = true) {
+      return ExtractMediaClip(idx, target_imagesegment, subd);
+    }
 
     ///
     bool ExtractVideoClip(size_t idx, bool subd = true) {
@@ -2924,7 +2972,8 @@ namespace picsom {
     bool TarToZip(const string&, const string&);
     
     ///
-    bool InsertVideoSubObjects(size_t index, upload_object_data& info,
+    bool InsertVideoSubObjects(size_t index, target_type,
+			       upload_object_data& info,
 			       int, float, bool, XmlDom&);
 
     ///
@@ -3015,7 +3064,7 @@ namespace picsom {
     bool UpdateOriginsInfo(size_t, const string&, const string&);
 
     /// Update specific label in origins file, removing old line if it exists
-    bool UpdateOriginsInfoSql(size_t, const map<string,string>&);
+    bool UpdateOriginsInfoSql(size_t, const map<string,string>&, bool);
 
     /// Update specific label in origins file, removing old line if it exists
     bool UpdateOriginsInfoSqlUpdate(size_t, const map<string,string>&);
@@ -3029,7 +3078,8 @@ namespace picsom {
     /// Inserts a new image in the database, image file data.
     /// If it finds that target type is file+image and the object is multiframe
     /// image file, it changes target_image to target_imageset in last arg.
-    bool InsertOriginsInfo(size_t, const string&, const string&, const string&,
+    bool InsertOriginsInfo(size_t, bool, 
+			   const string&, const string&, const string&,
 			   const string&, const string&, const string&,
 			   const map<string,string>&,
 			   const string&, target_type&, int&, float&,
@@ -3038,7 +3088,7 @@ namespace picsom {
     /// Extract image statistics from the image file.
     bool SolveMissingOriginsInfo(const string&, target_type,
 				 string&, string&, string&,
-				 int&, float&);
+				 int&, float&, string&, bool = true);
 
     /// Inserts a new image in the database, image file data.
     bool InsertImageText(const string&, const string&);
@@ -3069,6 +3119,12 @@ namespace picsom {
 
     /// Calculates feature vectors for the new image.
     bool CalculateFeatures(int, const list<string>&);
+
+    ///
+    bool CalculateConceptFeatures(const Index*, const vector<size_t>&, 
+				  const vector<string>&, 
+				  const list<incore_feature_t>&,
+				  feature_result*);
 
     /// Loads features from files and updates div and backref data.
     bool LoadAndMatchFeatures(int, const list<string>&, bool, bool);
@@ -3167,10 +3223,34 @@ namespace picsom {
 			 const list<pair<string,string> >&);
 
     ///
+    bool TextIndexUpdate(const string&, const string&,
+			 const list<pair<string,string> >&);
+
+    ///
     list<pair<string,string> > TextIndexRetrieve(size_t, const string&);
 
     ///
+    list<pair<string,string> > TextIndexRetrieve(const string&, const string&);
+
+    ///
     list<pair<string,string> > TextIndexRetrieveFake(size_t, const string&);
+
+    ///
+    list<textline_t> TextIndexAllLines( const string&, size_t);
+    
+    ///
+    textline_t TextIndexLine(const string&, const string&, size_t);
+
+    ///
+    textline_t TextIndexLineOld(const string&, const string&, size_t);
+
+    ///
+    list<textline_t> TextIndexLines(const string&, const string&, 
+				    const vector<size_t>&);
+
+    ///
+    list<textline_t> TextIndexLines(const string&, const string&, 
+				    const ground_truth&);
 
     ///
     string TextIndexSearchByLabel(size_t, const string&, const string&);
@@ -3438,15 +3518,16 @@ namespace picsom {
     float ThresholdValue(const string&);
     
     ///
-    bool DoAllCaptionings(const vector<size_t>&, const vector<string>&,
-			  XmlDom&);
+    bool DoAllCaptionings(bool, const vector<size_t>&, const vector<string>&,
+			  bool, XmlDom&);
 
     ///
-    bool DoOneCaptioning(const vector<size_t>&, const string&, XmlDom&);
+    bool DoOneCaptioning(bool, const vector<size_t>&, const string&,
+			 bool, XmlDom&);
 
     ///
     bool StoreCaptioningResult(size_t, const string&, const textline_t&,
-			       XmlDom&);
+			       bool, bool, XmlDom&);
 
     /// OSRS speech recognition.
     bool OSRSspeechRecognition(size_t, const list<pair<string,string> >&);
@@ -3854,6 +3935,18 @@ namespace picsom {
     const ontology& LscomOntology() const { return lscom_ontology; }
 
     ///
+    const ontology& Ontology(const string& n = "") const { 
+      return ((DataBase*)this)->ontology_map[n]; 
+    }
+
+    ///
+    ontology& Ontology(const string& n = "") { return ontology_map[n]; }
+
+    ///
+    bool CreateWordnetOntology(const vector<pair<string,float> >&,
+			       const string& = "");
+    
+    ///
     map<size_t,textline_t> 
     GenerateSentencesNeuralTalk(const vector<size_t>&,
 				const map<string,string>&);
@@ -3886,6 +3979,9 @@ namespace picsom {
 
     static ontology lscom_ontology;
 
+    ///
+    map<string,ontology> ontology_map;
+    
   public:
     class trecvid_med_event {
     public:
@@ -4090,18 +4186,21 @@ namespace picsom {
 
 #ifdef PICSOM_USE_JAULA
     ///
-    bool ReadCOCOjaula(const string&, const string&, const string&,
+    bool ReadCOCOjaula(const string&, const string&, const string&, const string&,
 		       const string&, const string&, const string&);
 #endif // PICSOM_USE_JAULA
 
 #ifdef HAVE_JSON_JSON_H
     ///
-    bool ReadCOCOjsoncpp(const string&, const string&, const string&,
+    bool ReadCOCOjsoncpp(const string&, const string&, const string&, const string&,
 			 const string&, const string&, const string&);
 
     ///
     list<pair<string,list<vector<pair<float,float> > > > > COCOmasks(size_t);
 #endif // HAVE_JSON_JSON_H
+
+    ///
+    bool ReadVisualGenome(const map<string,string>&);
 
     ///
     list<pair<string,imagedata> > ObjectMasks(size_t);
@@ -4209,6 +4308,458 @@ namespace picsom {
     ///
     PyObject *PythonFeatureVector(const string&, size_t);
 #endif // PICSOM_USE_PYTHON
+
+    ///
+    class VG_image_data {
+      public:
+      ///
+      VG_image_data() : db(NULL), idx(-1), image_id(-1), coco_id(-1),
+			flickr_id(-1), width(-1), height(-1) {}
+
+#if defined(HAVE_JSON_JSON_H)
+      ///
+      VG_image_data(const Json::Value&, DataBase*);
+#endif // HAVE_JSON_JSON_H
+
+      ///
+      string str() const;
+
+      ///
+      DataBase *db;
+
+      ///
+      size_t idx, image_id, coco_id, flickr_id, width, height;
+
+      ///
+      string url;
+    };  // class VG_image_data
+
+    ///
+    class VG_objects {
+      public:
+
+      class object {
+      public:
+	///
+	vector<string> synsets, names;
+	
+	///
+	vector<size_t> merged_object_ids;
+
+	///
+	size_t object_id, x, y, w, h;
+      };
+
+      ///
+      VG_objects() : db(NULL), idx(-1), image_id(-1) {}
+
+#if defined(HAVE_JSON_JSON_H)
+      ///
+      VG_objects(const Json::Value&, DataBase*);
+#endif // HAVE_JSON_JSON_H
+
+      ///
+      string str() const;
+
+      ///
+      DataBase *db;
+
+      ///
+      size_t idx, image_id;
+
+      ///
+      vector<object> objects;
+
+      ///
+      string image_url;
+    };  // class VG_objects
+
+    ///
+    class VG_relationships {
+      public:
+
+      class object_t {
+      public:
+	///
+	object_t() : object_id(-1), x(-1), y(-1), w(-1), h(-1) {}
+
+#if defined(HAVE_JSON_JSON_H)
+	///
+	object_t(const Json::Value&);
+#endif // HAVE_JSON_JSON_H
+
+	///
+	vector<string> names, synsets;
+	
+	///
+	vector<size_t> merged_object_ids;
+	
+	///
+	size_t object_id, x, y, w, h;
+
+	///
+	string str() const;
+      };
+
+      class relationship {
+      public:
+	///
+	relationship() : relationship_id(-1) {}
+
+	///
+	size_t relationship_id;
+
+	///
+	string predicate;
+
+	///
+	vector<string> synsets;
+
+	///
+	object_t subject, object;
+
+	///
+	string str() const;
+      };
+
+      ///
+      VG_relationships() : db(NULL), idx(-1), image_id(-1) {}
+
+#if defined(HAVE_JSON_JSON_H)
+      ///
+      VG_relationships(const Json::Value&, DataBase*);
+#endif // HAVE_JSON_JSON_H
+
+      ///
+      string str() const;
+
+      ///
+      DataBase *db;
+
+      ///
+      size_t idx, image_id;
+
+      ///
+      vector<relationship> relationships;
+    };  // class VG_relationships
+
+    ///
+    class VG_attributes {
+      public:
+
+      class attribute {
+      public:
+	///
+	attribute() : object_id(-1) {}
+
+	///
+	vector<string> attributes;
+	
+	///
+	size_t object_id;
+      };
+
+      ///
+      VG_attributes() : db(NULL), idx(-1), image_id(-1) {}
+
+#if defined(HAVE_JSON_JSON_H)
+      ///
+      VG_attributes(const Json::Value&, DataBase*);
+#endif // HAVE_JSON_JSON_H
+
+      ///
+      string str() const;
+
+      ///
+      DataBase *db;
+
+      ///
+      size_t idx, image_id;
+
+      ///
+      vector<attribute> attributes;
+    };  // class VG_attributes
+
+    ///
+    class VG_region_descriptions {
+      public:
+
+      class region {
+      public:
+	///
+	string phrase;
+	///
+	size_t region_id, image_id, x, y, width, height;
+      };
+
+      ///
+      VG_region_descriptions() : db(NULL), idx(-1), image_id(-1) {}
+
+#if defined(HAVE_JSON_JSON_H)
+      ///
+      VG_region_descriptions(const Json::Value&, DataBase*);
+#endif // HAVE_JSON_JSON_H
+
+      ///
+      string str() const;
+
+      ///
+      DataBase *db;
+
+      ///
+      size_t idx, image_id;
+
+      ///
+      vector<region> regions;
+    };  // class VG_region_descriptions
+
+    ///
+    class VG_region_graphs {
+      public:
+
+      class object {
+      public:
+	///
+	string name;
+
+	///
+	vector<string> synsets;
+
+	///
+	size_t object_id, x, y, w, h;
+      };
+      
+      class synset {
+      public:
+	///
+	string entity_name, synset_name;
+
+	///
+	size_t entity_idx_start, entity_idx_end;
+      };
+
+      class relationship {
+      public:
+	///
+	string predicate;
+
+	///
+	vector<string> synsets;
+
+	///
+	size_t relationship_id, subject_id, object_id;
+      };
+      
+      class region {
+      public:
+	///
+	vector<object> objects;
+	
+	///
+	vector<synset> synsets;
+
+	///
+	vector<relationship> relationships;
+	
+	///
+	string phrase;
+	
+	///
+	size_t region_id, image_id, x, y, width, height;
+      };
+
+      ///
+      VG_region_graphs() : db(NULL), idx(-1), image_id(-1) {}
+
+#if defined(HAVE_JSON_JSON_H)
+      ///
+      VG_region_graphs(const Json::Value&, DataBase*);
+#endif // HAVE_JSON_JSON_H
+
+      ///
+      string str() const;
+
+      ///
+      DataBase *db;
+
+      ///
+      size_t idx, image_id;
+
+      ///
+      vector<region> regions;
+    };  // class VG_region_graphs
+
+    ///
+    class VG_scene_graphs {
+      public:
+
+      class object {
+      public:
+	///
+	vector<string> synsets, names, attributes;
+	
+	///
+	size_t object_id, x, y, w, h;
+      };
+
+      class relationship {
+      public:
+	///
+	string predicate;
+
+	///
+	vector<string> synsets;
+
+	///
+	size_t relationship_id, subject_id, object_id, x, y, w, h;
+      };
+
+      class scene {
+      public:
+	///
+	vector<object> objects;
+	
+	///
+	vector<relationship> relationships;
+	
+	///
+	size_t image_id;
+      };	
+      
+      ///
+      VG_scene_graphs() : db(NULL), idx(-1), image_id(-1) {}
+
+#if defined(HAVE_JSON_JSON_H)
+      ///
+      VG_scene_graphs(const Json::Value&, DataBase*);
+#endif // HAVE_JSON_JSON_H
+
+      ///
+      string str() const;
+
+      ///
+      DataBase *db;
+
+      ///
+      size_t idx, image_id;
+
+      ///
+      vector<object> objects;
+
+      ///
+      vector<relationship> relationships;
+    };  // class VG_scene_graphs
+
+    ///
+    class VG_synsets {
+      public:
+
+      ///
+      VG_synsets() : db(NULL) {}
+
+#if defined(HAVE_JSON_JSON_H)
+      ///
+      VG_synsets(const Json::Value&, DataBase*);
+#endif // HAVE_JSON_JSON_H
+
+      ///
+      string str() const;
+
+      ///
+      DataBase *db;
+
+      ///
+      string synset_name, synset_definition;
+    };  // class VG_synsets
+
+    ///
+    const VG_attributes::attribute& VG_get_attribute(size_t); 
+
+    ///
+    const VG_relationships::relationship& VG_get_relationship(size_t);
+
+    ///
+    vector<pair<string,float> > VG_stats(const string&, bool);
+
+    ///
+    vector<size_t> VG_find(const string&, const string&, 
+			   const string&, const string&,
+			   const map<string,pair<string,float> >&);
+    ///
+    bool VG_attrib_match(const string&, const VG_relationships::relationship&,
+			 const string&, const pair<string,pair<string,float> >&);
+
+    ///
+    class graph_item {
+    public:
+      ///
+      enum type_t { undef, node, edge };
+
+      ///
+      type_t type;
+
+      ///
+      size_t idx; // per line in textual representation
+
+      ///
+      string id; // symbolic replacement of idx
+
+      ///
+      string name;
+
+      ///
+      string content;
+
+      ///
+      float weight;
+
+      ///
+      map<string,pair<string,float> > attrib;
+
+      ///
+      vector<size_t> links;
+    }; // class graph_item
+
+    ///
+    typedef vector<graph_item> graph;
+
+    ///
+    graph ReadGraph(const string&);
+
+    ///
+    vector<pair<size_t,double> > FindByGraph(const string&, const graph&,
+					     size_t);
+
+    ///
+    class cat2wn {
+    public:
+      ///
+      bool read(const string&);
+
+      /// not implemented yet
+      vector<string> category_to_wordnet(const string&) const;
+
+      /// not implemented yet
+      vector<string> categories_by_synset(const string&) const;
+
+      /// not implemented yet
+      vector<string> category_list() const;
+
+      /// not implemented yet
+      vector<string> synset_list() const;
+
+      ///
+      multimap<string,string> cmap;
+    }; // class cat2wn
+
+    ///
+    bool ReadCat2Wn(const string&);
+
+    /// not implemented yet
+    vector<string> CategoryList(const string& = "");
+
+    /// not implemented yet
+    vector<string> SynsetList(const string& = "");
 
   protected:
     /// This points back to the system.
@@ -4443,6 +4994,9 @@ namespace picsom {
     ///
     static bool force_lucene_unlock; 
 
+    ///
+    static bool parse_external_metadata;
+
     /// Whether to use mplayer.
     static bool insert_mplayer;
 
@@ -4473,6 +5027,9 @@ namespace picsom {
     /// Time when access file was last read.
     struct timespec access_read_time;
 
+    /// Time when sqlite3.db was modified if existed.
+    struct timespec sqlite_mod_time;
+
     /// True if call to Query::AddToXMLstatistics() is too slow
     bool no_statistics;
 
@@ -4482,6 +5039,9 @@ namespace picsom {
     /// false if SolveMissingOriginsInfo() should be just no-op.
     bool insertobjectsrealinfo;
 
+    ///
+    bool insertallow_no_target;
+    
     /// Map of index name -> feature file name found in settings.xml.
     map<string,string> index_to_featurefile;
 
@@ -4496,6 +5056,9 @@ namespace picsom {
 
     /// List of captioning names found in settings.xml.
     map<string,list<pair<string,string> > > described_captionings;
+
+    /// Mapping from captionings' textindices to names
+    map<string,string> captioning_textindex2name;
 
     /// List of media extraction names found in settings.xml.
     map<string,list<pair<string,string> > >  described_medias;
@@ -4847,6 +5410,9 @@ namespace picsom {
     ///
     bool extractfullzips;
 
+    ///
+    bool uselocalzipfiles;
+
 #ifdef HAVE_ZIP_H
     ///
     map<string,zip_t*> zipfiles;
@@ -4936,6 +5502,9 @@ namespace picsom {
 		    vector<pair<size_t,size_t> > > > segment_frames;
 
     ///
+    map<size_t,size_t> segment_to_middleframe, middleframe_to_segment;
+
+    ///
     map<size_t,map<string,pair<size_t,double> > > idf;
 
     ///
@@ -4959,13 +5528,69 @@ namespace picsom {
     ///
     map<string,list<map<string,string> > > linked_data_mappings;
 
+    ///
+    string externalmetadatatype;
+
+    ///
+    map<string,string> externalmetadata_param;
+
+    /// a typical value to override default externalmetadata_param
+    string frag;
+
 #ifdef PICSOM_USE_PYTHON
     ///
     map<string,PyObject*> neuraltalk_models;
 #endif // PICSOM_USE_PYTHON
 
+    map<size_t,VG_image_data>          vg_image_data;
+    map<size_t,VG_objects>             vg_objects;
+    map<size_t,VG_relationships>       vg_relationships;
+    map<size_t,VG_attributes>          vg_attributes;
+    map<size_t,VG_region_descriptions> vg_region_descriptions;
+    map<size_t,VG_region_graphs>       vg_region_graphs;
+    map<size_t,VG_scene_graphs>        vg_scene_graphs;
+    map<size_t,VG_synsets>             vg_synsets;
+
+    map<string,cat2wn> cat2wm_map;
+
   };  // class DataBase
 
+#ifdef PY_VERSION
+
+  inline PyObject *PyString_FromString_x(const char *s) {
+#if PY_MAJOR_VERSION < 3
+      return PyString_FromString(s);
+#else
+      return PyUnicode_FromString(s);
+#endif // PY_MAJOR_VERSION
+    }
+
+  inline const char *PyString_AsString_x(PyObject *s) {
+#if PY_MAJOR_VERSION < 3
+      return PyString_AsString(s);
+#else
+      return _PyUnicode_AsString(s);
+#endif // PY_MAJOR_VERSION
+    }
+
+  inline PyObject *PyInt_FromLong_x(long int s) {
+#if PY_MAJOR_VERSION < 3
+      return PyInt_FromLong(s);
+#else
+      return PyLong_FromLong(s);
+#endif // PY_MAJOR_VERSION
+    }
+
+  inline long PyInt_AsLong_x(PyObject *s) {
+#if PY_MAJOR_VERSION < 3
+      return PyInt_AsLong(s);
+#else
+      return PyLong_AsLong(s);
+#endif // PY_MAJOR_VERSION
+    }
+
+#endif // PY_VERSION
+    
 } // namespace picsom
 
 #endif // _PICSOM_DATABASE_H_
