@@ -12,7 +12,7 @@ PO Box 15400, FI-00076 Aalto, FINLAND
 
 ```
 autoreconf -f -i  
-./configure --prefix=$HOME/picsom CXXFLAGS=-O3  
+./configure --prefix=$HOME/picsom  
 make -j 8  
 make install
 ```
@@ -82,5 +82,14 @@ Then:
 
 ```
 $picsom -rw=fea analyse=create extractfeatures=true database=testdb target=image queryrestriction='$middleframe(/:t/)' features=$feat
+```
+
+### 5. Visualizing shot information
+
+
+```
+$picsom analyse=subtitles database=testdb segmentspec='text||bb-25-035' - ass 0000  
+ln -s $HOME/picsom/databases/testdb/objects/0000.mp4 .  
+mplayer -ass 0000.mp4
 ```
 
