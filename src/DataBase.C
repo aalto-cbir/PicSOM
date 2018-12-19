@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: DataBase.C,v 2.1016 2018/12/19 14:21:23 jormal Exp $
+// -*- C++ -*-  $Id: DataBase.C,v 2.1017 2018/12/19 16:01:02 jormal Exp $
 // 
 // Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -54,7 +54,7 @@
 
 namespace picsom {
   static const string DataBase_C_vcid =
-    "@(#)$Id: DataBase.C,v 2.1016 2018/12/19 14:21:23 jormal Exp $";
+    "@(#)$Id: DataBase.C,v 2.1017 2018/12/19 16:01:02 jormal Exp $";
 
   // a special guest appearance...
   const string& object_info::db_name() const {
@@ -31688,13 +31688,24 @@ void DataBase::InitializeDefaultAspects() {
 	  ground_truth gt = GroundTruthFunction(re, target_videosegment);
 	  vector<size_t> idxs = gt.indices(1);
 	  for (size_t i=0; i<idxs.size(); i++) {
-	    string tf = ObjectTextFileSubdirPath(idxs[i], "", textindex);
-	    textline_t tl = ObjectTextLineRetrieve(idxs[i], "",
-						   textindex, true);
-	    // textline_t tlmod = tl;
-	    // if (!tlmod.empty())
-	    //   tlmod.txt = tlmod.txt_val[0].first;
-	    txtlines.push_back(tl);
+	    if (textindex!="") {
+	      string tf = ObjectTextFileSubdirPath(idxs[i], "", textindex);
+	      textline_t tl = ObjectTextLineRetrieve(idxs[i], "",
+						     textindex, true);
+	      // textline_t tlmod = tl;
+	      // if (!tlmod.empty())
+	      //   tlmod.txt = tlmod.txt_val[0].first;
+	      txtlines.push_back(tl);
+	    } else if (show_segm_id) {
+	      auto psd = ParentStartDuration(idxs[i], target_video);
+	      double tp  = psd.second.first;
+	      double dur = psd.second.second;
+	      textline_t tl(this, idxs[i]);
+	      tl.start = tp;
+	      tl.end   = tp+dur;
+	      tl.add(Label(idxs[i]), 0.0);
+	      txtlines.push_back(tl);
+	    }
 	  }
 	}
 
