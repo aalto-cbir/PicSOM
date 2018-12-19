@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: DataBase.C,v 2.1015 2018/12/15 23:12:04 jormal Exp $
+// -*- C++ -*-  $Id: DataBase.C,v 2.1016 2018/12/19 14:21:23 jormal Exp $
 // 
 // Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -54,7 +54,7 @@
 
 namespace picsom {
   static const string DataBase_C_vcid =
-    "@(#)$Id: DataBase.C,v 2.1015 2018/12/15 23:12:04 jormal Exp $";
+    "@(#)$Id: DataBase.C,v 2.1016 2018/12/19 14:21:23 jormal Exp $";
 
   // a special guest appearance...
   const string& object_info::db_name() const {
@@ -1433,7 +1433,9 @@ bool DataBase::ApplyDefaultAspectsXML(xmlNodePtr l) {
     }
 
     xmlNodePtr df = AddTag(db, ns, "extraction");
-
+    xmlNodePtr caffe = AddTag(df, ns, "feature");
+    SetProperty(caffe, "outputname", "caffe#^c_");
+    
     for (xmlNodePtr node = root->children; node; node=node->next)
       if (IsElement(node)) {
 	string exttype = NodeName(node);
