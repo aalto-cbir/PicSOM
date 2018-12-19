@@ -1,0 +1,12 @@
+#! /bin/bash
+
+mkdir -p $HOME/picsom/databases
+
+rsync -va databases/caffe $HOME/picsom/databases/
+
+for rnm in 50 101 152; do
+  cd $HOME/picsom/databases/caffe/caffe/models/ResNet-$rnm
+  wget https://www.deepdetect.com/models/resnet/ResNet-$rnm-deploy.prototxt
+  wget https://www.deepdetect.com/models/resnet/ResNet-$rnm-model.caffemodel
+done
+

@@ -1,0 +1,195 @@
+<?xml version="1.0"?>
+<database>
+  <longname>caffe</longname>
+  <shorttext>caffe</shorttext>
+  <longtext>caffe</longtext>
+  <labelformat>1</labelformat>
+  <usesqlite>yes</usesqlite>
+  <usemysql>no</usemysql>
+  <sqlobjects>no</sqlobjects>
+  <sqlfeatures>no</sqlfeatures>
+  <sqlclasses>no</sqlclasses>
+  <sqlindices>no</sqlindices>
+  <sqlsettings>yes</sqlsettings>
+  <visible>no</visible>
+  <deliverlocalcopies>yes</deliverlocalcopies>
+  <segment_is_modifier>yes</segment_is_modifier>
+  <use_implicit_subobjects>no</use_implicit_subobjects>
+  <use_bin_features_read>yes</use_bin_features_read>
+  <use_bin_features_write>yes</use_bin_features_write>
+  <storedetections>bin</storedetections>
+  <videoinsert>file</videoinsert>
+  <videoextract>file</videoextract>
+  <mediaclips>no</mediaclips>
+  <alwaysusetarfiles>no</alwaysusetarfiles>
+  <algorithm>picsom_bottom</algorithm>
+  <defaultindices>*</defaultindices>
+  <convtype>triangle-1-2-4-8</convtype>
+  <permapobjects>500</permapobjects>
+  <extraction>
+
+    <feature outputname="c_$1_$2_$3_$4">
+      <featurepartlist>
+        <featurepart name="caffe" database="caffe" target="image"
+                     hasrawin="no" hasrawout="no" use="yes"/>
+      </featurepartlist>
+      <featurepartlist>
+        <featurepart nameparts="$1=in10_r     $3=d $5="  options="-o model=2010_distort         -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in12_r     $3=d $5="  options="-o model=2012_distort         -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in10_r     $3=a $5=a" options="-o model=2010_aratio          -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in12_r     $3=a $5=a" options="-o model=2012_aratio          -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in10_z     $3=a $5=a" options="-o model=2010_zeiler          -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in12_z     $3=a $5=a" options="-o model=2012_zeiler          -o windowsize=227x227"/>
+        <featurepart nameparts="$1=plpl_r     $3=d $5="  options="-o model=alexnet-places       -o windowsize=227x227"/>
+        <featurepart nameparts="$1=plhy_r     $3=d $5="  options="-o model=alexnet-hybrid       -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in14_o6    $3=d $5="  options="-o model=vgg-ilsvrc2014-16    -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in14_o9    $3=d $5="  options="-o model=vgg-ilsvrc2014-19    -o windowsize=224x224"/>
+        <featurepart nameparts="$1=plpl_g     $3=d $5="  options="-o model=googlenet-places     -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in14_gr    $3=d $5="  options="-o model=googlenet-ilsvrc2014 -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in12_rn50  $3=d $5="  options="-o model=ResNet-50            -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in12_rn101 $3=d $5="  options="-o model=ResNet-101           -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in12_rn152 $3=d $5="  options="-o model=ResNet-152           -o windowsize=224x224"/>
+      </featurepartlist>
+      <featurepartlist>
+        <featurepart nameparts="$6=fc6       	$2=fc6"/>
+        <featurepart nameparts="$6=fc7       	$2=fc7"/>
+        <featurepart nameparts="$6=fc8       	$2=fc8"/>
+        <featurepart nameparts="$6=prob       	$2=prob"/>
+        <featurepart nameparts="$6=conv5     	$2=conv5"/>
+        <featurepart nameparts="$6=cls3_pool 	$2=cls3pool"/>
+        <featurepart nameparts="$6=cls1_fc1  	$2=cls1fc1"/>
+        <featurepart nameparts="$6=cls1_fc2  	$2=cls1fc2"/>
+        <featurepart nameparts="$6=cls2_fc1  	$2=cls2fc1"/>
+        <featurepart nameparts="$6=cls2_fc2  	$2=cls2fc2"/>
+        <featurepart nameparts="$6=cls3_fc   	$2=cls3fc"/>
+        <featurepart nameparts="$6=cls_fc    	$2=clsfc"/>
+        <featurepart nameparts="$6=pool5/7x7_s1 $2=pool5"/>  <!-- GoogLeNet -->
+        <featurepart nameparts="$6=pool5        $2=pool5o"/> <!-- VGG + ResNet -->
+        <featurepart nameparts="$6=relu5_3      $2=relu53"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv5_3      $2=conv53"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu5_2      $2=relu52"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv5_2      $2=conv52"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu5_1      $2=relu51"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv5_1      $2=conv51"/> <!-- VGG -->
+        <featurepart nameparts="$6=pool4        $2=pool4o"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu4_3      $2=relu43"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv4_3      $2=conv43"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu4_2      $2=relu42"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv4_2      $2=conv42"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu4_1      $2=relu41"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv4_1      $2=conv41"/> <!-- VGG -->
+      </featurepartlist>
+      <featurepartlist>
+        <featurepart nameparts="$4=c"   options="-o blocks=256x256$5;$6"/>
+        <featurepart nameparts="$4=a"   options="-o blocks=avg(256x256$5:2x2sf;$6)"/>
+        <featurepart nameparts="$4=m"   options="-o blocks=max(256x256$5:2x2sf;$6)"/>
+        <featurepart nameparts="$4=ca3" options="-o blocks=256x256$5;$6+avg(512x512$5:3x3;$6)"/>
+        <featurepart nameparts="$4=aA3" options="-o blocks=avg(256x256$5:2x2sf;$6)+avg(512x512$5:3x3sf;$6)"/>
+        <featurepart nameparts="$4=mM3" options="-o blocks=max(256x256$5:2x2sf;$6)+max(512x512$5:3x3sf;$6)"/>
+      </featurepartlist>
+
+      <!--
+	 c_in1(0|2)_r_fc6_d_(a|ca3)
+	 c_in1(0|2)_z_fc6_a_(a|ca3)
+	 c_pl(pl|hy)_r_fc6_d_(c|ca3)
+	 c_in14_o(6|9)_fc6_d_(c|ca3)
+	-->
+
+      /^c_(in1[02]|pl.._r).*_(fc|conv5|prob)/
+      /^c_in14_o(6|9)_(conv|relu|pool|fc|prob)/
+      /^c_plpl_g.*_cls/
+      /^c_in14_gr.*_pool/
+      /^c_in12_rn(50|101|152)_pool/
+
+    </feature>
+
+    <feature outputname="t_c_$1_$2_$3_$4">
+      <featurepartlist>
+        <featurepart name="caffe" database="caffe" target="image"
+                     hasrawin="no" hasrawout="no" use="yes"/>
+      </featurepartlist>
+      <featurepartlist>
+        <featurepart nameparts="$1=in10_r     $3=d $5="  options="-o preprocess=:trim -o model=2010_distort         -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in12_r     $3=d $5="  options="-o preprocess=:trim -o model=2012_distort         -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in10_r     $3=a $5=a" options="-o preprocess=:trim -o model=2010_aratio          -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in12_r     $3=a $5=a" options="-o preprocess=:trim -o model=2012_aratio          -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in10_z     $3=a $5=a" options="-o preprocess=:trim -o model=2010_zeiler          -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in12_z     $3=a $5=a" options="-o preprocess=:trim -o model=2012_zeiler          -o windowsize=227x227"/>
+        <featurepart nameparts="$1=plpl_r     $3=d $5="  options="-o preprocess=:trim -o model=alexnet-places       -o windowsize=227x227"/>
+        <featurepart nameparts="$1=plhy_r     $3=d $5="  options="-o preprocess=:trim -o model=alexnet-hybrid       -o windowsize=227x227"/>
+        <featurepart nameparts="$1=in14_o6    $3=d $5="  options="-o preprocess=:trim -o model=vgg-ilsvrc2014-16    -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in14_o9    $3=d $5="  options="-o preprocess=:trim -o model=vgg-ilsvrc2014-19    -o windowsize=224x224"/>
+        <featurepart nameparts="$1=plpl_g     $3=d $5="  options="-o preprocess=:trim -o model=googlenet-places     -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in14_gr    $3=d $5="  options="-o preprocess=:trim -o model=googlenet-ilsvrc2014 -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in12_rn50  $3=d $5="  options="-o preprocess=:trim -o model=ResNet-50            -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in12_rn101 $3=d $5="  options="-o preprocess=:trim -o model=ResNet-101           -o windowsize=224x224"/>
+        <featurepart nameparts="$1=in12_rn152 $3=d $5="  options="-o preprocess=:trim -o model=ResNet-152           -o windowsize=224x224"/>
+      </featurepartlist>
+      <featurepartlist>
+        <featurepart nameparts="$6=fc6       	$2=fc6"/>
+        <featurepart nameparts="$6=fc7       	$2=fc7"/>
+        <featurepart nameparts="$6=fc8       	$2=fc8"/>
+        <featurepart nameparts="$6=prob       	$2=prob"/>
+        <featurepart nameparts="$6=conv5     	$2=conv5"/>
+        <featurepart nameparts="$6=cls3_pool 	$2=cls3pool"/>
+        <featurepart nameparts="$6=cls1_fc1  	$2=cls1fc1"/>
+        <featurepart nameparts="$6=cls1_fc2  	$2=cls1fc2"/>
+        <featurepart nameparts="$6=cls2_fc1  	$2=cls2fc1"/>
+        <featurepart nameparts="$6=cls2_fc2  	$2=cls2fc2"/>
+        <featurepart nameparts="$6=cls3_fc   	$2=cls3fc"/>
+        <featurepart nameparts="$6=cls_fc    	$2=clsfc"/>
+        <featurepart nameparts="$6=pool5/7x7_s1 $2=pool5"/>  <!-- GoogLeNet -->
+        <featurepart nameparts="$6=pool5        $2=pool5o"/> <!-- VGG + ResNet -->
+        <featurepart nameparts="$6=relu5_3      $2=relu53"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv5_3      $2=conv53"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu5_2      $2=relu52"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv5_2      $2=conv52"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu5_1      $2=relu51"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv5_1      $2=conv51"/> <!-- VGG -->
+        <featurepart nameparts="$6=pool4        $2=pool4o"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu4_3      $2=relu43"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv4_3      $2=conv43"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu4_2      $2=relu42"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv4_2      $2=conv42"/> <!-- VGG -->
+        <featurepart nameparts="$6=relu4_1      $2=relu41"/> <!-- VGG -->
+        <featurepart nameparts="$6=conv4_1      $2=conv41"/> <!-- VGG -->
+      </featurepartlist>
+      <featurepartlist>
+        <featurepart nameparts="$4=c"   options="-o blocks=256x256$5;$6"/>
+        <featurepart nameparts="$4=a"   options="-o blocks=avg(256x256$5:2x2sf;$6)"/>
+        <featurepart nameparts="$4=m"   options="-o blocks=max(256x256$5:2x2sf;$6)"/>
+        <featurepart nameparts="$4=ca3" options="-o blocks=256x256$5;$6+avg(512x512$5:3x3;$6)"/>
+        <featurepart nameparts="$4=aA3" options="-o blocks=avg(256x256$5:2x2sf;$6)+avg(512x512$5:3x3sf;$6)"/>
+        <featurepart nameparts="$4=mM3" options="-o blocks=max(256x256$5:2x2sf;$6)+max(512x512$5:3x3sf;$6)"/>
+      </featurepartlist>
+
+      <!--
+	 t_c_in1(0|2)_r_fc6_d_(a|ca3)
+	 t_c_in1(0|2)_z_fc6_a_(a|ca3)
+	 t_c_pl(pl|hy)_r_fc6_d_(c|ca3)
+	 t_c_in14_o(6|9)_fc6_d_(c|ca3)
+	-->
+
+      /^t_c_(in1[02]|pl.._r).*_(fc|conv5|prob)/
+      /^t_c_in14_o(6|9)_(conv|relu|pool|fc|prob)/
+      /^t_c_plpl_g.*_cls/
+      /^t_c_in14_gr.*_pool/
+      /^t_c_in12_rn(50|101|152)_pool/
+
+    </feature>
+
+  </extraction>
+  <allowalgorithmselection>yes</allowalgorithmselection>
+  <allowcontentselection>yes</allowcontentselection>
+  <allowobjecttypeselection>yes</allowobjecttypeselection>
+  <allowdisplaymodeselection>yes</allowdisplaymodeselection>
+  <allowinsertion>yes</allowinsertion>
+  <allowownimage>yes</allowownimage>
+  <allowtextquery>no</allowtextquery>
+  <allowclassdefinition>no</allowclassdefinition>
+  <allowarrivedobjectnotification>no</allowarrivedobjectnotification>
+  <allowimagescaling>yes</allowimagescaling>
+  <access>
+    <oldrule>130.233.173.0/24 130.233.173.0/24</oldrule>
+  </access>
+</database>
