@@ -4,13 +4,13 @@
   <shorttext>caffe</shorttext>
   <longtext>caffe</longtext>
   <labelformat>1</labelformat>
-  <usesqlite>yes</usesqlite>
+  <usesqlite>no</usesqlite>
   <usemysql>no</usemysql>
   <sqlobjects>no</sqlobjects>
   <sqlfeatures>no</sqlfeatures>
   <sqlclasses>no</sqlclasses>
   <sqlindices>no</sqlindices>
-  <sqlsettings>yes</sqlsettings>
+  <sqlsettings>no</sqlsettings>
   <visible>no</visible>
   <deliverlocalcopies>yes</deliverlocalcopies>
   <segment_is_modifier>yes</segment_is_modifier>
