@@ -35,8 +35,8 @@ If `caffe` libraries are available then ResNet models can be downloaded:
 
 ```
 picsom=$HOME/picsom/bin/picsom  
-mkdir tmpdir  
-cd tmpdir  
+mkdir /tmp/dir  
+cd /tmp/dir  
 wget https://sample-videos.com/video123/mp4/360/big_buck_bunny_360p_5mb.mp4  
 $picsom -rw=sql analyse=insert database='testdb(usesqlite=yes,sqlsettings=1,labelformat=4,mediaclips=yes)' - .  
 $picsom -rw=sql analyse=insertsubobjects database=testdb target=video+file videoinsert=frames - '*'
