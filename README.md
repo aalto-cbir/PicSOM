@@ -59,7 +59,6 @@ feat=zo5:edgefourier
 Then:
 
 ```
-feat=zo5:edgefourier
 $picsom -rw=fea -Dfeatures=2 analyse=create extractfeatures=true database=testdb target=image features=$feat  
 $picsom -rw=det analyse=shotboundary database=testdb segmentspec=sbd features=$feat - features 0000  
 $picsom -rw=sql analyse=shotboundarythreshold database=testdb segmentspec=bb threshold=0.35 detections=sbd::${feat}::20_0:: - 0000
