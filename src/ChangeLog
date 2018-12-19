@@ -1,3 +1,9 @@
+2018-12-19  jormal  <jormal@cs-271>
+
+	* configure.ac 2.131: Summary: Removed ([foreign]).
+
+	* configure.ac 2.130: Summary: Added AM_INIT_AUTOMAKE([foreign]).
+
 2018-12-16  jormal  <jormal@cs-271>
 
 	* VectorIndex.C 2.107: Summary: Added 2x #ifdef HAVE_LMDB_H .

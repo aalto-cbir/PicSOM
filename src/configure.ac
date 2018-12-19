@@ -1,4 +1,4 @@
-## -*- autoconf -*-  $Id: configure.ac,v 2.129 2018/12/16 09:54:03 jormal Exp $
+## -*- autoconf -*-  $Id: configure.ac,v 2.131 2018/12/19 10:40:23 jormal Exp $
 ## 
 ## Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
@@ -12,7 +12,7 @@ AC_PROG_LIBTOOL
 
 AC_PREREQ(2.59)
 AC_COPYRIGHT(PicSOM Development Group)
-AC_REVISION($Revision: 2.129 $)
+AC_REVISION($Revision: 2.131 $)
 
 #AC_CONFIG_MACRO_DIRS([m4])
 

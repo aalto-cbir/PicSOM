@@ -1,4 +1,4 @@
-Copyright 1998-2015  PicSOM Development Group
+Copyright 1998-2018  PicSOM Development Group
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
