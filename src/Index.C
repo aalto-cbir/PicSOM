@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Index.C,v 2.89 2018/12/15 23:07:51 jormal Exp $
+// -*- C++ -*-  $Id: Index.C,v 2.92 2019/04/04 11:44:00 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -17,7 +17,7 @@
 
 namespace picsom {
   static const string Index_C_vcid =
-    "@(#)$Id: Index.C,v 2.89 2018/12/15 23:07:51 jormal Exp $";
+    "@(#)$Id: Index.C,v 2.92 2019/04/04 11:44:00 jormal Exp $";
 
   ///
   Index *Index::list_of_indices;
@@ -85,6 +85,11 @@ namespace picsom {
     // int a = int(t)&int(feature_target);
     // bool ret = a!=0 && a==int(feature_target);
       
+    bool match_imageset_as_video = true; // added 2019-04-04 for tgif
+    if (match_imageset_as_video &&
+	feature_target==target_video && ottmask==target_imageset)
+      ret = true;
+
     if (debug_target_type)
       cout << "Index::CompatibleTarget() " << indexname
 	   << ": feature_target=<"
@@ -279,7 +284,8 @@ namespace picsom {
     if (idxvin.size() && incore.size())
       return ShowError(tname+"only one type of input allowed");
 
-    bool is_concepts = featuremethodname=="concepts";
+    bool is_concepts  = featuremethodname=="concepts";
+    // bool is_boxfusion = featuremethodname=="boxfusion";
     bool extract_images = !is_concepts;
 
     set<size_t> idxset;
@@ -522,6 +528,10 @@ namespace picsom {
       r = db->CalculateConceptFeatures(this, idxv, files, incore, featresp) 
 	? 0 : 1;
 
+    } else if (featuremethodname=="boxfusion") {
+      r = db->CalculateBoxFusionFeatures(this, idxv, files, incore, featresp) 
+	? 0 : 1;
+
     } else {
       if (calculate_internal) {
 	cmd_files[0] = "*picsom-features-internal*";
@@ -563,17 +573,21 @@ namespace picsom {
 	return ShowError(hdr+"index <"+Name()+"> is not VectorIndex but "
 			 +MethodName());
 
-      bool do_pipe = Picsom()->IsSlave()&&
-	Picsom()->SlavePipe().find("features")!=string::npos;
+      bool do_pipe = Picsom()->IsSlavePiping("features");
 
       size_t rawidx = raw ? raw->nobjects() : 0;
-      for (auto i=featres.data.begin(); i!=featres.data.end(); i++) {
+      for (auto& i : featres.data) {
+	if (i.first.size()==0)
+	  return ShowError(hdr+"<"+Name()+"> vector length==0");
+	if (false && i.second=="")
+	  return ShowError(hdr+"<"+Name()+"> empty label");
+	
 	if (do_pipe) {
 	  if (!xml)
 	    return ShowError(hdr+"slave/pipe/xml mismatch");
 
 	  /// someday, unify this with DataBase::StoreDetectionResult
-	  string fdata((char*)&i->first[0], i->first.size()*sizeof(float));
+	  string fdata((char*)&i.first[0], i.first.size()*sizeof(float));
 	  istringstream b64in(fdata);
 	  ostringstream b64out;
 	  if (!b64::encode(b64in, b64out))
@@ -582,26 +596,26 @@ namespace picsom {
 	  XmlDom fe = xml.Element("featurevector", "\n"+b64out.str());
 	  fe.Prop("database", db->Name());
 	  fe.Prop("name", FeatureFileName());
-	  fe.Prop("label", i->second);
-	  fe.Prop("length", i->first.size());
+	  fe.Prop("label", i.second);
+	  fe.Prop("length", i.first.size());
 	  fe.Prop("type", "float");
 
 	} else {
 	  if (incore.size()) {
-	    incore_i->second = i->first;
+	    incore_i->second = i.first;
 	    incore_i++;
 
 	  } else {
 	    if (db->SqlFeatures())
-	      vidx->SqlInsertFeatureData(*i);
+	      vidx->SqlInsertFeatureData(i);
 
 	    if (db->UseBinFeaturesWrite()) {
 	      if (!raw)
-		vidx->BinDataStoreFeature(*i);
+		vidx->BinDataStoreFeature(i);
 	      else {
 		raw->resize(rawidx+1);
-		if (!raw->set_float(rawidx++, i->first))
-		  return ShowError(hdr+"failed setting "+ToStr(i->first.size())+
+		if (!raw->set_float(rawidx++, i.first))
+		  return ShowError(hdr+"failed setting "+ToStr(i.first.size())+
 				   " dimensional feature vector as #"+
 				   ToStr(rawidx-1)+" in "+raw->str());
 	      }
@@ -610,8 +624,8 @@ namespace picsom {
 	}
 
 	if (store_vector) {
-	  FloatVector vec(i->first.size(), &i->first[0], i->second.c_str());
-	  int dbidx = db->ToIndex(i->second);
+	  FloatVector vec(i.first.size(), &i.first[0], i.second.c_str());
+	  int dbidx = db->ToIndex(i.second);
 	  //cout << "  dbidx=" << dbidx << " label=" << i->second << endl;
 	  vec.Number(dbidx);
 	  FloatVector *vx = vidx->DataAppendCopy(vec, false);

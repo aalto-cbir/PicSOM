@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: videofile.C,v 1.50 2018/09/12 09:22:19 jormal Exp $
+// -*- C++ -*-  $Id: videofile.C,v 1.52 2019/11/18 07:57:04 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -201,15 +201,18 @@ namespace picsom {
   bool videofile::identify_avprobe(const string& fname) {
     const string msg = "identify_avprobe(): ";
   
-    bool debug = false;
+    //bool debug = false;
 
     const string tempname = videofile::tmp_filename(_tempdir);
     string full_cmd = avprobe_cmd+" -show_format -show_streams "+fname+
       " 2>/dev/null </dev/null > "+tempname;
     int r = execute_system(full_cmd);
     if (r) {
-      unlink_file(tempname);
-      throw error(msg, "Execution of ", full_cmd, " failed.");
+      stringstream ss;
+      ss << r;
+      // unlink_file(tempname);
+      throw error(msg, "Execution of ", full_cmd, " failed with return value "+
+		  ss.str()+".");
     }
  
     ifstream tmpf(tempname.c_str());
@@ -232,77 +235,116 @@ namespace picsom {
       if (!tmpf)
 	break;
 
-      if (debug)
+      if (debug())
 	cout << line << endl;
 
       size_t e = line.find('=');
       if (e==string::npos) {
 	codec_type = "";
+	if (debug())
+	  cout << "* codec_type=" << codec_type << endl;
 	continue;
       }
 
       string key = line.substr(0, e), val = line.substr(e+1);
       
-      if (key=="codec_type")
+      if (key=="codec_type") {
 	codec_type = val;
+	if (debug())
+	  cout << "* codec_type=" << codec_type << endl;
+      }
 
-      if (key=="avg_frame_rate" && codec_type!="audio" && val!="0/0")
+      if (key=="avg_frame_rate" && codec_type!="audio" && val!="0/0") {
 	id["VIDEO_FPS"] = calc_frac(val);
- 
-      if (key=="r_frame_rate" && codec_type!="audio" && val!="0/0")
+	if (debug())
+	  cout << "* VIDEO_FPS=" << id["VIDEO_FPS"] << endl;
+      }
+      
+      if (key=="r_frame_rate" && codec_type!="audio" && val!="0/0") {
 	r_frame_rate = calc_frac(val);
- 
-      if (key=="width")
+	if (debug())
+	  cout << "* r_frame_rate=" << r_frame_rate << endl;
+      }
+      
+      if (key=="width") {
 	id["VIDEO_WIDTH"] = val;
-
-      if (key=="height")
+	if (debug())
+	  cout << "* VIDEO_WIDTH=" << val << endl;
+      }
+	
+      if (key=="height") {
 	id["VIDEO_HEIGHT"] = val;
-
+	if (debug())
+	  cout << "* VIDEO_HEIGHT=" << val << endl;
+      }
+      
       if (key=="duration" && codec_type!="audio") {
 	id["LENGTH"] = val;
 	duration = atof(val.c_str());
+	if (debug())
+	  cout << "* LENGTH=" << val << " duration=" << duration << endl;
       }
 
-      if (key=="nb_frames" && codec_type!="audio")
+      if (key=="nb_frames" && codec_type!="audio") {
 	nb_frames = atoi(val.c_str());
-
+	if (debug())
+	  cout << "* nb_frames=" << nb_frames << endl;
+      }
+      
       if (key=="time_base" && codec_type!="audio") {
 	size_t p = val.find('/');
 	if (p!=string::npos) {
 	  double a = atof(val.c_str()), b = atof(val.substr(p+1).c_str());
 	  time_base = a/b;
+	  if (debug())
+	    cout << "* time_base=" << a/b << endl;
 	}
       }
 
-      if (key=="display_aspect_ratio")
+      if (key=="display_aspect_ratio") {
 	id["VIDEO_ASPECT"] = calc_frac(val);
-
+	if (debug())
+	  cout << "* VIDEO_ASPECT=" << id["VIDEO_ASPECT"] << endl;
+      }
+      
       if (key=="format_long_name") {
 	if (val=="MPEG-PS format")
 	  id["DEMUXER"] = "mpegps";
 	else
 	  id["DEMUXER"] = "???";
+	if (debug())
+	  cout << "* DEMUXER=" << id["DEMUXER"] << endl;
       }
     }
     
-    if (id.find("VIDEO_FPS")==id.end() && r_frame_rate!="")
+    if (id.find("VIDEO_FPS")==id.end() && r_frame_rate!="") {
       id["VIDEO_FPS"] = r_frame_rate;
-
+      if (debug())
+        cout << "*a VIDEO_FPS=" << r_frame_rate << endl;
+    }
+    
     if (id.find("VIDEO_FPS")==id.end() && time_base) {
       char tmp[100];
       sprintf(tmp, "%f", 1/time_base);
       id["VIDEO_FPS"] = tmp;
+      if (debug())
+        cout << "*b VIDEO_FPS=" << tmp << endl;
     }
 
     if (id.find("VIDEO_FPS")==id.end() && duration && nb_frames) {
       char tmp[100];
       sprintf(tmp, "%f", nb_frames/duration);
       id["VIDEO_FPS"] = tmp;
+      if (debug())
+        cout << "*c VIDEO_FPS=" << tmp << endl;
     }
 
-    if (id.find("VIDEO_FPS")==id.end())
+    if (id.find("VIDEO_FPS")==id.end()) {
       id["VIDEO_FPS"] = "";
-
+      if (debug())
+        cout << "*d VIDEO_FPS=" << endl;
+    }
+    
     unlink_file(tempname);
 
     return true;

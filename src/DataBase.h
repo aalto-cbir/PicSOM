@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: DataBase.h,v 2.557 2018/12/15 23:07:51 jormal Exp $
+// -*- C++ -*-  $Id: DataBase.h,v 2.580 2019/10/09 14:50:02 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -67,6 +67,14 @@ typedef struct zip_stat zip_stat_t;
 #endif // LIBZIP_VERSION_MAJOR==0
 #endif // HAVE_ZIP_H
 
+#ifdef HAVE_RAPTOR2_H
+#include <raptor2.h>
+#endif // HAVE_RAPTOR2_H
+
+#ifdef HAVE_RASQAL_H
+#include <rasqal.h>
+#endif // HAVE_RASQAL_H
+
 #ifdef PICSOM_USE_PYTHON
 #undef _POSIX_C_SOURCE
 #undef _XOPEN_SOURCE
@@ -78,7 +86,7 @@ typedef struct zip_stat zip_stat_t;
 
 namespace picsom {
   static string DataBase_h_vcid =
-    "@(#)$Id: DataBase.h,v 2.557 2018/12/15 23:07:51 jormal Exp $";
+    "@(#)$Id: DataBase.h,v 2.580 2019/10/09 14:50:02 jormal Exp $";
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -754,7 +762,7 @@ namespace picsom {
     bool AppendSimpleListFile(const string& fname, const string& l);
 
     ///
-    bool AppendSubobjectsFile(size_t, const vector<size_t>&);
+    bool AppendSubobjectsFile(size_t, const vector<size_t>&, XmlDom&);
 
     ///
     bool AppendSubobjectsFileSql(size_t, const vector<size_t>&);
@@ -841,10 +849,10 @@ namespace picsom {
     pair<size_t,size_t> VideoOrSegmentMiddleFrame(size_t, bool = true);
 
     ///
-    size_t MiddleFrameTrick(size_t, bool);
+    size_t MiddleFrameTrick(size_t, const string&, bool);
 
     ///
-    string ParentObjectStringByPruning(const string& l) const;
+    string ParentObjectStringByPruning(const string& l, bool = true) const;
 
     ///
     int ParentObjectByPruning(const string& l) const {
@@ -1393,9 +1401,18 @@ namespace picsom {
 					  const string&, const string&,
 					  const string&, const vector<string>&);
 
-    /// Returns indices oof video (segment) middle frames.
+    /// Returns indices of video objects with the specified number of frames.
+    ground_truth GroundTruthFrames(target_type, const string&, const string&,
+				   const string&, const vector<string>&);
+
+    /// Returns indices of video (segment) middle frames.
     ground_truth GroundTruthMiddleFrame(target_type, const string&,
 					const string&, const vector<string>&);
+
+    /// Returns indices of video (segment) frames with equal sampling.
+    ground_truth GroundTruthPerSecond(target_type, const string&,
+				      const string&, const string&,
+				      const string&, const vector<string>&);
 
     /// Returns objects by their auxid.
     ground_truth GroundTruthAuxid(target_type, const string&, const string&,
@@ -1898,6 +1915,26 @@ namespace picsom {
     ///
     float VideoDuration(size_t);
 
+    ///
+    bool AddVideoSegments(size_t, const vector<double>&,
+			  const pair<string,string>&, XmlDom&, XmlDom&,
+			  bool, bool);
+
+    ///
+    pair<string,string> SegmentPrefSuff(size_t) const;
+    
+    ///
+    pair<string,string> SegmentPrefSuff(const string&, bool) const;
+
+    ///
+    bool SegmentPrefSuffMatch(size_t, const pair<string,string>&) const;
+    
+    ///
+    bool SegmentPrefSuffMatch(const string&, bool, const pair<string,string>&) const;
+    
+    ///
+    bool SegmentPrefSuffMatch(const pair<string,string>&, const pair<string,string>&) const;
+    
     /// Converts onject path to OSRS file path in /00000000.d/
     string OSRSfileName(const string&);
 
@@ -1972,6 +2009,12 @@ namespace picsom {
     ///
     bool UseBinFeaturesWrite() const { return use_bin_features_write; }
 
+    ///
+    void BinFeatureVersion(float v) { bin_feature_version = v; }
+    
+    ///
+    float BinFeatureVersion() const { return bin_feature_version; }
+    
     ///
     bool UploadBinFeatures(VectorIndex&);
 
@@ -2244,11 +2287,14 @@ namespace picsom {
     string SqlEscape(const string&, bool, bool);
 
     ///
+    size_t MysqlMode() const { return mysql_mode; }
+
+    ///
     size_t SqliteMode() const { return sqlite_mode; }
 
     ///
-    size_t MysqlMode() const { return mysql_mode; }
-
+    bool SqliteInTemp() const { return sqlite_in_temp; }
+    
     ///
     size_t SqlMode() const {
       if (sqlite_mode && mysql_mode)
@@ -2361,6 +2407,9 @@ namespace picsom {
     bool FeatureDataCombinedPrepare(const string&, bool);
 
     ///
+    const vector<string>& FeatureDataCombinedExpand(const string&, bool);
+    
+    ///
     FloatVector *FeatureDataNumPy(const string&, size_t, bool);
 
     ///
@@ -2397,6 +2446,9 @@ namespace picsom {
 
     ///
     string SqliteDBFile(bool);
+
+    ///
+    string SqliteDBFile() { return SqliteDBFile(sqlite_in_temp); }
 
     ///
     string SqliteDBstr(const string&);
@@ -2450,7 +2502,6 @@ namespace picsom {
     static bool HasSqlite() { return true; }
 
 #else
-
     ///
     static bool HasSqlite() { return false; }
 
@@ -2936,14 +2987,21 @@ namespace picsom {
       return label.find_first_not_of(d)==8 && label.find_last_not_of(d)==8;
     }
 
+    ///
+    bool InsertObjectsRealInfo() const { return insertobjectsrealinfo; }
+
     /// Inserts a new image in the database.
-    bool InsertObjects(list<upload_object_data>&, const list<string>&,
-                       const list<string>&, const list<string>&, bool, bool,
+    bool InsertObjects(list<upload_object_data>&, const string&,
+		       const list<string>&,
+                       const list<string>&, const list<string>&, 
+		       const list<string>&, bool, bool,
 		       const vector<string>&, XmlDom&, const string&);
     
     /// Inserts a new image in the database.
-    bool InsertObjectsProcessing(list<upload_object_data>&, const list<string>&,
+    bool InsertObjectsProcessing(list<upload_object_data>&, const string&,
+				 const list<string>&,
 				 const list<string>&, const list<string>&,
+				 const list<string>&,
 				 bool, bool, const vector<string>&, XmlDom&,
 				 const string&, int);
     
@@ -3052,7 +3110,7 @@ namespace picsom {
 
     /// Appends given label.  Missing parents are appended first.
     /// Returns true on success.
-    bool AddLabelAndParents(const string&, target_type, bool);
+    bool AddLabelAndParents(const string&, target_type, bool, bool);
 
     /// Adds missing origins info for all file objects.
     bool FillOrigins(const ground_truth*);
@@ -3078,7 +3136,7 @@ namespace picsom {
     /// Inserts a new image in the database, image file data.
     /// If it finds that target type is file+image and the object is multiframe
     /// image file, it changes target_image to target_imageset in last arg.
-    bool InsertOriginsInfo(size_t, bool, 
+    bool InsertOriginsInfo(size_t, bool, bool,
 			   const string&, const string&, const string&,
 			   const string&, const string&, const string&,
 			   const map<string,string>&,
@@ -3117,15 +3175,29 @@ namespace picsom {
       return false;
     }
 
-    /// Calculates feature vectors for the new image.
-    bool CalculateFeatures(int, const list<string>&);
+    /// Calculates feature vectors for a set of objects.
+    bool CalculateFeatures(const vector<size_t>&, const list<string>&, bool);
 
+    bool CalculateFeatures(int i, const list<string>& f, bool a) {
+      vector<size_t> v { (size_t)i };
+      return CalculateFeatures(v, f, a);
+    }
+    
     ///
     bool CalculateConceptFeatures(const Index*, const vector<size_t>&, 
 				  const vector<string>&, 
 				  const list<incore_feature_t>&,
 				  feature_result*);
 
+    ///
+    bool CalculateBoxFusionFeatures(const Index*, const vector<size_t>&, 
+				    const vector<string>&, 
+				    const list<incore_feature_t>&,
+				    feature_result*);
+
+    ///
+    size_t ConceptIndexInFeatures(const string&, const string&);
+    
     /// Loads features from files and updates div and backref data.
     bool LoadAndMatchFeatures(int, const list<string>&, bool, bool);
 
@@ -3236,7 +3308,7 @@ namespace picsom {
     list<pair<string,string> > TextIndexRetrieveFake(size_t, const string&);
 
     ///
-    list<textline_t> TextIndexAllLines( const string&, size_t);
+    list<textline_t> TextIndexAllLines(const string&, size_t);
     
     ///
     textline_t TextIndexLine(const string&, const string&, size_t);
@@ -3251,6 +3323,9 @@ namespace picsom {
     ///
     list<textline_t> TextIndexLines(const string&, const string&, 
 				    const ground_truth&);
+
+    ///
+    vector<size_t> SolveMissingTexts(const vector<size_t>&, const vector<string>&);
 
     ///
     string TextIndexSearchByLabel(size_t, const string&, const string&);
@@ -3292,6 +3367,18 @@ namespace picsom {
     ///
     string ShowTfIdf(const vector<float>&, size_t);
 
+    ///
+    bool BoxDataInput(const boxdata_t&);
+
+    ///
+    bool EnsureBoxDataTable();
+
+    ///
+    bool CreateBoxDataTable();
+
+    ///
+    list<boxdata_t> BoxData(size_t);
+    
     /// Executes all <extraction><detection> instructions.
     bool DoAllMediaExtractions(bool, const vector<size_t>&,
 			       const vector<string>&,
@@ -3325,7 +3412,7 @@ namespace picsom {
 			 const string&, const string&, bool) const;
     
     ///
-    bool OpenBinDetection(const string&, const string&, size_t);
+    bool OpenBinDetection(const string&, const string&, size_t, float);
 
     ///
     list<string> FindAllBinDetectionNames(bool);
@@ -3516,6 +3603,9 @@ namespace picsom {
 			       XmlDom&);
     ///
     float ThresholdValue(const string&);
+
+    ///
+    vector<string> CaptioningsToTextIndices(const vector<string>&);
     
     ///
     bool DoAllCaptionings(bool, const vector<size_t>&, const vector<string>&,
@@ -3531,6 +3621,15 @@ namespace picsom {
 
     /// OSRS speech recognition.
     bool OSRSspeechRecognition(size_t, const list<pair<string,string> >&);
+
+    /// Google speech to text speech recognition.
+    bool GoogleSpeechRecognition(size_t, const list<pair<string,string> >&);
+
+    /// Google speech to text speech recognition.
+    bool GoogleSpeechRecognition(const string&, const vector<size_t>&);
+
+    /// Google speech to text speech recognition.
+    bool GoogleSpeechRecognition(const string&, const list<string>&);
 
     ///
     bool TesseractOCR(size_t, const list<pair<string,string> >&);
@@ -3947,11 +4046,36 @@ namespace picsom {
 			       const string& = "");
     
     ///
+    map<size_t,textline_t>
+    GenerateSentencesDenseCap(const vector<size_t>&,
+			      const map<string,string>&);
+
+    ///
     map<size_t,textline_t> 
     GenerateSentencesNeuralTalk(const vector<size_t>&,
 				const map<string,string>&);
 
+    ///
+    map<size_t,textline_t> 
+    GenerateSentencesDeepCaptionOld(const vector<size_t>&,
+				    const map<string,string>&);
+
+    ///
+    map<size_t,textline_t> 
+    GenerateSentencesDeepCaption(const vector<size_t>&,
+				 const map<string,string>&);
+
+    ///
+    pair<pair<vector<string>,size_t>,pair<vector<string>,size_t> >
+    DeepCaptionFeatures(const string&);
+    
 #ifdef PICSOM_USE_PYTHON
+    ///
+    PyObject *DeepCaptionCreateModel(const string&);
+    
+    ///
+    PyObject *DeepCaptionGetModel(const string&);
+
     /// helper
     bool NeuralTalkAddCandidate(textline_t&, PyObject*);
 #endif // PICSOM_USE_PYTHON
@@ -4306,7 +4430,31 @@ namespace picsom {
     
 #ifdef PICSOM_USE_PYTHON
     ///
+    PyObject *PythonObject(const string& t, const string& n) const {
+      string tn = t+"=="+n;
+      auto p = python_objects.find(tn);
+      return p==python_objects.end() ? NULL : p->second;
+    }
+
+    ///
+    bool AddPythonObject(const string& t, const string& n, PyObject *o) {
+      string tn = t+"=="+n;
+      auto p = python_objects.find(tn);
+      if (p!=python_objects.end())
+	return false;
+      python_objects[tn] = o;
+      return true;
+    }
+    
+    ///
     PyObject *PythonFeatureVector(const string&, size_t);
+    
+    ///
+    PyObject *PythonFeatureVector(const vector<string>&, size_t);
+
+    ///
+    PyObject *PythonFeatureVector(const vector<string>&, size_t, bool);
+    
 #endif // PICSOM_USE_PYTHON
 
     ///
@@ -5030,6 +5178,9 @@ namespace picsom {
     /// Time when sqlite3.db was modified if existed.
     struct timespec sqlite_mod_time;
 
+    /// True if sqlite3.db stored in temporary location.
+    bool sqlite_in_temp;
+    
     /// True if call to Query::AddToXMLstatistics() is too slow
     bool no_statistics;
 
@@ -5053,6 +5204,9 @@ namespace picsom {
 
     /// List of detection names found in settings.xml.
     map<string,list<pair<string,string> > > described_detections;
+
+    ///
+    map<string,map<string,size_t> > concept_index_in_features;
 
     /// List of captioning names found in settings.xml.
     map<string,list<pair<string,string> > > described_captionings;
@@ -5337,6 +5491,9 @@ namespace picsom {
     set<string> sql_table;
 
     ///
+    float bin_feature_version;
+    
+    ///
     bool nofeaturedata;
 
     ///
@@ -5505,6 +5662,9 @@ namespace picsom {
     map<size_t,size_t> segment_to_middleframe, middleframe_to_segment;
 
     ///
+    size_t segment_to_middleframe_done;
+    
+    ///
     map<size_t,map<string,pair<size_t,double> > > idf;
 
     ///
@@ -5539,7 +5699,7 @@ namespace picsom {
 
 #ifdef PICSOM_USE_PYTHON
     ///
-    map<string,PyObject*> neuraltalk_models;
+    map<string,PyObject*> python_objects;
 #endif // PICSOM_USE_PYTHON
 
     map<size_t,VG_image_data>          vg_image_data;
@@ -5551,8 +5711,15 @@ namespace picsom {
     map<size_t,VG_scene_graphs>        vg_scene_graphs;
     map<size_t,VG_synsets>             vg_synsets;
 
+    //
     map<string,cat2wn> cat2wm_map;
 
+    // used in InsertVideoSubObjects()
+    string forcedfiletype;
+
+    // used in ExtractVideoFrames()
+    bool extendlastframe = false;
+    
   };  // class DataBase
 
 #ifdef PY_VERSION

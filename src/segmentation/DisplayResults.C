@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: DisplayResults.C,v 1.50 2013/02/12 09:27:14 jorma Exp $
+// -*- C++ -*-  $Id: DisplayResults.C,v 1.51 2019/04/24 11:28:40 jormal Exp $
 // 
 // Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -21,7 +21,7 @@ using std::list;
 
 namespace picsom{
   static const string vcid =
-    "@(#)$Id: DisplayResults.C,v 1.50 2013/02/12 09:27:14 jorma Exp $";
+    "@(#)$Id: DisplayResults.C,v 1.51 2019/04/24 11:28:40 jormal Exp $";
 
   static DisplayResults list_entry(true);
 
@@ -1243,9 +1243,10 @@ namespace picsom{
       resultframe=getImg()->getColouring(&maskSpec);
       if(!resultframe)
 	throw string("DisplayResults::DoMasking() : getColouring() failed");
-      break;
+      // break; // this was active until 2017-11-29
       if(whiteBackground)
 	WhitenBackground();
+      break; // added 2017-11-29
 
     case modulated_colour:
       resultframe=getImg()->getColouring(&maskSpec);

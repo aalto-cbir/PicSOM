@@ -1,24 +1,16 @@
-// -*- C++ -*- 	$Id: NGram.h,v 1.20 2013/06/26 07:13:49 jorma Exp $
-/**
-   \file NGram.h
+// -*- C++ -*-  $Id: NGram.h,v 1.21 2019/05/21 15:06:42 jormal Exp $
+// 
+// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
+// 
 
-   \brief Declarations and definitions of class NGram
-   
-   NGram.h contains declarations and definitions of class the NGram, which
-   is a class that performs the character n-gram value feature extraction
-   for text objects.
-  
-   \author Hannes Muurinen <hannes.muurinen@hut.fi>
-   $Revision: 1.20 $
-   $Date: 2013/06/26 07:13:49 $
-   \bug May be some out there hiding.
-   \warning Be warned against all odds!
-   \todo Perhaps something?
-*/
 #ifndef _NGram_
 #define _NGram_
 
 #include "TextBased.h"
+
+#ifdef HAVE_GCRYPT_H
 #include <gcrypt.h>
 
 #ifndef _HASH_ALGORITHM_
@@ -258,7 +250,8 @@ public:
 
 }; // class NGram
 }
-#endif
+#endif // HAVE_GCRYPT_H
+#endif // _NGram_
 
 // Local Variables:
 // mode: font-lock

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Util.C,v 2.72 2018/10/19 16:53:20 jormal Exp $
+// -*- C++ -*-  $Id: Util.C,v 2.80 2019/11/06 10:05:19 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -39,7 +39,7 @@
 
 namespace picsom {
   static const string Util_C_vcid =
-  "@(#)$Id: Util.C,v 2.72 2018/10/19 16:53:20 jormal Exp $";
+  "@(#)$Id: Util.C,v 2.80 2019/11/06 10:05:19 jormal Exp $";
 
   static bool do_abort = false;
   static int locate_file_debug = 0;
@@ -291,6 +291,24 @@ namespace picsom {
 
       pt = npt+sep.size();
     }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<pair<string,string> > SplitCommaKeyValueList(const string& str) {
+    auto l = SplitInCommasList(str);
+    list<pair<string,string> > r;
+    for (auto &i : l)
+      if (i.find('=')!=string::npos)
+	r.push_back(SplitKeyEqualValueNew(i));
+    return r;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  map<string,string> SplitInCommaKeyValueMap(const string& str) {
+    auto l = SplitCommaKeyValueList(str);
+    return map<string,string>(l.begin(), l.end());
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -730,6 +748,48 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  bool IsJson(const string& s) {
+    if (s.size()<2)
+      return false;
+    
+    size_t p = s.find_first_not_of(" \t\n\r");
+    if (p==string::npos || s[p]!='{')
+      return false;
+
+    p = s.find_last_not_of(" \t\n\r");
+    if (p==string::npos || s[p]!='}')
+      return false;
+
+    return true;
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool IsXml(const string& s) {
+    string x = "<?xml version=\"1.0\"";
+    return s.find(x)==0;
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  string HideBinaryData(const string& s) {
+    bool bin = false;
+    for (size_t i=0; !bin && i<s.size(); i++) {
+      char c = s[i];
+      if ((c<32 && c!='\t' && c!='\n' && c!='\r' && c!='\e') ||
+	  (c>126 && c!='\xc3' && c!='\xa4' && c!='\xb6'
+	   && c!='\xa5' && c!='\x84' && c!='\x96' && c!='\x85'))
+	bin = true;
+    }
+    if (!bin)
+      return s;
+    stringstream ss;
+    ss << "[" << s.size() << " bytes binary data]";
+    return ss.str();
+  }
+	
+  /////////////////////////////////////////////////////////////////////////////
+
   bool WarnOnce(const string& f) {
     static set<string> done;
     if (done.find(f)==done.end()) {
@@ -974,6 +1034,23 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  string RelativePath(const string& fullpath, const string& opath) {
+    vector<string> fv = SplitInSomething("/", false, fullpath);
+    vector<string> ov = SplitInSomething("/", false, opath);
+    size_t cd = 0;
+    while (cd<fv.size() && cd<ov.size() && fv[cd]==ov[cd])
+      cd++;
+    string relpath;
+    for (size_t i=cd; i<ov.size()-1; i++)
+      relpath += "../";
+    for (size_t i=cd; i<fv.size(); i++)
+      relpath += fv[i]+(i<fv.size()-1?"/":"");
+  
+    return relpath;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   const char *ExtensionVersusMIMEP(const string& ttt, bool to_mime) {
     static struct type_extensions {
       const char *mime_type, *ext_lc, *ext_uc;
@@ -1059,11 +1136,43 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  bool ReadNumPyHeader(istream& in, size_t& o, size_t& fs, vector<size_t>& d) {
+    map<string,string> hdrdict = ReadNumPyHeader(in, o);
+    fs = 0;
+    d.clear();
+    string dtype = hdrdict["descr"], fortran_order = hdrdict["fortran_order"];
+    if (dtype.substr(0, 3)!="'<f" || dtype[dtype.size()-1]!='\'')
+      return false;
+    size_t l = atoi(dtype.substr(3).c_str());
+    if (l!=2 && l!=4)
+      return false;
+    
+    string s = hdrdict["shape"];
+    if (s[0]!='(' || s[s.size()-1]!=')')
+      return false;
+
+    for (;;) {
+      size_t p = s.find_first_of("() ");
+      if (p==string::npos)
+	break;
+      s.erase(p, 1);
+    }
+
+    vector<string> v = SplitInCommasVector(s);
+    
+    for (auto &i : v)
+      d.push_back(atoi(i.c_str()));
+    
+    fs = 8*l;
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   // https://docs.scipy.org/doc/numpy/neps/npy-format.html
 
-  map<string,string> ReadNumPyHeader(istream& in, size_t& o) {
-    bool debug = false;
-    
+  map<string,string> ReadNumPyHeader(istream& in, size_t& o, bool debug) {
     struct numpy_header {
       char magic[6];
       unsigned char major, minor;
@@ -1074,10 +1183,15 @@ namespace picsom {
     in.read((char*)&hdr, sizeof(hdr));
     string hdrstr(hdr.header_len, '\0');
     in.read((char*)hdrstr.c_str(), hdrstr.size());
-    if (debug)
+    if (debug) {
+      string hdrstrx = hdrstr;
+      Replace(hdrstrx, ' ', "*");
+      Replace(hdrstrx, '\t', "§");
+      Replace(hdrstrx, '\n', "#");
       cout << string(hdr.magic+1, 5) << " " << (int)hdr.major << "."
-	   << (int)hdr.minor << " " << hdr.header_len << " [" << hdrstr << "]"
+	   << (int)hdr.minor << " " << hdr.header_len << " [" << hdrstrx << "]"
 	   << endl;
+    }
     
     map<string,string> hdrdict;
     if (string(hdr.magic+1, 5)!="NUMPY" ||
@@ -1114,7 +1228,7 @@ namespace picsom {
 	      val.erase(p);
 	      hdrdict[key] = val;
 	      if (debug)
-		cout << "a [" << key << "]=[" << val << "]" << endl; 
+		cout << "[" << key << "]=[" << val << "]" << endl; 
 	      i += key.size()+p+4;
 	      continue;
 	    }
@@ -1174,6 +1288,34 @@ namespace picsom {
     //cout << "{" << sign << " " << expo << " " << mant << "}=" << f << " ";
 
     return f;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool WriteNumPyData(ostream& os, const vector<size_t>& s, 
+		      const list<vector<float> >& m) {
+    bool debug = false;
+
+    string hdr("\x93NUMPY\x01\x00", 8);
+    string x;
+    for (auto &i : s)
+      x += string(x.size()?", ":"")+ToStr(i);
+
+    if (debug)
+      cout << "Writing numpy data ("+x+") " << m.size() << "x"
+	   << m.begin()->size() << endl;
+    
+    string h = "{'descr': '<f4', 'fortran_order': False, 'shape': ("+x+"), }";
+    while ((h.size()+11)%32) // should be 64
+      h += " ";
+    h += "\n";
+    uint16_t l = h.size();
+    hdr += string((char*)&l, sizeof(l))+h;
+    os.write(hdr.c_str(), hdr.size());     
+    for (auto &i : m)
+      os.write((char*)&i[0], 4*i.size());     
+
+    return os.good();
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -1469,6 +1611,18 @@ namespace picsom {
 #endif // HAVE_MAGIC_H
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+
+  string StrError(int e) {
+    if (!e)
+      e = errno;
+    // char buf[1024];
+    // if (strerror_r(e, buf, sizeof buf))
+    //   return "strerror_r("+ToStr(e)+") failed";
+    // return buf;
+    return strerror(e);
+  }
+    
   /////////////////////////////////////////////////////////////////////////////
 
   const struct hostent* GetHostByName(const string& addr, 

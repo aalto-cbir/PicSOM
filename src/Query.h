@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Query.h,v 2.336 2017/11/26 21:31:11 jormal Exp $
+// -*- C++ -*-  $Id: Query.h,v 2.337 2019/03/20 13:26:05 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -39,7 +39,7 @@ namespace picsom {
   using simple::RandVar;
 
   static const string Query_h_vcid =
-    "@(#)$Id: Query.h,v 2.336 2017/11/26 21:31:11 jormal Exp $";
+    "@(#)$Id: Query.h,v 2.337 2019/03/20 13:26:05 jormal Exp $";
 
   /**
      documentation missing
@@ -78,7 +78,7 @@ namespace picsom {
    
    @short A class implementing query processing in the PicSOM engine. 
 
-   @version $Id: Query.h,v 2.336 2017/11/26 21:31:11 jormal Exp $
+   @version $Id: Query.h,v 2.337 2019/03/20 13:26:05 jormal Exp $
 
 */
 
@@ -1371,12 +1371,18 @@ namespace picsom {
         ShowError("SetTemporalRestriction() : the_db==NULL");
         return;
       }
+      struct timespec now = TimeNow();
       bool expand = true;
       restriction = the_db->GroundTruthExpression(gt, tt, o, expand);
-      if (debug_restriction) {
-        cout << "Set temporal restriction [" << gt << "] "
-             << TargetTypeString(tt) << " " << o << " :" << endl << "  ";
-        the_db->GroundTruthSummary(restriction);
+      struct timespec end = TimeNow();
+      float secf = TimeDiff(end, now);
+      if (debug_restriction || secf>5.0) {
+	char sec[100];
+	sprintf(sec, "%.3f", secf);
+        WriteLog("Set temporal restriction ["+gt+"] "+
+		 TargetTypeString(tt)+" "+ToStr(o)+" in "+ToStr(sec)+" seconds");
+	if (debug_restriction)
+	  the_db->GroundTruthSummary(restriction);
       }
     }
 

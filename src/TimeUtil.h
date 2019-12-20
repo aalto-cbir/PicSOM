@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: TimeUtil.h,v 2.24 2018/10/09 07:49:15 jormal Exp $
+// -*- C++ -*-  $Id: TimeUtil.h,v 2.25 2019/04/22 16:20:14 jormal Exp $
 // 
 // Copyright 1998-2018 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
@@ -40,7 +40,7 @@ using namespace std;
 
 namespace picsom {
   static const string Time_h_vcid =
-    "@(#)$Id: TimeUtil.h,v 2.24 2018/10/09 07:49:15 jormal Exp $";
+    "@(#)$Id: TimeUtil.h,v 2.25 2019/04/22 16:20:14 jormal Exp $";
 
   /**
      DOCUMENTATION MISSING
@@ -336,6 +336,41 @@ namespace picsom {
       s = v[0]*3600+v[1]*60+v[2];
 
     return s;
+  }
+
+  inline float TimeStringToSeconds(const string& tstr) {
+    int min,sec,subsec;
+    sscanf(tstr.c_str(),"%dm%d.%ds",&min,&sec,&subsec);
+    return min*60+sec+(float)subsec/1000.0;
+  }
+
+  inline void SplitSecondsTime(const double secs, int& hour, int& min, 
+			       int& sec, int& msec) {
+    // fixme: calculate hour as well...
+    hour = 0;
+    min = (int)floor(secs/60);
+    double totsec = secs-min*60;
+    sec  = (int)floor(totsec);
+    msec = (int)floor((totsec-sec)*1000+0.5);
+  }
+
+  inline string SecondsToMPEG7MediaTimePoint(const double secs) {
+    char buf[30];
+    int hour, min, sec, msec;
+    SplitSecondsTime(secs, hour, min, sec, msec);
+    sprintf(&buf[0],"T%02d:%02d:%02d:%dF%d",hour,min,sec,msec,1000);
+    return string(buf);
+  }
+
+  inline string SecondsToMPEG7MediaDuration(const double secs) {
+    char buf[30];
+    int hour, min, sec, msec;
+    SplitSecondsTime(secs, hour, min, sec, msec);
+    if (hour != 0)
+      sprintf(&buf[0],"PT%dH%dM%dS%dN%dF",hour,min,sec,msec,1000);
+    else
+      sprintf(&buf[0],"PT%dM%dS%dN%dF",min,sec,msec,1000);
+    return string(buf);
   }
 
 } // namespace picsom

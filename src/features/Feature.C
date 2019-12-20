@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Feature.C,v 1.257 2018/06/21 15:04:10 jormal Exp $
+// -*- C++ -*-  $Id: Feature.C,v 1.261 2019/04/10 12:29:28 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -840,11 +840,11 @@ namespace picsom {
       f->Initialize(all_files, segmfile, NULL, opts_eff, false);
     }
 
-    if (f->IsBatchOperator()) {
-      if (FileVerbose())
-	cout << "  IsBatchOperator()==true, collecting..." << endl;
-      return f->CollectBatch(one_file_x, incorep, result); 
-    }
+    // if (f->IsBatchOperator()) {
+    //   if (FileVerbose())
+    // 	cout << "  IsBatchOperator()==true, collecting..." << endl;
+    //   return f->CollectBatch(all_files, incorep, result); // was one_file_x
+    // }
     
     string segmtmp;
 
@@ -879,6 +879,12 @@ namespace picsom {
     if (fake!="")
       f->SetFakeName(fake);
 
+    if (f->IsBatchOperator()) {
+      if (FileVerbose())
+	cout << "  IsBatchOperator()==true, collecting..." << endl;
+      return f->CollectBatch(all_files, incorep, result); // was one_file_x
+    }
+    
     if (print_xml || (new_file&&!first))
       f->SetDescriptionData(true, print_all_xml, cmd);
     else
@@ -1036,6 +1042,8 @@ namespace picsom {
 #endif
 
     incore_imagedata_ptr = NULL;
+    if (FileVerbose())
+      cout << msg << "INCORE imagedata removed" << endl;
 
     if (FileVerbose())
       cout << msg << "starting..." << endl;
@@ -1095,6 +1103,14 @@ namespace picsom {
 	segmentfile_ptr = allocated_segmentfile = new segmentfile(imgeff, seg);
 	imagefile *imgfile = segmentfile_ptr->inputImageFile();
 
+	if (incore_imagedata_ptr) {
+	  imagedata seg(incore_imagedata_ptr->width(),
+			incore_imagedata_ptr->height(), 
+			1, imagedata::pixeldata_uint32);
+	  segmentfile_ptr->setImage(*incore_imagedata_ptr);
+	  segmentfile_ptr->setSegment(seg);
+	}
+	
 	if (imgeff!="" && imgfile->nframes()==0) {
 	  if (FileVerbose())
 	    cout << " imagefile <" << img << "> broken, no valid frames" << endl;
@@ -1937,17 +1953,20 @@ void Feature::PossiblySetZoning() {
     else
       cout << "...skipping...";
 
-    int base = SegmentData()->getCurrentFrame();
-    imagedata& img = *SegmentData()->accessFrame(base);
-
-    cout << " " << img.info() << endl;
+    if (incore_imagedata_ptr)
+      cout << " INCORE " << incore_imagedata_ptr->info() << endl;
+    else {
+      int base = SegmentData()->getCurrentFrame();
+      imagedata& img = *SegmentData()->accessFrame(base);
+      cout << " " << img.info() << endl;
+    }
   }
 
   if (skip)
     return;
 
   if (!SegmentData()->prepareZoning(UsedZoningText()))
-    throw "Feature::PossiblySetZoning() [" + UsedZoningText() + "] failed";
+    throw "Feature::PossiblySetZoning() INCORE [" + UsedZoningText() + "] failed";
 }
 
 //=============================================================================
@@ -3243,7 +3262,8 @@ Feature::featureVector Feature::CalculatePerFrame(int f, int ff, bool print) {
 //   if (!image->ReadImageFrame(f))
 //     throw msg.str()+"ReadImageFrame() failed";
 
-  SegmentData()->setCurrentFrame(f);
+  if (!incore_imagedata_ptr)
+    SegmentData()->setCurrentFrame(f);
 
   if (region_hierarchy) { // parse region hierarchy from segmentation xml
     data_allocation_needed=true;
@@ -3358,7 +3378,8 @@ Feature::featureVector Feature::CalculatePerFrame(int f, int ff, bool print) {
   PerformScaling(f);
   
   int base = SegmentData()->getCurrentFrame();
-  imagedata& img = *SegmentData()->accessFrame(base);
+  imagedata& img = incore_imagedata_ptr ? *incore_imagedata_ptr
+      : *SegmentData()->accessFrame(base);
   if (!FramePreProcess(img, f))
     ok = false;
 
@@ -3373,7 +3394,7 @@ Feature::featureVector Feature::CalculatePerFrame(int f, int ff, bool print) {
   }
 
 #if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
-  opencvmat = Convert2cvMat();
+  opencvmat = imagedata_to_cvMat();
 #endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 
   if (ok) {
@@ -5799,7 +5820,7 @@ bool Feature::PerformScaling(int f) {
 
 #if defined(HAVE_OPENCV2_CORE_CORE_HPP) && defined(PICSOM_USE_OPENCV)
   
-  cv::Mat Feature::Convert2cvMat(const imagedata& imgin) const {
+  cv::Mat Feature::imagedata_to_cvMat(const imagedata& imgin) {
     imagedata img(imgin);
     img.convert(imagedata::pixeldata_uchar);
 
@@ -5816,10 +5837,43 @@ bool Feature::PerformScaling(int f) {
 
   //===========================================================================
 
-  cv::Mat Feature::Convert2cvMat() const {
+  cv::Mat Feature::imagedata_to_cvMat() const {
     int base = SegmentData()->getCurrentFrame();
-    const imagedata& imgin = *SegmentData()->accessFrame(base);
-    return Convert2cvMat(imgin);
+    const imagedata& imgin = incore_imagedata_ptr ?
+      *incore_imagedata_ptr : *SegmentData()->accessFrame(base);
+    return imagedata_to_cvMat(imgin);
+  }
+
+  //===========================================================================
+
+  imagedata Feature::cvMat_to_imagedata(const cv::Mat& m) {
+    imagedata img(m.cols, m.rows, m.channels(), imagedata::pixeldata_float);
+    for (size_t x=0; x<(size_t)m.cols; x++)
+      for (size_t y=0; y<(size_t)m.rows; y++) {
+	switch (m.channels()) {
+	case 1: {
+	  auto in = m.at<float>(y, x);
+	  vector<float> out { in };
+	  img.set(x, y, out);
+	  break;
+	}
+	case 2: {
+	  auto in = m.at<cv::Vec2f>(y, x);
+	  vector<float> out { in[0], in[1] };
+	  img.set(x, y, out);
+	  break;
+	}
+	case 3: {
+	  auto in = m.at<cv::Vec3f>(y, x);
+	  vector<float> out {in[2], in[1], in[0]};
+	  img.set(x, y, out);
+	  break;
+	}
+	default:
+	  abort();
+	}
+      }
+    return img;
   }
 
 #endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
@@ -5915,7 +5969,8 @@ bool Feature::PerformScaling(int f) {
     string msg = "Feature::CollectBatch() : ";
     batch.push_back(feature_batch_e(f, i, r));
     if (FileVerbose())
-      cout << msg << (void*)this << " collected " << batch.size() << endl;
+      cout << msg << (void*)this << " [" << batch.back().str()
+	   << "] collected " << batch.size() << endl;
     return true;
   }
   

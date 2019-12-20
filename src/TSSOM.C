@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: TSSOM.C,v 2.207 2018/01/02 10:30:45 jormal Exp $
+// -*- C++ -*-  $Id: TSSOM.C,v 2.210 2019/04/17 08:03:20 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -19,7 +19,7 @@
 
 namespace picsom {
   static const string TSSOM_C_vcid =
-    "@(#)$Id: TSSOM.C,v 2.207 2018/01/02 10:30:45 jormal Exp $";
+    "@(#)$Id: TSSOM.C,v 2.210 2019/04/17 08:03:20 jormal Exp $";
 
   static TSSOM list_entry(true);
 
@@ -1745,7 +1745,7 @@ bool TSSOM::CheckDataSetTargetTypes() const {
 
     const string augm;
     if (db->UseBinFeaturesRead())
-      BinDataOpen(db->OpenReadWriteFea(), db->Size(), false, augm);
+      BinDataOpen(db->OpenReadWriteFea(), db->Size(), false, 0.0, augm);
 
     string zzz;
     if (db->UseBinFeaturesRead())
@@ -1785,6 +1785,12 @@ bool TSSOM::CheckDataSetTargetTypes() const {
       // tt's each for exact matching...
       // if (ttmatchold!=ttmatchnew)
       //   WarnOnce(msg+"ttmatch rule changed...");
+
+      bool match_imageset_as_video = true; // added 2019-04-04 for tgif
+      if (match_imageset_as_video &&
+	  fttmask==target_video && ottmask==target_imageset)
+	ttmatchnewer = true;
+      
       bool ttmatch = ttmatchnewer;
 
       bool hit = ttmatch && (restr.empty() || restr[i]==1);
@@ -2026,7 +2032,7 @@ bool TSSOM::LoadAndMatchFeatures(int idx, bool may_add, bool take_all) {
         ShowError(errhead, "not allowed to add label <", set[i].Label(), ">");
       else
         if (!CheckDB()->AddLabelAndParents(set[i].Label(), feature_target,
-					   false))
+					   false, true))
           ShowError(errhead, "failed to add label <", set[i].Label(), ">");
     }
   }

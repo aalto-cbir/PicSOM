@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: VectorIndex.h,v 2.52 2018/09/25 15:19:43 jormal Exp $
+// -*- C++ -*-  $Id: VectorIndex.h,v 2.53 2019/04/11 13:28:58 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -241,7 +241,7 @@ namespace picsom {
     // FloatVectorSet DataByIndicesBinOld(const vector<size_t>&);
 
     ///
-    bool BinDataOpen(bool, size_t, bool, const string&);
+    bool BinDataOpen(bool, size_t, bool, float, const string&);
 
     ///
     bool BinDataOpenVirtual(const string&);
@@ -256,7 +256,7 @@ namespace picsom {
     bool BinDataOpenVirtualConcatenate(const string&);
 
     ///
-    bool BinDataOpenFile(bool, bool, const string&);
+    bool BinDataOpenFile(bool, bool, float, const string&);
 
     ///
     bool BinDataExpand(size_t);

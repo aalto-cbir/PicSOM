@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: External.C,v 1.43 2018/10/05 13:23:26 jormal Exp $
+// -*- C++ -*-  $Id: External.C,v 1.44 2019/02/11 06:38:55 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -580,7 +580,7 @@ bool External::EnsureFileList(vector<string> files) const {
     for (size_t i=0; i<argv.size(); i++) {
       a[i] = (charptr)argv[i].c_str();
       if (FrameVerbose()) {
-        cout << msg+"execparam: " << a[i] << endl;
+        cout << msg+"execparam[" << i << "]: [" << a[i] << "]" << endl;
         allarg += string(allarg.empty()?"":" ")+argv[i];
       }
     }

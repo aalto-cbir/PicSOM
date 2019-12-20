@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: imagefile.h,v 1.55 2017/05/24 14:51:12 jormal Exp $
+// -*- C++ -*-  $Id: imagefile.h,v 1.57 2019/05/29 12:49:18 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -15,8 +15,8 @@
   of physical image format libraries.
 
   \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-  $Revision: 1.55 $
-  $Date: 2017/05/24 14:51:12 $
+  $Revision: 1.57 $
+  $Date: 2019/05/29 12:49:18 $
   \bug May be some out there hiding.
   \warning Be warned against all odds!
   \todo So many things, so little time...
@@ -60,7 +60,7 @@ namespace picsom {
     /// Returns version of imagefile class ie. version of imagefile.h.
     static const string& version() {
       static string v =
-	"$Id: imagefile.h,v 1.55 2017/05/24 14:51:12 jormal Exp $";
+	"$Id: imagefile.h,v 1.57 2019/05/29 12:49:18 jormal Exp $";
       return v;
     }
 
@@ -82,28 +82,30 @@ namespace picsom {
     /// Default constructor needed by The Standard C++ Library.
     imagefile() : _writing(false), _dispose(false),
 		  _default_pixel(imagedata::pixeldata_float),
-		  _nframes(0), _curr_frame(-1), _use_cacheing(true) {
+		  _nframes(0), _curr_frame(-1), _use_cacheing(true),
+		  _extend_last_frame(false) {
       create_impl();
     }
 
     /// Constructor that opens for reading with given format.
     imagefile(const string& n, const string& f = "") :
       _dispose(false), _default_pixel(imagedata::pixeldata_float), 
-      _use_cacheing(true) {
+      _use_cacheing(true), _extend_last_frame(false) {
       open(n, false, f);
     }
 
     /// Constructor that opens for reading with given pixeldatatype and format.
     imagefile(const string& n, imagedata::pixeldatatype t,
 	      const string& f = "") : _dispose(false), _default_pixel(t),
-				      _use_cacheing(true) {
+				      _use_cacheing(true),
+				      _extend_last_frame(false) {
       open(n, false, f);
     }
 
     /// Constructor that opens for reading/writing with given format.
     imagefile(const string& n, bool wr, const string& f = "") :
       _dispose(false), _default_pixel(imagedata::pixeldata_float), 
-      _use_cacheing(true) {
+      _use_cacheing(true), _extend_last_frame(false) {
       open(n, wr, f);
     }
 
@@ -112,21 +114,22 @@ namespace picsom {
     
     /// Needed with unstringify().
     imagefile(imagefile&& img) { 
-      _filename      = img._filename;
-      _format        = img._format;
-      _description   = img._description;
-      _cache         = img._writing;
-      _writing       = img._writing;
-      _dispose       = img._dispose;
-      _default_pixel = img._default_pixel;
-      _nframes       = img._nframes;
-      _curr_frame    = img._curr_frame;
-      _use_cacheing  = img._use_cacheing;
-      _frame         = img._frame;
-      _impl_data     = img._impl_data;
+      _filename      	 = img._filename;
+      _format        	 = img._format;
+      _description   	 = img._description;
+      _cache         	 = img._writing;
+      _writing       	 = img._writing;
+      _dispose       	 = img._dispose;
+      _default_pixel 	 = img._default_pixel;
+      _nframes       	 = img._nframes;
+      _curr_frame    	 = img._curr_frame;
+      _use_cacheing  	 = img._use_cacheing;
+      _extend_last_frame = img._extend_last_frame;
+      _frame         	 = img._frame;
+      _impl_data     	 = img._impl_data;
 
-      img._impl_data = NULL;
-      img._dispose   = false;
+      img._impl_data     = NULL;
+      img._dispose       = false;
     }
     
     /// Destructor.  Eg. Disposal of a temporal file.
@@ -146,7 +149,7 @@ namespace picsom {
       stringstream s;
       s << "imagefile <" << _filename << "> " << _format
         << " " << _nframes << " frame" << (_nframes==1?"":"s")
-        << ", current=" << _curr_frame
+        << ", current=" << _curr_frame << " fps=" << video_fps()
         << " \"" << _description << "\" @" << (void*)this;
       return s.str();
     }
@@ -199,6 +202,9 @@ namespace picsom {
 
     /// enable/disable frame cacheing
     void frame_cacheing(bool c) { _use_cacheing = c; }
+
+    /// enable/disable last frame extension
+    void extend_last_frame(bool c) { _extend_last_frame = c; }
 
     /// secret access to the hidden data
     void *impl_data() const { return _impl_data; }
@@ -528,7 +534,7 @@ namespace picsom {
       if (i!=_frame.end())
 	return i->second;
 
-      if(!_use_cacheing)
+      if (!_use_cacheing)
 	_frame.clear();
 
       try {
@@ -822,6 +828,9 @@ namespace picsom {
 
     /// cacheing on/off
     bool _use_cacheing;
+
+    /// a hack for videos
+    bool _extend_last_frame;
 
     /// mapping from frame number to corresponding image data
     typedef map<int,imagedata> _frametype;

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: PicSOM.h,v 2.308 2018/10/29 21:04:32 jormal Exp $
+// -*- C++ -*-  $Id: PicSOM.h,v 2.323 2019/11/19 12:26:15 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -111,7 +111,7 @@ namespace picsom {
   using simple::ListOf;
 
   static string PicSOM_h_vcid =
-    "@(#)$Id: PicSOM.h,v 2.308 2018/10/29 21:04:32 jormal Exp $";
+    "@(#)$Id: PicSOM.h,v 2.323 2019/11/19 12:26:15 jormal Exp $";
 
   extern const string PicSOM_C_vcid, picsom_C_vcid;
 
@@ -236,8 +236,7 @@ namespace picsom {
   /// Intermediate data structure used when uploading objects.
   class upload_object_data {
   public:
-    upload_object_data() : nframes(0), framerate(0.0), fake(false),
-			   nofile(false) {}
+    upload_object_data() {}
     string path;             //!< file name if the data not included in data.
     string data;             //!< binary content of the object.
     string use;              //!< "regular" or "segmentation"
@@ -257,12 +256,14 @@ namespace picsom {
     vector<size_t> indices;  //!< new indices for the extracted objects
     vector<string> labels;   //!< new labels for the extracted objects
     vector<size_t> featext;  //!< a subset of the one above to extract features
-    size_t nframes;          //!< frame count in videos
-    float framerate;         //!< frame rate in videos
-    bool fake;               //!< set to true if just a placeholder
-    bool nofile;             //!< set to true if target type should not contain file
+    vector<double> sbound;   //!< video shot boundaries
+    string sbname;           //!< name to give to shots: ab/c for ab:000000:cXX
+    size_t nframes  = 0;     //!< frame count in videos
+    float framerate = 0.0;   //!< frame rate in videos
+    bool fake       = false; //!< set to true if just a placeholder
+    bool nofile     = false; //!< set to true if target type should not contain file
     string forcedlabel;      //!< label to be used
-  };
+  };  // class upload_object_data
 
   /// Used when adding/inserting/uploading new objects ina DataBase.
   enum insertmode_t {
@@ -716,7 +717,7 @@ namespace picsom {
      @verbinclude cmdline-io.dox
    
      @short A class implementing the PicSOM engine. 
-     @version $Id: PicSOM.h,v 2.308 2018/10/29 21:04:32 jormal Exp $
+     @version $Id: PicSOM.h,v 2.323 2019/11/19 12:26:15 jormal Exp $
   */
   class PicSOM : public Simple {
   public:
@@ -762,7 +763,7 @@ namespace picsom {
     static string ExtractVersion(const string&);
 
     /// Filled in by release/build script.
-    static string Release() { return "" "picsom-0.37a" ; }
+    static string Release() { return "" "picsom-0.38" ; }
 
     ///
     static bool HasFeaturesInternal() { return has_features_internal; }
@@ -822,13 +823,6 @@ namespace picsom {
       return udir;
     }
 
-    /// Process current working directory.
-    static string Cwd() {
-      char cwdbuf[2048];
-      const char *wd = getcwd(cwdbuf, sizeof cwdbuf);
-      return wd ? wd : "";
-    }
-
     /// Name of the executing host.
     static const string& HostName(bool = false);
 
@@ -847,6 +841,9 @@ namespace picsom {
     /// Returns name of the binary with which the program was invoked.
     const string& MyBinary() const { return mybinary_str; }
 
+    /// True if instance is rootless slave.
+    bool IsRootlessSlave() const;
+    
     /// Access to master_address, useful for rootless slaves.
     const string& MasterAddress() const { return master_address; }
 
@@ -988,7 +985,7 @@ namespace picsom {
 	max_tasks_par(0), max_tasks_tot(0),
 	n_tasks_par(0), n_tasks_tot(0), n_tasks_fin(0),
 	pending_threads(0), running_threads(0), max_time(0),
-	conn(NULL), status_requested(false) {
+	conn(NULL), status_requested(false), returned_empty(false) {
 	struct timespec ts;
 	Simple::ZeroTime(ts);
 	submitted = started = task_started = task_finished =
@@ -1005,7 +1002,7 @@ namespace picsom {
 	max_tasks_par(0), max_tasks_tot(0),
 	n_tasks_par(0), n_tasks_tot(0), n_tasks_fin(0),
 	pending_threads(0), running_threads(0), max_time(0),
-	conn(c), status_requested(false) {
+	conn(c), status_requested(false), returned_empty(false) {
 	struct timespec ts;
 	Simple::ZeroTime(ts);
 	submitted = started = task_started = task_finished =
@@ -1135,6 +1132,9 @@ namespace picsom {
       ///
       bool status_requested;
 
+      ///
+      bool returned_empty;
+      
     }; // class slave_info_t
 
     /// Slave stuff.
@@ -1203,16 +1203,10 @@ namespace picsom {
 				   size_t, bool&);
   
     /// Updates all slaves' information.
-    bool UpdateSlaveInfo();
+    bool UpdateSlaveInfo(bool);
 
     ///
-    bool UpdateSlaveInfoNewest();
-
-    /// Updates all slaves' information.
-    bool UpdateSlaveInfoRatherOld();
-
-    /// Updates all slaves' information.
-    bool UpdateSlaveInfoOld();
+    bool UpdateSlaveInfoNewest(bool);
 
     /// Updates slave's information.
     bool UpdateSlaveInfo(slave_info_t&);
@@ -1316,14 +1310,17 @@ namespace picsom {
     /// Removes the given slave thread.
     bool RemoveSlaveThreadInner(const pair<slave_info_t*,thread_info_t*>&);
 
-    /// Terminates slave if it seems to running out of execution time.
+    /// Terminates a slave if running out of execution time or returned empty.
     bool PossiblyTerminateSlave(slave_info_t&);
 
-    /// Terminates slave if it seems to running out of execution time.
-    bool TerminateSlave(slave_info_t&, const string&);
+    /// Terminates a slave.
+    bool TerminateSlave(slave_info_t&, const string&, int);
 
     ///
     const string& SlavePipe() const { return slavepipe; }
+
+    ///
+    void SlavePipe(const string& s) { slavepipe = s; }
 
     ///
     bool IsSlavePiping(const string& s) const {
@@ -1453,7 +1450,7 @@ namespace picsom {
     void PossiblyDumpMemoryUsage__(const string& m = "", bool end = false) {
       if (end || debug_mem>1) {
 	if (m!="")
-	  cout << m << " ";
+	  cout << "MEMORY " << m << " ";
 	DumpMemoryUsage();
       }
     }
@@ -1848,6 +1845,9 @@ namespace picsom {
       return v;
     }
 
+    /// Returns debugging of slaves.
+    static bool DebugSlaves() { return debug_slaves; }
+    
     /// Sets debugging of temporary files.
     static void DebugTempFiles(int b) { debug_tmps = b; }
 
@@ -2315,6 +2315,9 @@ namespace picsom {
     bool StartSlaveStatusThread();
 
     ///
+    bool CancelSlaveStatusThread();
+    
+    ///
     bool SlaveStatusThreadMain();
     
     ///
@@ -2598,11 +2601,15 @@ namespace picsom {
     list<string> Translate(const string&, const string&, const string&,
 			   const list<string>&);
 
+    ///
+    pair<string,string> GoogleCredentials(const string&);
 
     ///
-    list<string> TranslateYandex(const string&, const string&,
+    list<string> TranslateGoogle(const string&, const string&,
 				 const list<string>&);
-
+    ///
+    list<string> TranslateYandexV1(const string&, const string&,
+				 const list<string>&);
     ///
     bool ReadSecrets();
 
@@ -2612,6 +2619,9 @@ namespace picsom {
     ///
     string UnZip(const string&, const string& = "", const string& = "");
 
+    ///
+    void TestPyGILState(const string&) const;
+    
   protected:
     /// protected methods first:
 
@@ -3330,6 +3340,34 @@ namespace picsom {
   class textline_t {
   public:
     //
+    static constexpr double empty_v = numeric_limits<double>::quiet_NaN();
+
+    //
+    class txt_val_box_t {
+    public:
+      //
+      txt_val_box_t(const string& _t, double _v = empty_v,
+		    double _x = 0.0, double _y = 0.0, 
+		    double _w = 0.0, double _h = 0.0) 
+	: t(_t), v(_v), x(_x), y(_y), w(_w), h(_h) {}
+
+      //
+      bool is_val_set() const { return !std::isnan(v); }
+
+      //
+      bool is_box_set() const { 
+	return x!=0 || y!=0 || w !=0 || h!=0;
+      }
+
+      //
+      string t;
+
+      //
+      double v, x, y, w, h;
+      
+    }; // class txt_val_box_t
+
+    //
     textline_t() : db(NULL), idx(-1), start(-1), end(-1) {}
 
     //
@@ -3337,47 +3375,60 @@ namespace picsom {
       db(_db), idx(_idx), start(-1), end(-1) {}
 
     //
-    string str_common(bool, bool, bool) const;
+    bool is_time_set() const { return start!=-1 && end!=-1; }
+      
+    //
+    string str_common_x(bool, bool, bool, bool, bool) const;
 
     //
-    string txt_display(bool full = false, bool val = true) const {
-      return str_common(full, val, false); 
+    string txt_display_one(bool full = false, bool val = true,
+			   bool time = true) const {
+      return str_common_x(false, full, time, val, false); 
     }
 
     //
-    string txt_encode() const { return str_common(false, true, true); }
+    string txt_display_all(bool full = false, bool val = true,
+			   bool time = true) const {
+      return str_common_x(true, full, time, val, false); 
+    }
+
+    //
+    string txt_encode() const {
+      return str_common_x(true, false, true, true, true); 
+    }
     
     //
     bool txt_decode(const string&);
 
     //
-    void add(const pair<string,double>& sv) {
-      txt_val.push_back(sv);
+    void add(const txt_val_box_t& tvb) {
+      txt_val_box.push_back(tvb);
     }
 
     //
-    void add(const string& s, double v) {
-      add(make_pair(s, v));
+    void add(const pair<string,double>& tv) {
+      add(txt_val_box_t(tv.first, tv.second));
+    }
+
+    //
+    void add(const string& t, double v = empty_v,
+	     double x = 0, double y = 0, double w = 0, double h = 0) {
+      add(txt_val_box_t(t, v, x, y, w, h));
     }
 
     //
     void set(const string& s, double v) {
-      txt_val.clear();
+      txt_val_box.clear();
       add(make_pair(s, v));
     }
 
     //
     string get_text() const {
-      return empty() ? "" : txt_val[0].first;
+      return empty() ? "" : txt_val_box[0].t;
     }
 
     //
-    bool has_time_set() const {
-      return start!=-1 || end!=-1;
-    }
-
-    //
-    bool empty() const { return txt_val.empty(); }
+    bool empty() const { return txt_val_box.empty(); }
 
     //
     DataBase *db;
@@ -3397,9 +3448,51 @@ namespace picsom {
     //
     string generator, evaluator;
 
-    //
-    vector<pair<string,double> > txt_val;
+    //      
+    vector<txt_val_box_t> txt_val_box;
 
+  };  // class textline_t
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Used for boxed textual results such as face recognitions.
+  class boxdata_t {
+  public:
+    //
+    boxdata_t(const DataBase*, const vector<string>&);
+
+    //
+    string str() const;
+
+    //
+    bool match(const string& s, const string& r, const string& t) const {
+      return (s=="" || s==segm) && (r=="" || r ==recog) && (t=="" || t==type);
+    }      
+    
+    //
+    const DataBase *db = NULL;
+
+    //
+    size_t idx = -1;
+    
+    //
+    string segm;
+
+    //
+    string recog;
+
+    //
+    double tl_x = 0, tl_y = 0, br_x = 0, br_y = 0;
+
+    //
+    double val = 0;
+    
+    //
+    string type;
+    
+    //
+    string txt;
+    
   };  // class textline_t
 
 } // namespace picsom

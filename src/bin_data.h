@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: bin_data.h,v 2.24 2018/06/21 11:39:31 jormal Exp $
+// -*- C++ -*-  $Id: bin_data.h,v 2.30 2019/09/20 12:49:25 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -65,10 +65,8 @@ namespace picsom {
       };
 
       ///
-      header() : version(1.0), hsize(sizeof(header)),
-		 rlength(0), vdim(0), format(0) {
+      header() {
 	memcpy(magic, "PSBD", 4);
-	memset(dummy, 0, sizeof dummy);
       }
 
       ///
@@ -160,27 +158,33 @@ namespace picsom {
       char magic[4];      // offset=00 "PSBD" for "PicSOM binary data"
     
       ///
-      float version;      // offset=04 currently always 1.0
+      float version;      // offset=04 1.0 or 1.1
       
       ///
-      uint64_t hsize;     // offset=08 header size, currently always 64
+      uint64_t hsize = sizeof(header); // offset=08 header size, always 64
 
       ///
-      uint64_t rlength;   // offset=16 size of a record, 4*vector dimensionality
+      uint64_t rlength = 0;   // offset=16 size of a record, 4*vector dim
       
       ///
-      uint64_t vdim;      // offset=24 vector dimensionality
+      uint64_t vdim = 0;      // offset=24 vector dimensionality
       
       ///
-      uint64_t format;    // offset=32 for float ==1
+      uint64_t format = 0;    // offset=32 for float ==1
       
       ///
-      uint64_t dummy[3];  // offsets=40,48,56, filled with zeros
+      uint64_t dummyx = 0;    // offset=40 filled with zeros
+      
+      ///
+      uint64_t min = 0;       // offset=48 first index of first block
+      
+      ///
+      uint64_t max = 0;       // offsets=56 last+1 index of first block
       
     }; // class bin_data::header
 
     ///
-    bin_data(const string& fn = "", bool = false,
+    bin_data(const string& fn = "", bool = false, float = 1.0,
 	     bin_data::header::format_type = header::format_undef,
 	     size_t = 0, size_t = 0);
 
@@ -202,39 +206,14 @@ namespace picsom {
 	throw logic_error(msg+"bin_data not opened or too small");
       return _header;
     }
+    
+    ///
+    // size_t object_count() const {
+    //   return (_size-_header.hsize)/_header.rlength;
+    // }
 
     ///
-    string str() const {
-      stringstream ss;
-      if (is_ok()) {
-	ss << get_header_copy().str();
-	if (_fd>=0)
-	  ss << " fd=" << _fd;
-	if (_size) {
-	  size_t b = componentsize();
-	  long n = (_size-_header.hsize)/_header.rlength;
-	  long m = (_size-_header.hsize)%_header.rlength;
-	  ss << " size=" << _size << " (" << HumanReadableBytes(_size)
-	     << ") [" << _header.target_format_str()
-	     << ", " << n << " objects";
-	  if (m)
-	    ss << " + " << m << " extra bytes";
-	  ss << ", " << b << " bit" << (b>1?"s":"") << "/comp";
-	  if (_header.is_var_length_format())
-	    ss << ", var_length";
-	  if (_header.is_expl_status_format())
-	    ss << ", expl_status";
-	  if (_header.is_expl_index_format())
-	    ss << ", expl_index";
-	  if (_header.is_file_dict_format())
-	    ss << ", file_dict";
-	  if (_prodquant)
-	    ss << ", prodquant vdim=" << vdim();
-	  ss << "] " << (_rw?"rw":"ro");
-	}
-      }
-      return ss.str();
-    }
+    string str() const;
 
     ///
     const string& filename() const { return _filename; }
@@ -245,11 +224,37 @@ namespace picsom {
     ///
     bool is_incore() const { return _incore; }
 
-   ///
+    ///
+    static bool is_version(float x, float v) { return fabs(x-v)<0.0001; }
+      
+    ///
+    bool is_v10() const { return is_version(_header.version, 1.0); }
+      
+    ///
+    bool is_v11() const { return is_version(_header.version, 1.1); }
+
+    ///
+    const list<size_t>& blocks() const { return _blocks; }
+
+    ///
+    list<vector<size_t> > block_summary() const;
+
+    ///
+    string dump_blocks() const;
+    
+    ///
+    string dump_block_summary() const;
+    
+    ///
     size_t rawsize() const { return _size; }
 
     ///
-    size_t rawsize(size_t n) const { return _header.hsize+n*_header.rlength; }
+    size_t rawsize(size_t n) const { 
+      if (is_v10())
+	return _header.hsize+n*_header.rlength; 
+      else
+	return -1;
+    }
 
     ///
     size_t nobjects() const;
@@ -271,18 +276,21 @@ namespace picsom {
     bool is_ok() const { return is_open() && rawsize()>=sizeof(header); }
 
     ///
-    bool open(const string&, bool, header::format_type,
+    bool open(const string&, bool, float, header::format_type,
 	      size_t, size_t) throw(string);
 
     ///
-    bool open_inner(const string&, bool, header::format_type,
+    bool open_inner(const string&, bool, float, header::format_type,
 		    size_t, size_t) throw(string);
 
     ///
     bool resize(size_t, unsigned char = 255) throw(string);
 
     ///
-    bool resize_inner(size_t, unsigned char = 255) throw(string);
+    bool resize_common(size_t, unsigned char = 255) throw(string);
+
+    ///
+    bool resize_common_inner(size_t, unsigned char = 255) throw(string);
 
     ///
     bool flush();
@@ -314,7 +322,7 @@ namespace picsom {
     vector<float> get_float(size_t) const;
 
     ///
-    bool set_float(size_t, const vector<float>&);
+    bool set_float(size_t, const vector<float>&, size_t = 0);
 
     ///
     vector<bool> get_bool(size_t) const;
@@ -361,6 +369,80 @@ namespace picsom {
     ///
     const bin_data *prodquant() const { return _prodquant; }
 
+    ///
+    inline bool is_valid_8(size_t a) const {
+      return a+7<_size;
+    }
+    
+    ///
+    inline bool is_valid_8(size_t p, size_t i) const {
+      size_t a = p + 8*i;
+      return a+7<_size;
+    }
+    
+    ///
+    inline size_t& st(size_t p, size_t i) throw(logic_error) {
+      size_t a = p + 8*i;
+      if (!is_valid_8(a))
+	throw logic_error("bin_data::st()");
+      
+      return *(size_t*)((char*)_ptr+a);
+    }
+    
+    ///
+    inline const size_t& st(size_t p, size_t i) const throw(logic_error) {
+      return ((bin_data*)this)->st(p, i);
+    }
+
+    ///
+    inline bool block_type_is_2(size_t p) const {
+      return is_valid_8(p, 3) && st(p, 0)==2;
+    }
+
+    ///
+    const vector<bool>& all_set_float() const;
+
+    ///
+    bool pack_to_file(const string&, bool) const;
+    
+    ///
+    bool pack_to_memory(bin_data&, bool) const;
+
+    ///
+    bool unpack_to_file(const string&, bool) const;
+    
+    ///
+    bool unpack_to_memory(bin_data&, bool) const;
+
+    ///
+    size_t block_type(size_t) const;
+    
+    ///
+    size_t block_size(size_t) const;
+    
+    ///
+    size_t block_nobjects(size_t) const;
+    
+    ///
+    pair<size_t,size_t> block_minmax(size_t) const;
+    
+    ///
+    size_t block_capacity(size_t) const;
+    
+    ///
+    void *block_raw_address(size_t, size_t) const;
+    
+    ///
+    bool add_indexed_block(size_t, size_t, 
+			   const list<pair<size_t,const float*> >&);
+
+    ///
+    bool add_indexed_float(size_t, size_t, const vector<float>&);
+
+    ///
+    bool add_direct_block(size_t, size_t, 
+			  const list<pair<size_t,const float*> >&);
+
   protected:
     ///
     header _header;
@@ -388,7 +470,7 @@ namespace picsom {
 
 #ifdef BIN_DATA_USE_PTHREADS
     ///
-    pthread_rwlock_t rwlock;
+    pthread_rwlock_t _rwlock;
 #endif // BIN_DATA_USE_PTHREADS
 
     ///
@@ -401,8 +483,14 @@ namespace picsom {
     size_t _opt_rss_target;
 
     ///
-    static bool close_handles;
+    static bool _close_handles;
 
+    ///
+    vector<bool> _set_float;
+
+    ///
+    list<size_t> _blocks;
+    
   }; // class bin_data
 
 } // namespace picsom

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Connection.h,v 2.132 2018/10/05 15:29:57 jormal Exp $
+// -*- C++ -*-  $Id: Connection.h,v 2.134 2019/11/06 10:49:53 jormal Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -53,7 +53,7 @@ extern HIST_ENTRY **history_list ();
 #define PICSOM_POLL_TIMEOUT   (60*1000)
 
 static const string Connection_h_vcid =
-  "@(#)$Id: Connection.h,v 2.132 2018/10/05 15:29:57 jormal Exp $";
+  "@(#)$Id: Connection.h,v 2.134 2019/11/06 10:49:53 jormal Exp $";
 
 namespace picsom {
   typedef list<pair<string,string> > http_headers_t;
@@ -306,6 +306,15 @@ namespace picsom {
     /// Converts http_request to http_request_lines.
     bool HttpServerParseRequest();
 
+    /// Access to POSTed data.
+    const string& HttpServerPostData() {
+      static const string empty;
+      return http_request_lines.size()>1 &&
+	http_request_lines.front().first=="POST" &&
+	http_request_lines.back().first=="" ? 
+	http_request_lines.back().second : empty;
+    }
+    
     /// Returns MIME type of request.
     const string& HttpServerSolveRequestType(const string&);
 
@@ -332,7 +341,13 @@ namespace picsom {
     bool HttpServerSolveAnalysisInner(const string&);
 
     ///
-    list<pair<string,string> > HttpServerParseFormData();
+    class form_data_t {
+    public:
+      string name, filename, mime, data;
+    }; // class form_data_t
+    
+    ///
+    list<form_data_t> HttpServerParseFormData();
 
     /// Performs HTTP redirect.
     bool HttpServerRedirect(const string&);
@@ -385,6 +400,18 @@ namespace picsom {
     XmlDom HttpServerGeneratePageInner(const string&,
 				       const list<string>&);
 
+    /// PicSOM REST API
+    XmlDom HttpServerApi09();
+
+    ///
+    script_list_t ApiRequestToScriptList(const string&);
+    
+    ///
+    script_list_t ApiRequestToScriptListJson(const string&);
+    
+    ///
+    script_list_t ApiRequestToScriptListXml(const string&);
+    
     /// D2I Multimedia REST API
     XmlDom HttpServerRestCaAddTask(const string&);
 
@@ -805,16 +832,16 @@ namespace picsom {
     bool WriteOutXml(xmlDocPtr doc, const string& = "");
 
     /// A XML dumping subroutine common for other routines. Delete after use!
-    static char *XML2StringM(xmlDocPtr doc, bool = false);
-
-    /// A XML dumping subroutine common for other routines.
-    static string XML2String(xmlDocPtr doc, bool pretty = false) {
-      char *d = XML2StringM(doc, pretty);
-      string ret = d ? d : "*empty XML doc*";
-      xmlFree(d);
-      return ret;
+    static char *XML2StringM(xmlDocPtr doc, bool pretty = false) {
+      return strdup(XML2String(doc, pretty).c_str());
     }
 
+    /// A XML dumping subroutine common for other routines.
+    static string XML2String(xmlDocPtr doc, bool pretty = false);
+
+    /// A XML dumping subroutine with JSON output...
+    static string XML2JsonString(xmlDocPtr, bool = false);
+    
     /// A XML dumping subroutine common for other routines.
     static void ConditionallyDumpXML(ostream& os, bool out, xmlDocPtr doc,
 				     const string& txt = "",
@@ -1274,6 +1301,9 @@ namespace picsom {
     /// HTTP request lines rudimentally split to keyword-value pairs.
     http_headers_t http_request_lines;
 
+    ///
+    list<form_data_t> http_form_data;
+    
     ///
     Analysis *http_analysis;
 

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: segmentfile.C,v 1.180 2016/01/27 21:10:25 jorma Exp $
+// -*- C++ -*-  $Id: segmentfile.C,v 1.181 2019/02/04 09:10:34 jormal Exp $
 // 
-// Copyright 1998-2014 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -2192,7 +2192,7 @@ namespace picsom {
 
   const string& segmentfile::impl_version() {
     static string v =
-      "$Id: segmentfile.C,v 1.180 2016/01/27 21:10:25 jorma Exp $";
+      "$Id: segmentfile.C,v 1.181 2019/02/04 09:10:34 jormal Exp $";
     return v;
   }
   
@@ -2201,8 +2201,6 @@ namespace picsom {
   void segmentfile::init() {
     input_image_file=NULL;
     input_segment_file=NULL;
-    //   input_description=NULL;
-    //    xml_description=NULL;
     _is_prepared=false;
     _originates_from_tiff=false;
     use_ondemand=true;
@@ -2337,30 +2335,27 @@ namespace picsom {
       }
     }
     
-    if(hash) delete hash;
+    if (hash) delete hash;
     return ret;
-    
   }
-
- 
 
   ///////////////////////////////////////////////////////////////////////////  
 
-  void segmentfile::moveSegmentationMask(int from, int to, bool discard){
-    if(use_ondemand==false)
+  void segmentfile::moveSegmentationMask(int from, int to, bool discard) {
+    if (use_ondemand==false)
       throw string("segmentfile::moveSegmentationMask():use_ondemand==false.");
     
-    if(segment_frames.frames[from].data==NULL)
+    if (segment_frames.frames[from].data==NULL)
       segmentFrame(from); // force the from frame to memory
 
-    if(segment_frames.frames[to].data)
+    if (segment_frames.frames[to].data)
       delete segment_frames.frames[to].data;
 
-    if(discard){
+    if (discard) {
       segment_frames.frames[to].data=segment_frames.frames[from].data;
       segment_frames.frames[to].owndata=segment_frames.frames[from].owndata;
       segment_frames.frames[from].data=NULL;
-    } else{
+    } else {
       segment_frames.frames[to].data=new 
 	imagedata(*segment_frames.frames[from].data);
       segment_frames.frames[to].owndata=true;
@@ -2383,7 +2378,7 @@ namespace picsom {
 
   const string &segmentfile::getImageFileName() const{
     static string empty;
-    if(input_image_file)
+    if (input_image_file)
       return input_image_file->filename();
     else return empty;
   }
@@ -2392,7 +2387,7 @@ namespace picsom {
 
   const string &segmentfile::getSegmentFileName() const{
     static string empty;
-    if(input_segment_file)
+    if (input_segment_file)
       return input_segment_file->filename();
     else return empty;
   }
@@ -2540,7 +2535,6 @@ namespace picsom {
     segment_frames.frames.clear();
     stored_images.clear();
     stored_segments.clear();
-
 
     // go through table of contents, free and allocate 
     // storage for sequences
@@ -2835,21 +2829,16 @@ namespace picsom {
       image_frames.frames.push_back(tmp);
 
     }
-
   }
 
-
   ///////////////////////////////////////////////////////////////////////////
-  void segmentfile::allocateSegments(){
 
+  void segmentfile::allocateSegments() {
     // string errhead = name_head()+"allocateSegments() : ";
-
-    int f;
-
     segment_frames.free();
     segment_frames.frames.clear();
 
-    for(f=0;f<=description.sequenceinfo.lastframe;f++){
+    for (int f=0; f<=description.sequenceinfo.lastframe; f++) {
       _frame_type tmp;
       tmp.framenr=f;
 
@@ -2861,13 +2850,11 @@ namespace picsom {
       tmp.frameSrc=create;
       segment_frames.frames.push_back(tmp);
     }
-
-
   }
 
   ///////////////////////////////////////////////////////////////////////////
-  void segmentfile::forceImages(const vector<imagedata> &i)
-  {
+
+  void segmentfile::forceImages(const vector<imagedata> &i) {
     if((int)i.size() != description.sequenceinfo.nframes())
       throw("Incompatible number of images");
 
@@ -2875,11 +2862,11 @@ namespace picsom {
     image_frames.frames.clear(); // might leak memory 
 
     _frame_type tmp;
-    for(size_t f=0;f<i.size();f++){
+    for (size_t f=0; f<i.size(); f++) {
       tmp.framenr=f;
       tmp.data=new imagedata(i[f]);
       tmp.owndata=true;
-      if(tmp.data->count() != 3)
+      if (tmp.data->count() != 3)
 	throw string("segmentfile::forceImages : images must have three channels.");
       tmp.data->convert(imagedata::pixeldata_float);
       tmp.segment=false;
@@ -2891,24 +2878,23 @@ namespace picsom {
 
       image_frames.frames.push_back(tmp);
     }
-
   }
-  ///////////////////////////////////////////////////////////////////////////
-  void segmentfile::forceSegments(const vector<imagedata> &s)
-  {
 
-    if((int)s.size() != description.sequenceinfo.nframes())
+  ///////////////////////////////////////////////////////////////////////////
+
+  void segmentfile::forceSegments(const vector<imagedata> &s) {
+    if ((int)s.size() != description.sequenceinfo.nframes())
       throw("Incompatible number of images");
 
     segment_frames.free();
     segment_frames.frames.clear(); // might leak memory 
 
     _frame_type tmp;
-    for(size_t f=0;f<s.size();f++){
+    for (size_t f=0; f<s.size(); f++) {
       tmp.framenr=f;
       tmp.data=new imagedata(s[f]);
       tmp.owndata=true;
-      if(tmp.data->count() != 1)
+      if (tmp.data->count() != 1)
 	throw string("segmentfile::forceSegments : images must have a single channel.");
       tmp.data->convert(_getSegmentframeDatatype());
 
@@ -2925,16 +2911,15 @@ namespace picsom {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  void segmentfile::forceImage(const imagedata &i,int f){
-
-    if(!description.sequenceinfo.frameNrOk(f))
+  void segmentfile::forceImage(const imagedata &i, int f) {
+    if (!description.sequenceinfo.frameNrOk(f))
       throw name_head() + "forceImage(): bad frame number";  
 
     coord sz=description.sequenceinfo.frameSize(f);
-    if(sz.x != (int)i.width() || sz.y != (int)i.height())
+    if (sz.x != (int)i.width() || sz.y != (int)i.height())
 	throw string("segmentfile::forceImage : incompatible image size");
 
-    if(i.count() != 3)
+    if (i.count() != 3)
        throw name_head() + "forceImage(): count != 3";  
 
     _discard_frame(image_frames.frames[f]); // ensure that memory is not allocated
@@ -2948,7 +2933,6 @@ namespace picsom {
     tmp.frameSrc=no_source;
 
     image_frames.frames[f]=tmp;
-
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -2974,44 +2958,42 @@ namespace picsom {
     tmp.segment=true;
     tmp.frameSrc=no_source;
 
-    //image_frames.frames[f]=tmp;
-    segment_frames.frames[f]=tmp;
+    segment_frames.frames[f] = tmp;
   }
 
   ///////////////////////////////////////////////////////////////////////////
-  void segmentfile::rotateFrame(int f, const scalinginfo &si){
-    if(!isFrameOk(f))
+
+  void segmentfile::rotateFrame(int f, const scalinginfo &si) {
+    if (!isFrameOk(f))
       throw name_head() + "rotateFrame(): bad frame number";  
 
-    //    imageFrame(f)->rotate(si);
     imageFrame(f)->rotate(si);
   }
 
   ///////////////////////////////////////////////////////////////////////////
+
   void segmentfile::rescaleFrame(int f, const scalinginfo &si,
 				 const imagedata *img, const imagedata *seg,
-				 bool emptyImg, bool emptySeg){
-    if(!isFrameOk(f))
+				 bool emptyImg, bool emptySeg) {
+    if (!isFrameOk(f))
       throw name_head() + "rescaleFrame(): bad frame number";  
 
-    if(img){ // force image
-      if((int)img->width() != si.dst_width() ||
-	 (int)img->height() != si.dst_height())
+    if (img) { // force image
+      if ((int)img->width() != si.dst_width() ||
+	  (int)img->height() != si.dst_height())
 	throw string
 	  ("rescaleFrame : given image frame not of appropriate size.");
       forceImage(*img,f);
-    }
-    else{ 
-      if(image_frames.frames[f].frameSrc!=create || 
-	 image_frames.frames[f].data!=NULL){
+    } else { 
+      if (image_frames.frames[f].frameSrc!=create || 
+	  image_frames.frames[f].data!=NULL){
 
 	// if the frame creation is not pending 
 	// due to the on-demand mechanism
-	if(!emptyImg)
+	if (!emptyImg)
 	  imageFrame(f)->rescale(si);
-	else{
+	else
 	  imageFrame(f)->resize(si.dst_width(),si.dst_height());
-	}
       }
       // use the new size from now on if the frame is generated on the fly
       image_frames.frames[f].createwidth=si.dst_width();
@@ -3019,90 +3001,90 @@ namespace picsom {
 
     }
 
-    if(seg){
-      if((int)seg->width() != si.dst_width() ||
-	 (int)seg->height() != si.dst_height())
+    if (seg) {
+      if ((int)seg->width() != si.dst_width() ||
+	  (int)seg->height() != si.dst_height())
 	throw string
 	  ("rescaleFrame : given segment frame not of appropriate size.");
       forceSegment(*seg,f);
-    }
-    else{
-      if(segment_frames.frames[f].frameSrc!=create || 
-	 segment_frames.frames[f].data!=NULL){
+    } else {
+      if (segment_frames.frames[f].frameSrc!=create || 
+	  segment_frames.frames[f].data!=NULL){
 
 	// if the creation of the frame is not delayed by the 
 	// on-demand machanism
-	if(!emptySeg){
+	if (!emptySeg)
 	  segmentFrame(f)->rescale(si);
-	}
-	else{
+	else
 	  segmentFrame(f)->resize(si.dst_width(),si.dst_height());
-	}
       }
       // use the new size from now on if the frame is generated on the fly
       segment_frames.frames[f].createwidth=si.dst_width();
       segment_frames.frames[f].createheight=si.dst_height();
     }
-
   }
 
   ///////////////////////////////////////////////////////////////////////////
+
   imagedata *segmentfile::copyFrame(int f) {
     ensureFrameOk(f);
     return new imagedata(*imageFrame(f));
   }
+  
   ///////////////////////////////////////////////////////////////////////////
+
   vector<imagedata *> segmentfile::copyFrames() {
     vector<imagedata *> ret;
-    int f;
-    for(f=0;f<getNumFrames();f++)
+    for (int f=0; f<getNumFrames(); f++)
       ret.push_back(new imagedata(*imageFrame(f)));
     return ret;
-		    
   }
+
   ///////////////////////////////////////////////////////////////////////////
+
   imagedata *segmentfile::getEmptyFrame() {
     coord sz=description.sequenceinfo.frameSize(getCurrentFrame());
     return new imagedata(sz.x,sz.y);
-
   }
+
   ///////////////////////////////////////////////////////////////////////////
-  vector<const imagedata *>segmentfile::accessFrames()
-  {
+
+  vector<const imagedata *>segmentfile::accessFrames() {
     vector<const imagedata *> ret;
-    int f;
-    for(f=0;f<getNumFrames();f++)
+    for(int f=0; f<getNumFrames(); f++)
       ret.push_back(imageFrame(f));
 
     return ret;
   }
+
   ///////////////////////////////////////////////////////////////////////////
+
   imagedata *segmentfile::copySegmentation(int f) {
     ensureFrameOk(f);
     return new imagedata(*segmentFrame(f));
   }
 
   ///////////////////////////////////////////////////////////////////////////
+
   vector<imagedata *> segmentfile::copySegmentations() {
-   
     vector<imagedata *> ret;
-    int f;
-    for(f=0;f<getNumFrames();f++)
+    for(int f=0; f<getNumFrames(); f++)
       ret.push_back(new imagedata(*segmentFrame(f)));
     return ret;
   }
 
   ///////////////////////////////////////////////////////////////////////////
+
   imagedata *segmentfile::getEmptySegmentation() {
     coord sz=description.sequenceinfo.frameSize(getCurrentFrame());
     return new imagedata(sz.x,sz.y,1,_getSegmentframeDatatype());
-
   }
+
   ///////////////////////////////////////////////////////////////////////////
+
   vector<const imagedata *> segmentfile::accessSegmentations() {
     vector<const imagedata *> ret;
-    int f;
-    for(f=0;f<getNumFrames();f++)
+    for(int f=0;f<getNumFrames();f++)
       ret.push_back(segmentFrame(f));
     
     return ret;
@@ -3119,8 +3101,7 @@ namespace picsom {
 					int tgt_start_x, 
 					int tgt_start_y,
 					int tgt_stop_x,
-					int tgt_stop_y)
-  {
+					int tgt_stop_y) {
     float src_x,src_y,src_step = 1/src_scaling;
     float r,g,b;
     
@@ -3290,7 +3271,7 @@ namespace picsom {
   
   ///////////////////////////////////////////////////////////////////////////
   
-  vector<pair<int,string> > segmentfile::getUsedLabelsWithText() {
+  vector<pair<int,string> > segmentfile::getUsedLabelsWithText(/*int w, int h*/) {
     set<int> accu;
     
     if (zoningText=="centerdiag")
@@ -3298,6 +3279,11 @@ namespace picsom {
 	accu.insert(i);
 
     const int w = getWidth(), h = getHeight();
+    // if (w==0 || h==0) {
+    //   w = getWidth();
+    //   h = getHeight();
+    // }
+    
     for (int y=0; y<h; y++)
       for (int x=0; x<w; x++) {
 	int v;
@@ -3756,9 +3742,7 @@ namespace picsom {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  labeledListList *segmentfile::changeLabels(int to, const coordList &list)
-  {
-  
+  labeledListList *segmentfile::changeLabels(int to, const coordList &list) {
     labeledListList *ret = new labeledListList;
     map<int,int> index;
   
@@ -3778,16 +3762,18 @@ namespace picsom {
     }
     
     return ret;
-    
   }
+
   ///////////////////////////////////////////////////////////////////////////
-  void segmentfile::translateLabels(int to,const coordList &list){
+
+  void segmentfile::translateLabels(int to,const coordList &list) {
     for(coordList::const_iterator it=list.begin();
 	it != list.end();it++)
       set_pixel_segment(*it,to);
   }
 
   ///////////////////////////////////////////////////////////////////////////
+
   coordList segmentfile::listCoordinates(int label) {
     coordList ret;
     int x,y,s;
@@ -3802,10 +3788,10 @@ namespace picsom {
     return ret;
     
   }
+
   ///////////////////////////////////////////////////////////////////////////
 
-  bool segmentfile::FindBox(coord &nw, coord &se )
-    {
+  bool segmentfile::FindBox(coord &nw, coord &se ) {
       // find limits of the segmentation image
 
       int x,y,val;
@@ -4091,6 +4077,7 @@ namespace picsom {
 
   bool segmentfile::prepareZoning(const string& t) {
     string zoningType = t;
+    int w = getWidth(), h = getHeight();
 
     bool tile = false;
     int tile_w = 0, tile_h = 0, tile_dx = 0, tile_dy = 0; 
@@ -4134,28 +4121,28 @@ namespace picsom {
     zoningText = zoningType;
     
     if (tile)
-      return zoningTiles(tile_w, tile_h, tile_dx, tile_dy);
+      return zoningTiles(w, h, tile_w, tile_h, tile_dx, tile_dy);
 
     if (flat)
-      return zoningNone();
+      return zoningNone(w, h);
     
     if (center  && diag  && !horiz && !vert)
-      return zoningTheOriginalOne();
+      return zoningTheOriginalOne(w, h);
 
     if (center  && !diag && horiz  && vert)
-      return zoningCenterHorizVert();
+      return zoningCenterHorizVert(w, h);
 
     if (!center && !diag && horiz  && vert)
-      return zoningHorizVert();
+      return zoningHorizVert(w, h);
 
     if (center  && !diag && !horiz && !vert)
-      return zoningCenter();
+      return zoningCenter(w, h);
 
     if (!center && !diag && horiz  && !vert)
-      return zoningHoriz();
+      return zoningHoriz(w, h);
 
     if (!center && !diag && !horiz && vert)
-      return zoningVert();
+      return zoningVert(w, h);
 
     zoningText= "Zoning type center=" + string(center?"1":"0");
     zoningText += " diag="  + string(diag?"1":"0");
@@ -6162,22 +6149,23 @@ namespace picsom {
     return true;
 
   }
+  
   ///////////////////////////////////////////////////////////////////////////
 
-    coord SequenceInfo::frameSize(int f) const{
-      coord ret(-1,-1);
-      if(frameNrOk(f)){
-	for(size_t i=0;i<sizeinfo.size();i++){
-	  if(sizeinfo[i].firstframe<=f && sizeinfo[i].lastframe>=f){
-	    ret.x=sizeinfo[i].width;
-	    ret.y=sizeinfo[i].height;
-	    return ret;
-	  }
+  coord SequenceInfo::frameSize(int f) const{
+    coord ret(-1,-1);
+    if (frameNrOk(f)) {
+      for (size_t i=0; i<sizeinfo.size(); i++) {
+	if (sizeinfo[i].firstframe<=f && sizeinfo[i].lastframe>=f) {
+	  ret.x = sizeinfo[i].width;
+	  ret.y = sizeinfo[i].height;
+	  return ret;
 	}
       }
-      
-      return ret;
     }
+      
+    return ret;
+  }
 
   ///////////////////////////////////////////////////////////////////////////
 
@@ -6205,7 +6193,6 @@ namespace picsom {
 
     sizeinfo.clear();
     sizeinfo.push_back(tmp);
-    
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -6222,7 +6209,8 @@ namespace picsom {
   }
 
   ///////////////////////////////////////////////////////////////////////////
-  bool SequenceInfo::isCompatible(const SequenceInfo &o) const{
+
+  bool SequenceInfo::isCompatible(const SequenceInfo &o) const {
     if(lastframe != o.lastframe) return false;
 
     for(size_t i=0;i<sizeinfo.size();i++){
@@ -6247,8 +6235,10 @@ namespace picsom {
     return true;
 
   }
+  
   ///////////////////////////////////////////////////////////////////////////
-  xmlNodePtr SequenceInfo::outputXML() const{
+
+  xmlNodePtr SequenceInfo::outputXML() const {
     xmlNodePtr node=xmlNewNode(NULL,(xmlChar*)"sequenceinfo");
 
     char str[80];
@@ -6263,8 +6253,10 @@ namespace picsom {
     
     return node;
   }
+  
   ///////////////////////////////////////////////////////////////////////////
-  bool SequenceInfo::parseXML(const xmlNodePtr node){
+
+  bool SequenceInfo::parseXML(const xmlNodePtr node) {
     if (XMLTools::strcmpXML(node->name, "sequenceinfo"))
       return false;
 
@@ -6285,7 +6277,6 @@ namespace picsom {
     }
 
     return true;
-
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -6304,8 +6295,8 @@ namespace picsom {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  bool segmentfile::zoningTheOriginalOne() {
-    const int w = getWidth(), h = getHeight();
+  bool segmentfile::zoningTheOriginalOne(int w, int h) {
+    // const int w = getWidth(), h = getHeight();
     for (int y=0; y<h; y++)
       for (int x=0; x<w; x++)
 	set_pixel_segment(x, y, resolve_sec(x, y, w, h));
@@ -6315,8 +6306,8 @@ namespace picsom {
   
   ///////////////////////////////////////////////////////////////////////////
 
-  bool segmentfile::zoningCenterHorizVert() {
-    const int w = getWidth(), h = getHeight();
+  bool segmentfile::zoningCenterHorizVert(int w, int h) {
+    // const int w = getWidth(), h = getHeight();
     for (int y=0; y<h; y++)
       for (int x=0; x<w; x++) {
 	int s = resolve_sec(x, y, w, h);
@@ -6333,8 +6324,8 @@ namespace picsom {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  bool segmentfile::zoningHorizVert() {
-    const int w = getWidth(), h = getHeight();
+  bool segmentfile::zoningHorizVert(int w, int h) {
+    // const int w = getWidth(), h = getHeight();
     for (int y=0; y<h; y++)
       for (int x=0; x<w; x++) {
 	int s = 2*!(x<w/2.0)+!(y<h/2.0);
@@ -6346,8 +6337,9 @@ namespace picsom {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  bool segmentfile::zoningHoriz() {
-    const int w = getWidth(), h = getHeight(), xm = w/2;
+  bool segmentfile::zoningHoriz(int w, int h) {
+    // const int w = getWidth(), h = getHeight();
+    int xm = w/2;
     for (int y=0; y<h; y++)
       for (int x=0; x<w; x++)
 	set_pixel_segment(x, y, x>=xm);
@@ -6357,8 +6349,9 @@ namespace picsom {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  bool segmentfile::zoningVert() {
-    const int w = getWidth(), h = getHeight(), ym = h/2;
+  bool segmentfile::zoningVert(int w, int h) {
+    // const int w = getWidth(), h = getHeight();
+    int ym = h/2;
     for (int y=0; y<h; y++)
       for (int x=0; x<w; x++)
 	set_pixel_segment(x, y, y>=ym);
@@ -6368,8 +6361,8 @@ namespace picsom {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  bool segmentfile::zoningCenter() {
-    const int w = getWidth(), h = getHeight();
+  bool segmentfile::zoningCenter(int w, int h) {
+    // const int w = getWidth(), h = getHeight();
     for (int y=0; y<h; y++)
       for (int x=0; x<w; x++)
 	set_pixel_segment(x, y, (resolve_sec(x, y, w, h)==2));
@@ -6379,8 +6372,8 @@ namespace picsom {
   
   ///////////////////////////////////////////////////////////////////////////
 
-  bool segmentfile::zoningNone() {
-    const int w = getWidth(), h = getHeight();
+  bool segmentfile::zoningNone(int w, int h) {
+    // const int w = getWidth(), h = getHeight();
     for (int y=0; y<h; y++)
       for (int x=0; x<w; x++)
 	set_pixel_segment(x, y, 0);
@@ -6390,8 +6383,9 @@ namespace picsom {
 
   ///////////////////////////////////////////////////////////////////////////
 
-  bool segmentfile::zoningTiles(int xlen, int ylen, int dx, int dy) {
-    int ntile = 0, h = getHeight(), w = getWidth();
+  bool segmentfile::zoningTiles(int w, int h,
+				int xlen, int ylen, int dx, int dy) {
+    int ntile = 0; // h = getHeight(), w = getWidth();
 
     for (int y=0; y+dy<=h; y += dy)
       for (int x=0; x+dx<=w; x +=dx) {
@@ -6755,35 +6749,36 @@ namespace picsom {
    return f.data;
  }
 
- ///////////////////////////////////////////////////////////////////////////  
-  void segmentfile::_discard_frame(_frame_type &f){
-    if(use_ondemand==false) 
+  ///////////////////////////////////////////////////////////////////////////  
+
+  void segmentfile::_discard_frame(_frame_type& f) {
+    if (use_ondemand==false) 
       throw string("ERROR: use_ondemand==false");
 
-    if(f.owndata){
+    if (f.owndata)
       delete f.data;
-    }
+
     f.data=NULL;
 
-    if(f.file){
+    if (f.file) {
       f.file->remove_frame(f.fileframe);
       if(f.fileframe_ms>=0)
 	f.file->remove_frame(f.fileframe_ms);
     }
   }
-  
 
-///////////////////////////////////////////////////////////////////////////
-segmentfile::_description_type::~_description_type(){
+  ///////////////////////////////////////////////////////////////////////////
 
+  segmentfile::_description_type::~_description_type() {
+  }
 
-}
-///////////////////////////////////////////////////////////////////////////
-char *segmentfile::_description_type::outputXML() const{
-  char *buffer;
-  _outputXML(NULL,&buffer);
-  return buffer;
-}
+  ///////////////////////////////////////////////////////////////////////////
+
+  char *segmentfile::_description_type::outputXML() const {
+    char *buffer;
+    _outputXML(NULL,&buffer);
+    return buffer;
+  }
 
   ///////////////////////////////////////////////////////////////////////////
 
@@ -6945,16 +6940,17 @@ char *segmentfile::_description_type::outputXML() const{
     xmlFreeDoc(doc);
   }
 
-///////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////
 
-char *segmentfile::_description_type::outputSingleFrameXML(int
+  char *segmentfile::_description_type::outputSingleFrameXML(int
 							   /*f*/) const {
-  throw string("outputSingleFrameXML() not yet implemented");
-}
+    throw string("outputSingleFrameXML() not yet implemented");
+  }
 
 ///////////////////////////////////////////////////////////////////////////
-bool segmentfile::_description_type::readXML(const char *s){
-  xmlDocPtr xml_description = xmlParseDoc((xmlChar *)s);
+
+  bool segmentfile::_description_type::readXML(const char *s){
+    xmlDocPtr xml_description = xmlParseDoc((xmlChar *)s);
 
   if(!xml_description) return false;
 
@@ -7087,8 +7083,7 @@ bool segmentfile::_description_type::readXML(const char *s){
   xmlFreeDoc(xml_description);
 
   return true;
-
-}
+  }
 
   ///////////////////////////////////////////////////////////////////////////
 

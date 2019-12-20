@@ -1,3 +1,12 @@
+2019-04-24  jormal  <jormal@cs-271>
+
+	* DisplayResults.C 1.51: An old change mad already 2017-11-29.
+
+2019-02-04  jormal  <jormal@cs-271>
+
+	* segmentfile.C 1.181, segmentfile.h 1.121:
+	Cleaned a bit. Improved exporting of incore imagedata from feature extraction.
+
 2018-12-16  jormal  <jormal@cs-271>
 
 	* OCVface.C 1.24: Summary: Started to use cvarrToMat().

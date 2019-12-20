@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: object_set.h,v 2.5 2013/09/25 12:52:53 jorma Exp $
+// -*- C++ -*-  $Id: object_set.h,v 2.6 2019/09/24 12:32:35 jormal Exp $
 // 
-// Copyright 1998-2013 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -18,7 +18,7 @@ namespace picsom {
   using namespace std;
 
   static const string object_set_h_vcid =
-    "@(#)$Id: object_set.h,v 2.5 2013/09/25 12:52:53 jorma Exp $";
+    "@(#)$Id: object_set.h,v 2.6 2019/09/24 12:32:35 jormal Exp $";
 
   class DataBase;
 
@@ -32,8 +32,7 @@ namespace picsom {
       throw(logic_error) {
       _set.push_back(object_info(b, size(), l, t));
       object_info& o = _set.back();
-      pair<label_map_type::iterator,bool>
-	r = _label.insert(make_pair(l, &o));
+      auto const r = _label.insert( { l, &o } );
       if (!r.second)
 	throw logic_error("label already exists");
       return o;

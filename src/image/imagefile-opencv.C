@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.34 2018/11/09 10:40:32 jormal Exp $
+// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.40 2019/06/18 10:09:10 jormal Exp $
 // 
-// Copyright 1998-2017 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -48,7 +48,7 @@ namespace picsom {
 
   const string& imagefile::impl_version() {
     static string v =
-      "$Id: imagefile-opencv.C,v 1.34 2018/11/09 10:40:32 jormal Exp $";
+      "$Id: imagefile-opencv.C,v 1.40 2019/06/18 10:09:10 jormal Exp $";
     return v;
   }
 
@@ -82,7 +82,7 @@ namespace picsom {
   public:
     ///
     _opencv_impl_data() : is_image(false), is_video(false), use_libtiff(false),
-			  next_frame((size_t)-1),
+			  next_frame((size_t)-1), fps(0.0),
 			  last_successfully_read_frame((size_t)-1), gif(NULL) {}
 
     ///
@@ -121,8 +121,14 @@ namespace picsom {
     size_t next_frame;
 
     ///
+    double fps;
+    
+    ///
     size_t last_successfully_read_frame;
 
+    ///
+    cv::Mat last_successful_frame;
+    
  #ifdef HAVE_GIF_LIB_H
     ///
     GifFileType *gif;
@@ -239,6 +245,9 @@ namespace picsom {
 
       if (fmt=="image/gif") {
 	if (gif_convert) {
+	  if (debug_impl())
+	    cout << "  doing .gif to " << gif_convert_extension << " conversion"
+		 << endl;
 	  string tmpfile = make_tmpfile();
 	  Unlink(tmpfile);
 	  string cmd = "convert "+fname+" "+tmpfile+gif_convert_extension;
@@ -250,6 +259,8 @@ namespace picsom {
 	  if (gif_convert_extension==".tiff")
 	    fmt = "image/tiff";
 	} else {
+	  if (debug_impl())
+	    cout << "  using libgif" << endl;
 #ifdef HAVE_GIF_LIB_H
 #if defined(GIFLIB_MAJOR) && GIFLIB_MAJOR>=5
 	  int err = 0;
@@ -262,6 +273,19 @@ namespace picsom {
 	    return 0;
 	  }
 	  DGifSlurp(data(this)->gif);
+	  if (debug_impl())
+	    cout << "    libgif reported " << data(this)->gif->ImageCount << " frames" << endl;
+	  if (data(this)->gif->ImageCount) {
+	    SavedImage *i = data(this)->gif->SavedImages;
+	    for (int e=0; e<i->ExtensionBlockCount; e++)
+	      if (i->ExtensionBlocks[e].Function==GRAPHICS_EXT_FUNC_CODE) {
+		unsigned char *ubb = (unsigned char*)i->ExtensionBlocks[e].Bytes;
+		int delay_time = ubb[1]+256*ubb[2];
+		data(this)->fps = delay_time ? 100.0/delay_time : 0;
+	      }
+	    if (debug_impl())
+	      cout << "    libgif reported " << data(this)->fps << " fps" << endl;
+	  }
 	  return data(this)->gif->ImageCount;
 #else
 	  cerr << msg << "gif_convert==false but HAVE_GIF_LIB_H undef" << endl;
@@ -353,11 +377,14 @@ namespace picsom {
       }
       
       size_t nframes = (size_t)vc.get(CV_CAP_PROP_FRAME_COUNT);
+      double fps     = (size_t)vc.get(CV_CAP_PROP_FPS);
       if (debug_impl())
-	cout << "  opencv reports " << nframes << " frames" << endl;
+	cout << "  opencv reports nframes=" << nframes
+	     << " fps=" << fps << endl;
       
       data(this)->filename   = fname;
       data(this)->next_frame = 0;
+      data(this)->fps        = fps;
       
       if (debug_impl()) {
 	cout << "CV_CAP_PROP_POS_MSEC =      " << vc.get(CV_CAP_PROP_POS_MSEC) << endl;
@@ -444,10 +471,11 @@ namespace picsom {
 	     << " " << g->Image.Height << ")" << endl;
 	if (gcm) {
 	  cout << "GLOBAL colormap" << endl;
-	  for (int j=0; j<gcm->ColorCount; j++)
-	    cout << j << " : " << (int)gcm->Colors[j].Red << " "
-		 << (int)gcm->Colors[j].Green << " " << (int)gcm->Colors[j].Blue 
-		 << endl;
+	  if (debug_impl()>1)
+	    for (int j=0; j<gcm->ColorCount; j++)
+	      cout << j << " : " << (int)gcm->Colors[j].Red << " "
+		   << (int)gcm->Colors[j].Green << " " << (int)gcm->Colors[j].Blue 
+		   << endl;
 	}
       }
       
@@ -482,27 +510,36 @@ namespace picsom {
 		   << endl;
 	  
 	  } else if (i->ExtensionBlocks[e].Function==GRAPHICS_EXT_FUNC_CODE) {
-	    if (i->ExtensionBlocks[e].ByteCount>3)
+	    size_t delay_time = 0;
+	    if (i->ExtensionBlocks[e].ByteCount>3) {
 	      transparent = ubb[3];
+	      delay_time = ubb[1]+256*ubb[2];
+	    }
+	    double fps = delay_time ? 100.0/delay_time : 0;
 	    if (debug_impl())
-	      cout << " = graphics " << transparent << endl;
-	  
+	      cout << " = graphics transparent=" << transparent 
+		   << " (delay_time=" << delay_time << " fps=" << fps << ")" << endl;
 	  }
 #if defined(GIFLIB_MAJOR) && GIFLIB_MAJOR>=5
 	  else if (i->ExtensionBlocks[e].Function==CONTINUE_EXT_FUNC_CODE) {
 	    if (debug_impl())
 	      cout << " = continue " << endl;
-	  }
+	  } else if (debug_impl())
+	    cout << " (something else) " << endl;
+#else
+	  else if (debug_impl())
+	    cout << " (old giflib) " << endl;
 #endif // GIFLIB_MAJOR>=5
 	}
 
 	ColorMapObject *lcm = i->ImageDesc.ColorMap;
 	if (debug_impl() && lcm) {
 	  cout << "LOCAL colormap" << endl;
-	  for (int j=0; j<lcm->ColorCount; j++)
-	    cout << j << " : " << (int)lcm->Colors[j].Red << " "
-		 << (int)lcm->Colors[j].Green << " " << (int)lcm->Colors[j].Blue 
-		 << endl;
+	  if (debug_impl()>1)
+	    for (int j=0; j<lcm->ColorCount; j++)
+	      cout << j << " : " << (int)lcm->Colors[j].Red << " "
+		   << (int)lcm->Colors[j].Green << " " << (int)lcm->Colors[j].Blue 
+		   << endl;
 	}
 	ColorMapObject *c = lcm ? lcm : gcm;
 
@@ -700,30 +737,29 @@ namespace picsom {
 		 << endl;
 
 	  if (tmp.empty()) {
-	    cerr << msg << "imagefile-opencv::read_frame_impl() seek failed <"
-		 << filename() << "> frame #" << fc
-		 << " next_frame=" << data(this)->next_frame << endl;
-	    return imagedata(0, 0);
-	  }
+	    if (!_extend_last_frame) {
+	      cerr << msg << "imagefile-opencv::read_frame_impl() seek failed <"
+		   << filename() << "> frame #" << fc
+		   << " next_frame=" << data(this)->next_frame << endl;
+	      return imagedata(0, 0);
+	    }
+	    
+	  } else
+	    data(this)->last_successful_frame = tmp;
+
 	  data(this)->next_frame++;
 	}
 	fno2 = data(this)->next_frame;
       }
 
-      /*
-      if (!vc.grab()) {
-	cerr << msg << "OpenCV VideoCapture::grab() failed" << endl;
-	return imagedata(0, 0);
-      }
-
-      if (!vc.retrieve(ocv_image)) {
-	cerr << msg << "OpenCV VideoCapture::retrieve() failed" << endl;
-	return imagedata(0, 0);
-      }
-      */
-
       vc >> ocv_image;
 
+      if (ocv_image.empty() && _extend_last_frame) {
+	if (debug_impl())
+	  cout << "using previously stored last frame" << endl;
+	ocv_image = data(this)->last_successful_frame;
+      }
+      
       if (ocv_image.empty()) {
 	cerr << msg << "OpenCV VideoCapture::retrieve() failed <"
 	     << filename() << "> frame #" << fc << endl;
@@ -945,14 +981,21 @@ namespace picsom {
   static void display_impl_int(const imagedata& d, 
 			       const imagefile::displaysettings&,
 			       char *k) {
-    string wname = "picsom::imagefile";
-    cv::namedWindow(wname, 1);
-    cv::Mat mat = imagedata2cvmat(d, CV_32FC3);
-    cv::imshow(wname, mat);
-    char c = (char)cv::waitKey(0);
-    if (k)
-      *k = c;
-    // cout << "Key <" << c << "> hit" << endl;
+    try {
+      string wname = "picsom::imagefile";
+      cv::namedWindow(wname, 1);
+      cv::Mat mat = imagedata2cvmat(d, CV_32FC3);
+      cv::imshow(wname, mat);
+      char c = (char)cv::waitKey(0);
+      if (k)
+	*k = c;
+      // cout << "Key <" << c << "> hit" << endl;
+    } catch (const cv::Exception& e) {
+      cerr << "imagefile-opencv::display_impl_int() " << d.info()
+	   << " code=<" << e.code << "> err=<" << e.err << "> file=<"
+	   << e.file << "> func=<" << e.func << "> line=<" << e.line
+	   << "> msg=<" << e.msg << ">" << endl;
+    }
   }
 
   ///--------------------------------------------------------------------------
@@ -978,7 +1021,7 @@ namespace picsom {
   ///--------------------------------------------------------------------------
 
   double imagefile::video_fps_impl() const {
-    return 0.0;
+    return data(this)->fps;
   }
 
   ///--------------------------------------------------------------------------

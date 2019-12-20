@@ -1,4 +1,442 @@
+2019-12-20  jormal  <jormal@cs-271>
+
+	* configure.ac 2.135: Summary: Stepped to 0.38.
+
+	* Analysis.C 2.1275:
+	Summary: AnalyseRdfTest() now avoids compiler warnings.
+
+	* DataBase.C 2.1064, Analysis.C 2.1274:
+	Summary: Some minor chages here and there.
+
+2019-11-19  jormal  <jormal@cs-271>
+
+	* Connection.C 2.392, DataBase.C 2.1063, Analysis.C 2.1273:
+	Summary: Added some memory debugs.
+
+	* PicSOM.C 2.618:
+	Summary: Added call to CloseConnection() in SelectInput().
+
+	* PicSOM.h 2.323: Summary: Added text MEMORY in memory tracing.
+
+2019-11-06  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1062:
+	Changed the roles of model and name in captioning specs.
+
+	* Connection.C 2.390, Connection.h 2.134:
+	Added http_form_data member and defined form_data_t.
+
+	* Analysis.C 2.1272:
+	Added api-path addition in AnalyseCaption() filenames. Some raptor2 and rasqal experiments.
+
+	* Util.C 2.80, Util.h 2.100: Added HideBinaryData().
+
+2019-10-17  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1271: Summary: Corrected a typo in AnalyseSubtitles().
+
+	* Analysis.C 2.1270: Summary: AnalyseSubtitles() can now use slaves.
+
+	* DataBase.C 2.1061, PicSOM.C 2.617, PicSOM.h 2.322:
+	Summary: Added IsRootlessSlave() which now always returns false.
+
+	* DataBase.C 2.1060:
+	Summary: Tried to understand slowness of ReadLabelsSql() with tictacs. Improved faceboxes in GenerateSubtitles().
+
+	* Analysis.C 2.1269:
+	Summary: ShowExamples() now dumps a list of images in LATEX. InsertObjectsOperation() skips **boxdata** with wrong labels.
+
+	* PicSOM.C 2.616: Summary: boxdata_t() now uses LabelIndexGentle89.
+
+2019-10-09  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1268, Analysis.h 2.526, DataBase.h 2.580, PicSOM.C 2.615, configure.ac 2.134, Makefile.include 2.220:
+	Summary: Added LIBRDF in Makefile.include, tests for raptor and rasqal and new AnalyseRdfTest(), old was renamed to AnalyseLinkedDataTest().
+
+2019-10-07  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1059:
+	Summary: Added FileExists() check with fpart in BinRetrieveDetectionData().
+
+2019-09-24  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1058: Added some out-commented Tic/Tac()s.
+
+	* object_set.h 2.6: Slight modernization.
+
+	* DataBase.h 2.579, DataBase.C 2.1057:
+	Summary: ImprovedGenerateSubtitles() and BinRetrieveDetectionData(), added ConceptIndexInFeatures().
+
+	* Analysis.h 2.525, Analysis.C 2.1267:
+	Summary: Renamed AnalyseExportTurtle() to AnalyseExportTurtleConcepts() and made a copy of it to AnalyseExportTurtleTextIndex(). AnalyseSubtitles() now supports some formatting parameters.
+
+2019-09-20  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1266: Summary: Improvements mostly in AnalyseElanize().
+
+	* DataBase.C 2.1056, DataBase.h 2.578:
+	Summary: Ḿiddle frame trick is now handled inside PythonFeatureVector().
+	Added SegmentPrefSuffMatch() and related methods.
+	OpenBinDetection() now saves space with v1.1 format.
+
+	* PicSOM.C 2.614, PicSOM.h 2.321:
+	Summary: Renamed textline_t::str_common() to str_common_x() and improved it.
+
+	* bin_data_main.C 1.15, bin_data.C 2.40, bin_data.h 2.30:
+	Summary: Extracted dump_blocks() and dump_block_summary() from bin_data_main to class bin_data.
+
+2019-08-15  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1265, Analysis.h 2.524, Makefile 2.142, Makefile.include 2.219:
+	Added AnalyseExportOrderedFeatures() and did some small improvements.
+
+2019-06-13  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1264:
+	Added lowercasing prior to NLPtagPOS() calls in AnalyseCoreNLPTest() and POStagWithCoreNLP().
+
+2019-06-12  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1263, Analysis.h 2.523:
+	Added *NLP*() methods, WashSentence() and textindex_out and washspec.
+
+	* DataBase.C 2.1055:
+	Added fake_last_segment in VideoOrSegmentFramesOrdered().
+
+2019-06-07  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1262, Connection.C 2.389, DataBase.C 2.1054, DataBase.h 2.577, PicSOM.C 2.613, PicSOM.h 2.320:
+	Tried to improve slave destruction after AnalyseSlaves() and implemented DataBase::SolveMissingTexts().
+
+2019-06-04  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1261, DataBase.C 2.1053:
+	Adding a video to be captioned with explicitly no shot boundaries is now possible.
+
+	* PicSOM.C 2.612: -server now implies -rw=sql+fea+txt .
+
+2019-05-31  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1260, DataBase.h 2.576, DataBase.C 2.1052:
+	Summary: AddVideoSegments() can now add middleframe and features can be extracted efficiently for all modframes of one whole video.
+
+	* Analysis.h 2.522, Analysis.C 2.1259:
+	Summary: Added shotdetector and improved AnalyseCaption() to accept given shotboundaries.
+
+	* DataBase.C 2.1051, DataBase.h 2.575:
+	Summary: Improved AddVideoSegments and InsertObjectsProcessing() to accept sbound and sbname from upload_object_data.
+
+	* PicSOM.h 2.319:
+	Summary: Added sbound and sbname in upload_object_data.
+
+	* Util.C 2.79: Improved IsXml().
+
+2019-05-29  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1050, DataBase.h 2.574:
+	Added extendlastframe for ExtractVideoFrames().
+
+	* Analysis.C 2.1258:
+	Summary: Improved AnalyseShotBoundaryFromFfmpeg() to ignore non-video files.
+
+	* PicSOM.C 2.611: Changed tempsqlitedb to default to true.
+
+2019-05-27  jormal  <jormal@cs-271>
+
+	* DataBase.h 2.573, DataBase.C 2.1049:
+	Summary: Added forcedfiletype and used it in InsertVideoSubObjects().
+
+	* Connection.C 2.388, Analysis.h 2.521, Analysis.C 2.1257:
+	Summary: Renamed featextbatchsize to batchsize, implemented its use for slaves in AnalyseInsertSubObjects(), added SqlBegin+EndTransaction() in ProcessSlaveXmlResultObjectChildInfoList().
+
+2019-05-26  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1256, Analysis.h 2.520:
+	Added AnalyseEcho() and AnalyseFeatureMapping(), improved AnalyseNearest().
+
+	* DataBase.C 2.1048, DataBase.h 2.572: Added GroundTruthFrames().
+
+	* PicSOM.C 2.610: Prevented slaves from submitting slaves.
+
+2019-05-24  jormal  <jormal@cs-271>
+
+	* Analysis.h 2.519, Analysis.C 2.1255:
+	Summary: Added AnalyseFeatureMean().
+
+2019-05-21  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1047: Commented out cudaMemcpy() calls in RunCaffeOld().
+
+	* DataBase.C 2.1046, PicSOM.C 2.609:
+	Small changes to get rid of some messgaes.
+
+	* Analysis.C 2.1254, Analysis.h 2.518, Connection.C 2.387, Connection.h 2.133, DataBase.C 2.1045, DataBase.h 2.571:
+	Added AnalyseCaption() and its required enhancements here and there.
+
+	* PicSOM.C 2.608, PicSOM.h 2.318:
+	Started to use modern initialization of upload_object_data members.
+
+	* Util.C 2.78, Util.h 2.99: Added IsJson() and IsXml().
+
+2019-05-10  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1253, DataBase.C 2.1044, PicSOM.C 2.607, PicSOM.h 2.317:
+	Implemented GoogleSpeechRecognition().
+
+	* Analysis.C 2.1252, Analysis.h 2.517, DataBase.C 2.1043, DataBase.h 2.570:
+	Started to write DataBase::GoogleSpeechRecognition().
+
+	* PicSOM.C 2.606: Summary: Improved TranslateGoogle() to understand ~.
+
+	* DataBase.C 2.1042:
+	Added box matching rules in GenerateSubtitles(), changed max_seq_length to 40 in GenerateSentencesDeepCaption().
+
+	* PicSOM.h 2.316: Added boxdata_t::match().
+
+	* PicSOM.C 2.605, PicSOM.h 2.315:
+	Renamed TranslateYandex() to *V1() and added TranslateGoogle().
+
+	* Connection.C 2.386:
+	Summary: CreateHttpClient() now skips INET6 addresses.
+
+2019-05-09  jormal  <jormal@cs-271>
+
+	* PicSOM.C 2.604: Summary: Improved txt_decode().
+
+	* DataBase.C 2.1041, DataBase.h 2.569:
+	Summary: Added 2nd PythonFeatureVector(), FeatureDataCombinedExpand() and subtit25 in GenerateSubtitles().
+
+2019-05-06  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1251: Updated AnalyseExportTurtle().
+
+2019-05-03  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1040: Improved boxdata captions.
+
+	* Analysis.C 2.1250, DataBase.C 2.1039, DataBase.h 2.568, PicSOM.C 2.603, PicSOM.h 2.314:
+	Added boxdata_t, and DataBase methods for it.
+
+2019-04-29  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1249, Analysis.h 2.516: Added AnalyseTotalDuration().
+
+2019-04-28  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1038: Added support for Lucene 3.6.2 and 5.5.5.
+
+	* PicSOM.C 2.602:
+	Changed google-chrome to chromium-browser. (Should support both.)
+
+2019-04-24  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1248, DataBase.C 2.1037, DataBase.h 2.567:
+	Summary: Added DataBase::SqliteInTemp() and SqliteDBFile().  Tested in AnalyseSlaves() against OpenReadWriteSql().
+
+2019-04-22  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1036, DataBase.h 2.566:
+	Extracted AddVideoSegments() and changed AppendSubobjectsFile() to work in slaves.
+
+	* Analysis.C 2.1247, Analysis.h 2.515:
+	Added AnalyseShotBoundaryFromFfmpeg().
+
+	* TimeUtil.h 2.25:
+	Moved TimeStringToSeconds(), SplitSecondsTime(), SecondsToMPEG7MediaTimePoint(), SecondsToMPEG7MediaDuration() from Analysis to TimeUtil.h .
+
+	* DataBase.C 2.1035: Added missing #ifdef HAVE_JSON_JSON_H .
+
+2019-04-18  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1034, DataBase.h 2.565:
+	Added $persecond() and GroundTruthPerSecond().
+
+2019-04-17  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1246:
+	Summary: Improved insertion of videos with frames from **object** input.  Improved GenerateSubtitles() with show_empty and improved show_segm_id.
+
+	* VectorIndex.C 2.110, TSSOM.C 2.210:
+	Summary: Improved insertion of videos with frames from **object** input.
+
+	* DataBase.C 2.1033:
+	Summary: Improved insertion of videos with frames from **object** input.  Improved GenerateSubtitles() with show_empty and improved show_segm_id.
+
+	* DataBase.h 2.564:
+	Summary: Improved insertion of videos with frames from **object** input.
+
+2019-04-11  jormal  <jormal@cs-271>
+
+	* PicSOM.C 2.601:
+	Commented out Python initialization message that didn't obey -q.
+
+	* bin_data_main.C 1.14: Reverted lost processing of -c.
+
+	* bin_data.C 2.39, bin_data.h 2.29:
+	set_float() now can call add_indexed_float().
+
+	* Analysis.C 2.1245, DataBase.C 2.1032, DataBase.h 2.563, TSSOM.C 2.209, VectorIndex.C 2.109, VectorIndex.h 2.53:
+	Added passing of version number needed for bin_data::open().
+
+	* bin_data.h 2.28, bin_data.C 2.38:
+	Summary: Added version check in open_inner() and is_version().
+
+	* bin_data_main.C 1.13, bin_data.C 2.37, bin_data.h 2.27:
+	Summary: Added block_capacity(), block_summary(), is_valid_8() and st().
+
+2019-04-10  jormal  <jormal@cs-271>
+
+	* bin_data.h 2.26, bin_data.C 2.36:
+	Summary: Moved str() to .C and corrected bug in add_direct_block().
+
+	* bin_data_main.C 1.12: Summary: Now packing and unpacking twice.
+
+	* VectorIndex.C 2.108, DataBase.C 2.1031, Analysis.C 2.1244, bin_data_main.C 1.11, bin_data.h 2.25, bin_data.C 2.35:
+	Summary: Implemented bin_data version 1.1 with blocks(), {un,}pack*(), etc.
+
+2019-04-07  jormal  <jormal@cs-271>
+
+	* Util.C 2.77, Util.h 2.98:
+	Summary: Added SplitCommaKeyValueMap() and *List().
+
+	* DataBase.C 2.1030:
+	Summary: DescribedIndex() now accepts options without -o.
+
+2019-04-04  jormal  <jormal@cs-271>
+
+	* Util.h 2.97: Summary: CopyFile() now rejects empty file names.
+
+	* Analysis.C 2.1243:
+	Summary: Added counting of failures in AnalyseExtractMedia().
+
+	* DataBase.C 2.1029:
+	Summary: Tried to correct the error with multiple objects related to same file in database=tgif in ExtractImagesFromContainer().
+
+	* Index.C 2.92, TSSOM.C 2.208:
+	Summary: Added "bool match_imageset_as_video = true" for database=tgif.
+
+	* Util.C 2.76, Util.h 2.96: Summary: Added StrError().
+
+	* DataBase.C 2.1028, CbirExample.C 2.27, Analysis.C 2.1242:
+	Summary: Moved Cwd() from PicSOM.h to Util.h. Added HomeDir() in Util.h.
+
+	* PicSOM.C 2.600:
+	Summary: Added LD_LIBRARY_PATH and LD_PRELOAD in CreateEnvironment().
+
+	* PicSOM.h 2.313, Util.h 2.95:
+	Summary: Moved Cwd() from PicSOM.h to Util.h. Added HomeDir() in Util.h.
+
+2019-04-02  jormal  <jormal@cs-271>
+
+	* Util.C 2.75: Conditioned tracing info in WriteNumPyData().
+
+2019-04-01  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1027: Improved GenerateSubtitles().
+
+	* PicSOM.C 2.599, configure.ac 2.133:
+	Corrected #ifdefs HAVE_HDF5_SERIAL_H5CPP_H => HAVE_H5CPP_H.
+
+2019-03-30  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1241, Analysis.h 2.514: Added AnalyseNumPyTest().
+
+	* Util.C 2.74, Util.h 2.94:
+	Added debug option and another variant of ReadNumPyHeader(), WriteNumPyData().
+
+2019-03-21  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1026:
+	Summary: Reduced output from GenerateSubtitles() and added video symlinking, extracted RelativePath() to Util.C.
+
+	* Analysis.h 2.513, Analysis.C 2.1240:
+	Summary: Reduced output from AnalyseElanize(), rewrote symlinking in it, removed AnalyseSubtitlesOld().
+
+	* Util.C 2.73, Util.h 2.93: Summary: Added RelativePath().
+
+	* object_info.h 2.7: Summary: Added dump_str().
+
+2019-03-20  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1239, DataBase.C 2.1025, DataBase.h 2.562:
+	Improved logging of MiddleFrameTrick() errors.
+
+	* PicSOM.h 2.312, PicSOM.C 2.598:
+	Summary: Rearranged initialization of pthreads and python in constructor. Added TestPyGILState().
+
+	* Query.h 2.337:
+	Summary: SetTemporalRestriction() now reports excessive time consumption.
+
+	* DataBase.C 2.1024:
+	Summary: Improved caption generation, especially with DeepCaption.
+
+2019-03-19  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1238: One correction in AnalyseExportTurtle().
+
+2019-03-18  jormal  <jormal@cs-271>
+
+	* Analysis.h 2.512, Analysis.C 2.1237:
+	Summary: Added AnalyseExportTurtle().
+
+2019-03-01  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1023, DataBase.h 2.561:
+	Summary: Added GenerateSentencesDeepCaption(), replaced neuraltalk_models with python_objects and added PythonObject() and AddPythonObject().
+
+2019-02-11  jormal  <jormal@cs-271>
+
+	* Analysis.C 2.1236, DataBase.C 2.1022, DataBase.h 2.560, Makefile.include 2.218, PicSOM.C 2.597, configure.ac 2.132:
+	Added some hdf5 support.
+
+	* Makefile 2.141: Added TorchDenseCap.o.
+
+2019-02-08  jormal  <jormal@cs-271>
+
+	* Makefile.include 2.217: Summary: Some triton changes.
+
+	* Index.C 2.91: Just changed to use Picsom()->IsSlavePiping() utility.
+
+	* DataBase.C 2.1021: Added selection in CalculateBoxFusionFeatures().
+
+	* Analysis.C 2.1235, Analysis.h 2.511, PicSOM.C 2.596, PicSOM.h 2.311:
+	Added returned_empty as a member of slave_info_t.
+
+2019-02-04  jormal  <jormal@cs-271>
+
+	* Index.h 2.62: Summary: Stepped year to 2019.
+
+	* Index.C 2.90, Index.h 2.61:
+	Summary: Added GetProperlyList() and AllPropertiesStr() and supprt for boxfusion features.
+
+	* DataBase.C 2.1020, PicSOM.C 2.595, PicSOM.h 2.310:
+	Summary: In textline_t removed bogus has_time_set() and changed to use isnan(v).
+
+	* DataBase.C 2.1019, DataBase.h 2.559:
+	Summary: Added CalculateBoxFusionFeatures(). GenerateSentencesDenseCap() now rescales the image dimensions.
+
+	* Analysis.C 2.1234, Analysis.h 2.510:
+	Summary: SolvePerJobAndNjobs() 2nd arg is now int to allow negatives.
+
+2019-02-01  jormal  <jormal@cs-271>
+
+	* DataBase.h 2.558, DataBase.C 2.1018:
+	Summary: Added GenerateSentencesDenseCap(), changed TextIndexAllLines() to use textline_t::txt_decode().
+
+	* Analysis.C 2.1233, Analysis.h 2.509:
+	Summary: Added AnalyseDenseCapTest(), extracted SolvePerJobAndNjobs() and renamed SplitSlavesAndAnalyse() to SplitTasksAndAnalyse().
+
+	* PicSOM.C 2.594, PicSOM.h 2.309:
+	Summary: Changed textline_t to have txt_val_box and improved it.
+
+	* Util.h 2.92:
+	Summary: Added SplitInCommasList() and explicit SplitInCommasVector().
+
 2018-12-19  jormal  <jormal@cs-271>
+
+	* DataBase.C 2.1017: Summary: Improved GenerateSubtitles().
+
+	* DataBase.C 2.1016: Summary: AddExtraction() now adds caffe rule.
 
 	* configure.ac 2.131: Summary: Removed ([foreign]).
 

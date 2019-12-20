@@ -1,4 +1,4 @@
-// $Id: Torch.C,v 1.6 2017/04/04 09:58:00 jormal Exp $	
+// $Id: Torch.C,v 1.7 2019/02/08 09:37:59 jormal Exp $	
 
 #include <Torch.h>
 
@@ -12,7 +12,7 @@
 
 namespace picsom {
   static const char *vcid =
-    "$Id: Torch.C,v 1.6 2017/04/04 09:58:00 jormal Exp $";
+    "$Id: Torch.C,v 1.7 2019/02/08 09:37:59 jormal Exp $";
 
   static Torch list_entry(true);
 
@@ -167,6 +167,15 @@ blocks = 256x256+avg(512x512:3x3)
     if (MethodVerbose())
       cout << msg << "lua_openlibs() successfull" << endl;
 
+    string s = "package.path = '/scratch/cs/imagedb/picsom/databases/torch/torch/densecap/?.lua;' .. package.path";
+    if (!LuaDoString(*this, s, false)) {
+      L = NULL;
+      return;
+    }
+
+    if (MethodVerbose())
+      cout << msg << "prepending package.path successfull" << endl;
+
     list<string> require { "torch", "paths", "xlua", "optim", "nn"
 	// , "image", "qttorch"
 	};
@@ -201,7 +210,7 @@ blocks = 256x256+avg(512x512:3x3)
       }
     }
 
-    string s = "model = torch.load('"+model+"')";
+    s = "model = torch.load('"+model+"')";
     if (!LuaDoString(*this, s, false)) {
       L = NULL;
       return;

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Index.h,v 2.60 2018/06/16 12:47:40 jormal Exp $
+// -*- C++ -*-  $Id: Index.h,v 2.62 2019/02/04 09:55:17 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -370,6 +370,22 @@ namespace picsom {
       return property.find(key)!=property.end();
     }
 
+    ///
+    list<string> GetProperlyList() const {
+      list<string> l;
+      for (auto& i : property)
+	l.push_back(i.first);
+      return l;
+    }
+
+    ///
+    string AllPropertiesStr() const {
+      stringstream ss;
+      for (auto& i : property)
+	ss << (ss.str()==""?"":" ") << i.first << "=<" << i.second << ">";
+      return ss.str();
+    }
+    
     /// Externally set the subdir.
     void Subdir(const string& s) { subdir = s; }
 

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Feature.h,v 1.217 2018/06/21 15:04:16 jormal Exp $
+// -*- C++ -*-  $Id: Feature.h,v 1.220 2019/04/01 09:43:05 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -15,8 +15,8 @@
    features.
   
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.217 $
-   $Date: 2018/06/21 15:04:16 $
+   $Revision: 1.220 $
+   $Date: 2019/04/01 09:43:05 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -122,6 +122,13 @@ namespace picsom {
     feature_batch_e(const string& f, const incore_feature_t *i,
 		    feature_result *r) : fname(f), incore(i), result(r) {}
 
+    ///
+    string str() const {
+      stringstream ss;
+      ss << "\"" << fname << "\" " << (void*)incore << " " << (void*)result;
+      return ss.str();
+    } 
+    
     ///
     string fname;
 
@@ -1209,6 +1216,9 @@ namespace picsom {
 	\return number of frames
     */
     virtual int Nframes() const { 
+      if (incore_imagedata_ptr)
+	return 1;
+      
       return 
 	IsVideoFeature() ? videofile_ptr->get_num_frames() :
 	IsAudioFeature() ? deprecated_audiofile_ptr->getDuration() : 
@@ -1246,11 +1256,15 @@ namespace picsom {
 
     /** Converts picsom::imagedata to cv::Mat
      */
-    cv::Mat Convert2cvMat(const imagedata&) const;
+    static cv::Mat imagedata_to_cvMat(const imagedata&);
 
     /** Converts picsom::imagedata to cv::Mat
      */
-    cv::Mat Convert2cvMat() const;
+    cv::Mat imagedata_to_cvMat() const;
+
+    /** Converts cv::Mat to picsom::imagedata
+     */
+    static imagedata cvMat_to_imagedata(const cv::Mat&);
 
 #endif // HAVE_OPENCV2_CORE_CORE_HPP && PICSOM_USE_OPENCV
 

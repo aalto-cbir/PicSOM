@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Connection.C,v 2.385 2018/12/16 11:32:00 jormal Exp $
+// -*- C++ -*-  $Id: Connection.C,v 2.392 2019/11/19 12:29:06 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -62,7 +62,7 @@ int WSAAPI getnameinfo(const struct sockaddr*,socklen_t,char*,DWORD,
 
 namespace picsom {
   static const string Connection_C_vcid =
-    "@(#)$Id: Connection.C,v 2.385 2018/12/16 11:32:00 jormal Exp $";
+    "@(#)$Id: Connection.C,v 2.392 2019/11/19 12:29:06 jormal Exp $";
 
   /// A dummy initializer.
   const list<pair<string,string> > Connection::empty_list_pair_string;
@@ -681,8 +681,11 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
   bool Connection::HttpServerProcess(bool first) {
     string hdr = "HttpServerProcess() : ";
 
+    Picsom()->PossiblyShowDebugInformation("HttpServerProcess() 1");
+    
     http_analysis = NULL;
     http_analysis_args = "";
+    http_form_data.clear();
 
     bool ok = true;
 
@@ -730,6 +733,8 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
       }
     }
 
+    Picsom()->PossiblyShowDebugInformation("HttpServerProcess() 2");
+
     size_t qsl = query_str.size();
     if (qsl>=7 && query_str.substr(qsl-5)==".html" &&
 	query_str.find("/../")==string::npos) {
@@ -764,7 +769,11 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
 	HttpServerProcessAfterRedirect(needs_query);
     
     else {
+      http_form_data = HttpServerParseFormData();
+      
       string req_type = HttpServerSolveRequestType(query_str);
+      
+      Picsom()->PossiblyShowDebugInformation("HttpServerProcess() 3");
 
       if (req_type=="proxy") {
 	if (DebugProxy()>0)
@@ -815,6 +824,9 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
 			   +"] query_str=["+query_str+"]");
 	  }
 
+	  if (IsJson(HttpServerPostData()))
+	    ctype = "application/json";
+	  
 	  bool expire = false;
 	  ok = HttpServerWriteOut(doc, ctype, expire, statuscode);
 	  doc.DeleteDoc();
@@ -892,6 +904,8 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
     //   Picsom()->CloseConnection(this, false, true, false);
     // }
     
+    Picsom()->PossiblyShowDebugInformation("HttpServerProcess() 4");
+
     return ok;
   }
   
@@ -912,13 +926,12 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
 
     bool firstclassaugm = true;
       
-    typedef list<pair<string,string> > var_t;
-    var_t var = HttpServerParseFormData();
-    for (var_t::const_iterator i=var.begin(); i!=var.end(); i++) {
+    auto var = HttpServerParseFormData();  // this is now called 2nd time
+    for (const auto& i : var) {
       if (debug)
-	cout << "  [" << i->first << "] = [" << i->second << "]" << endl;
+	cout << "  [" << i.name << "] = [" << i.data << "]" << endl;
 
-      if (i->first=="featsel") {
+      if (i.name=="featsel") {
         if (algorithm!="") {
           if (debug)
             cout << "  featsel algorithm=" << algorithm << endl;
@@ -946,43 +959,43 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
         }
 
         if (query->Algorithms().empty())
-          query->SelectIndex(NULL, i->second);
+          query->SelectIndex(NULL, i.data);
         else
           for (size_t j=0; j<query->Algorithms().size(); j++)
-            query->SelectIndex(&query->Algorithms()[j], i->second);
+            query->SelectIndex(&query->Algorithms()[j], i.data);
 
-      } else if (i->first=="textquery") {
-        query->TextQuery(i->second);
+      } else if (i.name=="textquery") {
+        query->TextQuery(i.data);
 
-      } else if (i->first=="classaugment") {
+      } else if (i.name=="classaugment") {
         if (firstclassaugm) {
           query->ClearClassAugmentations();
           firstclassaugm = false;
         }
-        query->ProcessClassState("plus", i->second);
+        query->ProcessClassState("plus", i.data);
 
-      } else if (i->first=="algsel") {
-        algorithm = i->second;
+      } else if (i.name=="algsel") {
+        algorithm = i.data;
 
-      } else if (i->first.find("paramsel::")==0) {
-	string pre = i->first.substr(10);
+      } else if (i.name.find("paramsel::")==0) {
+	string pre = i.name.substr(10);
         if (debug)
-          cout << "  paramsel " << pre << "=" << i->second << endl;
-        parameters.insert(pre+"="+i->second);
+          cout << "  paramsel " << pre << "=" << i.data << endl;
+        parameters.insert(pre+"="+i.data);
 
-      } else if (i->first=="start") {
+      } else if (i.name=="start") {
         // nothing?
 
-      } else if (i->first=="continue") {
+      } else if (i.name=="continue") {
 	// this is the standard submit button
         query->SkipOptionPage(false);
 
-      } else if (i->first=="annotations") {	
+      } else if (i.name=="annotations") {	
 	// the submit button for the annotation page
 	query->SkipOptionPage(true);
 
-      } else if (i->first.substr(0, 3)=="obj") {      
-        vector<string> valvec = SplitInCommas(i->second);
+      } else if (i.name.substr(0, 3)=="obj") {      
+        vector<string> valvec = SplitInCommas(i.data);
         string label  = valvec[0], aspect = valvec[1];
         int idx = query->LabelIndex(label);
         if (idx>=0 && !query->IsSeen(idx)) {
@@ -990,21 +1003,21 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
           query->ProcessAspectInfo(aspect, idx, 1.0);
         }
 
-      } else if (i->first.find("classdef::")==0) {
-	string cdef = i->first.substr(10);
+      } else if (i.name.find("classdef::")==0) {
+	string cdef = i.name.substr(10);
 	vector<string> cdefc = SplitInCommas(cdef);
 	if (debug)
-          cout << "  classdef " << cdef << "=" << i->second << endl;
+          cout << "  classdef " << cdef << "=" << i.data << endl;
 	int val = 0;
-	if (i->second=="yes")
+	if (i.data=="yes")
 	  val = 1;
-	else if (i->second=="no")
+	else if (i.data=="no")
 	  val = -1;
 	if (val!=0)
 	  query->WriteClassdefToFile(cdefc[1], cdefc[0], val);
 
       } else
-        ShowError(hdr+"["+i->first+"]=["+i->second+"] not processed");
+        ShowError(hdr+"["+i.name+"]=["+i.data+"] not processed");
     }
 
     if (debug)
@@ -1040,8 +1053,6 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
 
     // cout << "[[[" << http_request << "]]]" << endl;
 
-    typedef pair<string,string> P;
-
     string lend;
 
     size_t p = 0;
@@ -1065,7 +1076,7 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
       string tmp = header.substr(p, q-p);
       if (i>1 && tmp=="") {
         size_t pt = q+lend.size();
-        hlines.push_back(P("", header.substr(pt)));
+        hlines.push_back({"", header.substr(pt)});
         if (debug_pairs) {
           const string& s = hlines.back().second;
           cout << msg << s.size() << " bytes of data" <<endl;
@@ -1093,7 +1104,7 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
           v.erase(x);
       }
 
-      hlines.push_back(P(k, v));
+      hlines.push_back({k, v});
 
       if (debug_pairs)
         cout << msg << " <" << k << "><" << v << ">" << endl;
@@ -1103,21 +1114,22 @@ Connection *Connection::CreateListen(PicSOM *p, int porta, int portb) {
     return true;
   }
 
-///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
-bool Connection::HttpServerParseRequest() {
-  string msg = "HttpServerParseRequest() : ";
+  bool Connection::HttpServerParseRequest() {
+    string msg = "HttpServerParseRequest() : ";
 
-  ConditionallyDumpXML(cout, false, NULL, "", http_request, true);
+    ConditionallyDumpXML(cout, false, NULL, "", http_request, true);
 
-  http_request_lines.clear();
+    Picsom()->PossiblyShowDebugInformation("HttpServerParseRequest() starting");
+    http_request_lines.clear();
+    HttpParseHeaders(http_request, http_request_lines);
+    Picsom()->PossiblyShowDebugInformation("HttpServerParseRequest() ending");
 
-  HttpParseHeaders(http_request, http_request_lines);
-
-  // obs! disabled 2012-12-28 due to some empty requests...
-  // return http_request_lines.empty() ? ShowError(msg+"failing C") : true;
-  return true;
-}
+    // obs! disabled 2012-12-28 due to some empty requests...
+    // return http_request_lines.empty() ? ShowError(msg+"failing C") : true;
+    return true;
+  }
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1773,7 +1785,8 @@ int Connection::HttpServerSolveContentLength(const string& s) const {
 
   bool Connection::HttpServerWriteOut(const XmlDom& dom, const string& ctype,
 				      bool expnow, int scode, bool keepa) {
-    string dump = XML2String(dom.doc, true);
+    string dump = ctype!="application/json" ? XML2String(dom.doc, true)
+      : XML2JsonString(dom.doc, true);
     return HttpServerWriteOut(dump, ctype, expnow, "", scode, keepa);
   }
 
@@ -1865,66 +1878,89 @@ bool Connection::HttpServerRedirect(const string& url) {
     return WriteOutXml(NULL, str);
   }
 
-///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
-list<pair<string,string> > Connection::HttpServerParseFormData() {
-  list<pair<string,string> > ret;
+  list<Connection::form_data_t> Connection::HttpServerParseFormData() {
+    list<form_data_t> ret;
+    string delim;
 
-  string delim;
+    for (auto i=http_request_lines.begin();
+	 delim=="" && i!=http_request_lines.end(); i++)
+      if (i->first=="Content-Type")
+	delim = i->second;
 
-  for (list<pair<string,string> >::const_iterator i=http_request_lines.begin();
-       delim=="" && i!=http_request_lines.end(); i++)
-    if (i->first=="Content-Type")
-      delim = i->second;
+    if (delim=="")
+      return ret;
 
-  if (delim=="")
-    return ret;
+    size_t p = delim.find("boundary=");
+    if (p==string::npos)
+      return ret;
 
-  size_t p = delim.find("boundary=");
-  if (p==string::npos)
-    return ret;
+    string conttype = delim.substr(0, p);
+    delim.erase(0, p+9);
+    p = conttype.find_last_not_of(" \t;");
+    if (p!=string::npos)
+      conttype.erase(p+1);
 
-  delim.erase(0, p+9);
+    // TYPE=[multipart/form-data] DELIM=[--------------867d135644316089]
 
-  if (debug_http)
-    cout << "DELIM=[" << delim <<"]" << endl;
-
-  const string& str = http_request_lines.back().second;
-  for (p=str.find(delim, 0); p<str.size(); ) {
-    size_t q = str.find(delim, p+1);
-    if (q==string::npos)
-      break;
-
-    string part = str.substr(p, q-p);
     if (debug_http)
-      cout << "[" << part << "]" << endl;
+      cout << "TYPE=[" << conttype << "] DELIM=[" << delim <<"]" << endl;
 
-    size_t h = part.find("\r\n\r\n");
-    if (h!=string::npos) {
-      string hdr = part.substr(0, h);
-      size_t n = hdr.find("form-data; name=\"");
-      if (n!=string::npos) {
-	hdr.erase(0, n+17);
-	n = hdr.find('"');
+    const string& str = HttpServerPostData();
+    for (p=str.find(delim, 0); p<str.size(); ) {
+      size_t q = str.find(delim, p+1);
+      if (q==string::npos)
+	break;
+
+      string part = str.substr(p, q-p);
+      if (debug_http)
+	cout << "[" << HideBinaryData(part) << "]" << endl;
+
+      size_t h = part.find("\r\n\r\n");
+      if (h!=string::npos) {
+	string hdr = part.substr(0, h);
+	// Content-Disposition: form-data; name="request"; filename="req.xml"
+	size_t n = hdr.find("form-data; name=\"");
 	if (n!=string::npos) {
-	  string key = hdr.substr(0, n);
-	  string val = part.substr(h+4);
-	  n = val.find_first_of("\r\n");
-	  if (n!=string::npos)
-	    val.erase(n);
-	  if (debug_http)
-	    cout << "multipart/form-data : [" << key << "]=[" << val << "]"
-		 << endl;
-	  ret.push_back(make_pair(key, val));
+	  hdr.erase(0, n+17);
+	  n = hdr.find('"');
+	  if (n!=string::npos) {
+	    string name = hdr.substr(0, n);
+	    string data = part.substr(h+4);
+	    n = data.rfind("\r\n");
+	    if (n==data.size()-2 ||
+		(n==data.size()-4 && data.substr(data.size()-2)=="--"))
+	      data.erase(n);
+	    string filename, mime;
+	    size_t f = hdr.find("; filename=\"");
+	    if (f!=string::npos) {
+	      size_t x =  hdr.find("\"", f+12);
+	      if (x!=string::npos)
+		filename = hdr.substr(f+12, x-f-12);
+	    }
+	    string hdrx = hdr;
+	    size_t m = hdrx.find("Content-Type: ");
+	    if (m!=string::npos) {
+	      size_t x =  hdrx.find_first_of(" \t\n\r", m+14);
+	      if (x!=string::npos)
+		hdrx.erase(x);
+	      mime = hdrx.substr(m+14);
+	    }
+	    if (debug_http)
+	      cout << "multipart/form-data : name=[" << name << "] filename=["
+		   << filename << "] mimetype=[" << mime << "] data=["
+		   << HideBinaryData(data) << "]" << endl;
+	    ret.push_back({name, filename, mime, data});
+	  }
 	}
       }
-    }
 
-    p = q+delim.size()+2; // OBS! firefox uses two extra??? -- !
-  }
+      p = q+delim.size()+2; // OBS! firefox uses two extra??? -- !
+    }
   
-  return ret;
-}
+    return ret;
+  }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -2303,8 +2339,115 @@ list<pair<string,string> > Connection::HttpServerParseFormData() {
       return xml;
     }
 
+    if (path=="/picsom-api/0.9") {
+      XmlDom xml = HttpServerApi09();
+      return xml;
+    }
+
     return HttpServerGeneratePageInner(path, xsllin);
   }    
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  XmlDom Connection::HttpServerApi09() {
+    string msg = "Connection::HttpServerApi09() : ";
+    WriteLog(msg+"starting");
+
+    Picsom()->PossiblyShowDebugInformation("HttpServerApi09() starting");    
+    
+    script_list_t sl;
+    for (const auto& i : http_form_data) {
+      if (i.name=="request") {
+	script_list_t l = ApiRequestToScriptList(i.data);
+	sl.insert(sl.end(), l.begin(), l.end());
+      } else if (i.name=="file" && i.filename!="") {
+	string file = Picsom()->TempDirPersonal("api")+"/"+i.filename;
+	if (!StringToFile(i.data, file))
+	  ShowError(msg+"storing in <"+file+"> failed");
+	else
+	  WriteLog("Stored API file to <"+file+">");
+      } else {
+	ShowError(msg+"could not handle form data <"+i.name+"> <"+i.filename+
+		  "> <"+i.mime+">");
+      }
+    }
+
+    // Picsom()->ConditionallyStartAnalysisThread();
+    // Picsom()->RunInAnalysisThread(sl);
+
+    XmlDom r;
+    if (sl.size()) {
+      Analysis a(Picsom(), NULL, NULL, {});
+      a.Analyse(sl.front());
+      r = XmlDom::Copy(a.XmlResult().doc);
+    }
+    
+    Picsom()->PossiblyShowDebugInformation("HttpServerApi09() ending");    
+
+    return r;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  script_list_t Connection::ApiRequestToScriptList(const string& s) {
+    if (IsJson(s))
+      return ApiRequestToScriptListJson(s);
+
+    if (IsXml(s))
+      return ApiRequestToScriptListXml(s);
+    
+    return script_list_t();
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  script_list_t Connection::ApiRequestToScriptListXml(const string& s) {
+    string msg = "Connection::ApiRequestToScriptListXml() : ";
+    script_list_t sl;
+
+    XmlDom xml = XmlDom::FromString(s), root = xml.Root();
+    if (root.NodeName()!="picsom-request")
+      return sl;
+
+    list<string> script;
+    XmlDom e = root.FirstElementChild();
+    while (e) {
+      string key = e.NodeName(), val = e.FirstChildContent();
+      script.push_back(key+"="+val);
+      e = e.NextElement();
+    }
+    static size_t n = 0;
+    script_list_e se { "api-xml-request-"+ToStr(n++), { script, {} } };
+    sl.push_back(se);
+    
+    return sl;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  script_list_t Connection::ApiRequestToScriptListJson(const string& s) {
+    string msg = "Connection::ApiRequestToScriptListJson("+s+") : ";
+    script_list_t sl;
+
+#if defined(HAVE_JSON_JSON_H)
+    Json::Value r;
+    istringstream(s) >> r;
+    list<string> script;
+    for (const auto& key : r.getMemberNames()) {
+      string val = r[key].asString();
+      // cout << key << "=" << val << endl;
+      script.push_back(key+"="+val);
+    }
+    static size_t n = 0;
+    script_list_e se { "api-json-request-"+ToStr(n++), { script, {} } };
+    sl.push_back(se);
+    
+#else
+    ShowError(msg+"HAVE_JSON_JSON_H not defined");
+#endif // HAVE_JSON_JSON_H
+   
+    return sl;
+  }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -2342,7 +2485,7 @@ list<pair<string,string> > Connection::HttpServerParseFormData() {
       err = "Extraneous parameters";
     }
 
-    string workload = http_request_lines.back().second;
+    string workload = HttpServerPostData(); // http_request_lines.back().second;
 
     if (debug)
       cout << " workload=<" << workload << ">" << endl;
@@ -2424,7 +2567,7 @@ list<pair<string,string> > Connection::HttpServerParseFormData() {
 
     if (err=="") {
       restca_task_stat[taskId].first = "EXECUTING";
-      err = HttpServerRestCaRunTask(taskType, xmlwl);
+     err = HttpServerRestCaRunTask(taskType, xmlwl);
       if (err!="")
 	restca_task_stat[taskId].first = "ERROR";
     }
@@ -2600,11 +2743,11 @@ list<pair<string,string> > Connection::HttpServerParseFormData() {
     // if (media_xml.empty())
     //   return "All downloads failed";
 
-    list<string> featlist, detectlist, segmentlist;
+    list<string> featlist, detectlist, segmentlist, captlist;
     XmlDom xml;
     string segout;
-    if (!db->InsertObjects(imagelist, featlist, detectlist, segmentlist,
-			   false, false, vector<string>(), xml, segout))
+    if (!db->InsertObjects(imagelist, "", featlist, detectlist, segmentlist,
+			   captlist, false, false, vector<string>(), xml, segout))
       ShowError(msg+"File insert failed");
 
     for (auto i=media_xml.begin(); i!=media_xml.end(); i++)
@@ -2665,7 +2808,7 @@ list<pair<string,string> > Connection::HttpServerParseFormData() {
     script.push_back("extractfeatures=yes");
     script.push_back("slavenofeaturedata=yes");
     script.push_back("check_first_feature_only=no");
-    script.push_back("featextbatchsize="+ToStr(labellength));
+    script.push_back("batchsize="+ToStr(labellength));
 
     // string dets;
     // string dets = "aratio_nopad"; // i.e. caffe
@@ -3282,7 +3425,7 @@ list<pair<string,string> > Connection::HttpServerParseFormData() {
 	return empty;
       }
     
-      string reqstr = http_request_lines.back().second;
+      string reqstr = HttpServerPostData(); // http_request_lines.back().second;
       while (reqstr[0]=='\n')
 	reqstr.erase(0, 1);
 
@@ -4167,10 +4310,19 @@ bool Connection::ReOpenUplink(const char *dumpp) {
     //   return NULL;
     // }
 
-    struct addrinfo *ai = NULL;
-    int rrr = getaddrinfo(addr.c_str(), NULL, NULL, &ai);
-    if (rrr || !ai)  {
+    struct addrinfo *aix = NULL;
+    int rrr = getaddrinfo(addr.c_str(), NULL, NULL, &aix);
+    if (rrr || !aix) {
       ShowError(msg+"unknown server");
+      return NULL;
+    }
+
+    struct addrinfo *ai = aix; 
+    while (ai && ai->ai_family!=AF_INET)
+      ai = ai->ai_next;
+
+    if (!ai) {
+      ShowError(msg+"INET4 address not found");
       return NULL;
     }
 
@@ -4187,10 +4339,13 @@ bool Connection::ReOpenUplink(const char *dumpp) {
 
     // copy the server address into the server address structure
     // memcpy(&c->serv_addr.sin_addr, host->h_addr, host->h_length);
+    // cout << "XXX " << sizeof(c->serv_addr.sin_addr)
+    //	 << " " << sizeof(((struct sockaddr_in*)(ai->ai_addr))->sin_addr)
+    //	 << " " << ai->ai_addrlen << endl;
     memcpy(&c->serv_addr.sin_addr,
 	   &((struct sockaddr_in*)(ai->ai_addr))->sin_addr,
 	   ai->ai_addrlen);
-    freeaddrinfo(ai);
+    freeaddrinfo(aix);
 
     socklen_t serv_addrlen = sizeof(c->serv_addr);
 
@@ -6755,28 +6910,63 @@ bool Connection::SendObjectXML() {
   }
 #endif // PICSOM_USE_MPI
 
-///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
-char *Connection::XML2StringM(xmlDocPtr doc, bool pretty) {
-  int tree_was = xmlIndentTreeOutput;
-  xmlIndentTreeOutput = true;
+  string Connection::XML2JsonString(xmlDocPtr doc, bool /*pretty*/) {
+    string msg = "Connection::XML2JsonString() : ";
+    cout << msg+"starting" << endl;
 
-  xmlChar *dump = NULL;
-  int dumplen;
-  const char *enc = NULL; // "ISO-8859-1"
+    string xml = XML2String(doc, true);
+    cout << xml << endl;
 
-  if (pretty)
-    xmlDocDumpFormatMemory(doc, &dump, &dumplen, true);
-  else
-    xmlDocDumpMemoryEnc(doc, &dump, &dumplen, enc);
+    ofstream osx("xml-to-json-test.xml");
+    osx << xml << endl;
+    
+#if defined(HAVE_JSON_JSON_H)
+    Json::Value r;
 
-  xmlIndentTreeOutput = tree_was;
+    XmlDom dom(doc);
+    XmlDom root = dom.Root();
+    if (root.NodeName()=="xmlresult") {
+      XmlDom e = root.FirstElementChild();
+      r[e.NodeName()] = "something";
+    }
+    
+    ostringstream os;
+    os << r;
+    return os.str();
+#else
+    cerr << msg+"HAVE_JSON_JSON_H not defined" << endl;
+#endif // HAVE_JSON_JSON_H
+    
+    return "{}";
+  }
 
-  if (!dump)
-    ShowError("Connection::XML2StringM(): xmlDocDump...() failed");
+  /////////////////////////////////////////////////////////////////////////////
 
-  return (char*)dump;
-}
+  string Connection::XML2String(xmlDocPtr doc, bool pretty) {
+    int tree_was = xmlIndentTreeOutput;
+    xmlIndentTreeOutput = true;
+
+    xmlChar *dump = NULL;
+    int dumplen = 0;
+    const char *enc = NULL; // "ISO-8859-1"
+
+    if (pretty)
+      xmlDocDumpFormatMemory(doc, &dump, &dumplen, true);
+    else
+      xmlDocDumpMemoryEnc(doc, &dump, &dumplen, enc);
+
+    xmlIndentTreeOutput = tree_was;
+
+    if (!dump)
+      ShowError("Connection::XML2String(): xmlDocDump...() failed");
+    
+    string ret = dump ? (char*)dump : "*empty XML doc*";
+    xmlFree(dump);
+
+    return ret;
+  }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -7285,7 +7475,7 @@ bool Connection::RfdOK() {
     ssize_t n = read(Rfd(), hdr, 16);
     if (n!=16)
       return ShowError(msg+"read() failed with n="+ToStr(n)
-		       +" errno="+ToStr(errno));
+		       +" errno="+ToStr(errno)+" \""+StrError()+"\"");
 
     if (memcmp(hdr, "PSMP", 4))
       return ShowError(msg+"not PSMP");
@@ -7354,7 +7544,9 @@ bool Connection::RfdOK() {
       mlist.insert("CONNECT");
     }
 
+    Picsom()->PossiblyShowDebugInformation("ReadXMLsocket() 1");
     http_request.clear();
+    Picsom()->PossiblyShowDebugInformation("ReadXMLsocket() 2");
     // int http_content_length = -1;
 
     const size_t tmpbufsize = 50*1024*1024;
@@ -7536,6 +7728,8 @@ bool Connection::RfdOK() {
 
     delete tmpbufp;
 
+    Picsom()->PossiblyShowDebugInformation("ReadXMLsocket() 3");
+
     SetAccessTime();
 
     if (xdebug)
@@ -7556,8 +7750,11 @@ bool Connection::RfdOK() {
       buf = string(bufptr2, buflen2);
       free(bufptr);
       
+      Picsom()->PossiblyShowDebugInformation("ReadXMLsocket() 4");
       return true;
     }
+
+    Picsom()->PossiblyShowDebugInformation("ReadXMLsocket() 5");
 
     buf = http_request;
     size_t p = buf.find("\n\n"), pl = 2;
@@ -7973,10 +8170,10 @@ bool Connection::TryToRunXMLupload(xmlNodePtr node) {
 
   XmlDom dummy;
   bool zipped = true;
-  list<string> feats, detects, segments;
+  list<string> feats, detects, segments, capts;
   feats.push_back("*");
   vector<string> dummyodlist;
-  if (!db->InsertObjects(objects, feats, detects, segments,
+  if (!db->InsertObjects(objects, "", feats, detects, segments, capts,
 			 true, zipped, dummyodlist, dummy, ""))
     return ShowError(errhead, "DataBase::InsertObjects() failed");
   

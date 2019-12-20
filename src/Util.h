@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Util.h,v 2.91 2018/10/11 09:48:37 jormal Exp $
+// -*- C++ -*-  $Id: Util.h,v 2.100 2019/11/06 10:05:19 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -98,7 +98,7 @@ using namespace std;
 
 namespace picsom {
   static const string Util_h_vcid =
-    "@(#)$Id: Util.h,v 2.91 2018/10/11 09:48:37 jormal Exp $";
+    "@(#)$Id: Util.h,v 2.100 2019/11/06 10:05:19 jormal Exp $";
 
   extern bool trap_after_error;
   // extern bool jam_after_error;
@@ -124,6 +124,23 @@ namespace picsom {
     int sec = floor(dsec);
     long nsec = (dsec-sec)*1000000000;
     NanoSleep(sec, nsec);
+  }
+
+  ///
+  inline const string& HomeDir() {
+    static string udir;
+    if (udir=="") {
+      passwd *pw = getpwuid(getuid());
+      udir = pw ? pw->pw_dir : "";
+    }
+    return udir;
+  }
+  
+  /// Process current working directory.
+  inline string Cwd() {
+    char cwdbuf[2048];
+    const char *wd = getcwd(cwdbuf, sizeof cwdbuf);
+    return wd ? wd : "";
   }
 
   /// Reads a file in a string.
@@ -153,6 +170,9 @@ namespace picsom {
 
   /// Copies one file to another.
   inline bool CopyFile(const string& src, const string& dst) {
+    if (src=="" || dst=="")
+      return false;
+    
     ifstream  in(src);
     ofstream out(dst);
     if (!in || !out)
@@ -427,13 +447,30 @@ namespace picsom {
   }
 
   /// Produces a vector of separated words.
-  inline vector<string> SplitInCommas(const string& s) {
+  inline vector<string> SplitInCommasVector(const string& s) {
     return SplitInSomething(",", false, s);
+  }
+
+  /// Produces a list of separated words.
+  inline list<string> SplitInCommasList(const string& s) {
+    auto v = SplitInCommasVector(s);
+    return {v.begin(), v.end()};
+  }
+
+  /// Produces a vector of separated words. (Should be deprecated.)
+  inline vector<string> SplitInCommas(const string& s) {
+    return SplitInCommasVector(s);
   }
 
   /// Produces a vector of separated words.
   vector<string> SplitInCommasObeyParentheses(const string& str);
 
+  ///
+  map<string,string> SplitCommaKeyValueMap(const string&);
+  
+  ///
+  list<pair<string,string> > SplitCommaKeyValueList(const string&);
+  
   /// Extracts f and a from "f(a)".
   bool SplitParentheses(const string& in, string& f, string& a, bool = false);
 
@@ -529,10 +566,17 @@ namespace picsom {
   ///
   bool IsAffirmative(const char *s);
 
+  ///
   inline bool IsAffirmative(const string& s) {
     return IsAffirmative(s.c_str());
   }
 
+  ///
+  bool IsJson(const string&);
+  
+  ///
+  bool IsXml(const string&);
+  
   /// Issue once message.
   bool WarnOnce(const string& f);
 
@@ -557,6 +601,9 @@ namespace picsom {
     return sl>=el && str.rfind(ext)==sl-el;
   }
 
+  /// Utility to show possibly binary strings.
+  string HideBinaryData(const string&);
+  
   /// Checks if line contains key=value and splits.  Delete results!
   bool SplitKeyEqualValueOld(const char*, const char*&, const char*&);
 
@@ -583,6 +630,9 @@ namespace picsom {
 
   const char *CopyStringOldVersion(char*& d, const char *s);
 
+  ///
+  string StrError(int e = 0);
+  
   /// Returns size of the file or -1 if inexistent.
   inline off_t FileSize(const string& n) {
     struct stat sbuf;
@@ -637,6 +687,9 @@ namespace picsom {
   /// Converts cwd relative paths to absolute ones.
   string FullPath(const string& p);
 
+  /// Converts absolute path to be relative with another one.
+  string RelativePath(const string&, const string&);
+  
   /// The work horse of the above two.
   const char *ExtensionVersusMIMEP(const string& ttt, bool to_mime);
   
@@ -669,15 +722,21 @@ namespace picsom {
   }
 
   ///
-  map<string,string> ReadNumPyHeader(istream&, size_t&);
+  map<string,string> ReadNumPyHeader(istream&, size_t&, bool = false);
 
   ///
   bool ReadNumPyHeader(istream&, size_t&, size_t&, size_t&, size_t&);
 
   ///
+  bool ReadNumPyHeader(istream&, size_t&, size_t&, vector<size_t>&);
+
+  ///
   vector<float> ReadNumPyVector(istream&, size_t, size_t, size_t, size_t,
 				size_t, bool);
 
+  ///
+  bool WriteNumPyData(ostream&, const vector<size_t>&, const list<vector<float> >&);
+  
   /// float16 to float32 conversion
   float FromFloat16(uint16_t);
   

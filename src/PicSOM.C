@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: PicSOM.C,v 2.593 2018/10/29 21:04:46 jormal Exp $
+// -*- C++ -*-  $Id: PicSOM.C,v 2.618 2019/11/19 12:26:43 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -170,6 +170,10 @@ extern "C" {
 #include <gif_lib.h>
 #endif // HAVE_GIF_LIB_H
 
+#ifdef HAVE_H5CPP_H
+#include <H5Cpp.h>
+#endif // HAVE_H5CPP_H
+
 #ifdef PICSOM_USE_PYTHON
 #undef _POSIX_C_SOURCE
 #undef _XOPEN_SOURCE
@@ -191,7 +195,7 @@ extern "C" {
 
 namespace picsom {
   const string PicSOM_C_vcid =
-    "@(#)$Id: PicSOM.C,v 2.593 2018/10/29 21:04:46 jormal Exp $";
+    "@(#)$Id: PicSOM.C,v 2.618 2019/11/19 12:26:43 jormal Exp $";
 
   int PicSOM::debug_times  = 0;
   int PicSOM::debug_mem    = 0;
@@ -227,7 +231,9 @@ namespace picsom {
   bool PicSOM::has_segmentation_internal = true;
   bool PicSOM::has_imgrobot_internal     = false;
 
+#if defined(PICSOM_USE_CAFFE)||defined(PICSOM_USE_CAFFE2)
   static bool caffe2_initialized = false;
+#endif // PICSOM_USE_CAFFE||PICSOM_USE_CAFFE2
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -236,6 +242,19 @@ namespace picsom {
 #define _stringify__(x) #x 
 
   PicSOM::PicSOM(const vector<string>& arg) : tics("PicSOM") {
+#ifdef PICSOM_USE_PTHREADS
+    main_thread = pthread_self();
+    listen_thread_set = mpi_listen_thread_set = false;
+    slavestatus_thread_set = analysis_thread_set = false;
+    threads = -1;
+    pthreads_connection = pthreads_tssom = false;
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+    pthread_mutex_init(&mutex,     &attr);
+    pthread_mutex_init(&log_mutex, NULL);
+#endif // PICSOM_USE_PTHREADS
+
     SetTimeNow(start_time);
 
 #ifdef PICSOM_USE_PTHREADS
@@ -246,10 +265,8 @@ namespace picsom {
     wninit();
 #endif // HAVE_WN_H
 
-    xmlIndentTreeOutput = true;
-
     // Initial values for variables:
-
+    xmlIndentTreeOutput = true;
     trace_other_keys    = true;
     quiet               = false;
     has_cin             = true;
@@ -275,11 +292,6 @@ namespace picsom {
       mybinary_str = string(exebuf, exebuf_read);
 #endif // __linux__
 
-#ifdef PICSOM_USE_PYTHON
-    // setenv("PYTHONPATH", ".", 1);
-    Py_Initialize();
-#endif // PICSOM_USE_PYTHON
-
     CreateEnvironment();
 
     Index::ReorderMethods();
@@ -287,7 +299,7 @@ namespace picsom {
     // TempDirRoot();                        // to initialize static variables
 
     sqlserver    = "localhost";
-    tempsqlitedb = false;
+    tempsqlitedb = true;
 
     gpupolicy = 0;
     gpudevice = -1;
@@ -322,19 +334,6 @@ namespace picsom {
 
     streambuf_cout = streambuf_cerr = streambuf_clog = NULL;
 
-#ifdef PICSOM_USE_PTHREADS
-    main_thread = pthread_self();
-    listen_thread_set = mpi_listen_thread_set = false;
-    slavestatus_thread_set = analysis_thread_set = false;
-    threads = -1;
-    pthreads_connection = pthreads_tssom = false;
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
-    pthread_mutex_init(&mutex,     &attr);
-    pthread_mutex_init(&log_mutex, NULL);
-#endif // PICSOM_USE_PTHREADS
-
     ZeroTime(speech_zero_time);
     ZeroTime(speech_recognizer_start_time);
 
@@ -353,6 +352,20 @@ namespace picsom {
     guarded_pid = -1;
 
     LoggingModeTimestampIdentity();
+
+#ifdef PICSOM_USE_PYTHON
+    // setenv("PYTHONPATH", ".", 1);
+    Py_Initialize();
+    PyEval_InitThreads();
+    PyEval_SaveThread(); // obs!
+    string pyv = "2";
+#ifdef PICSOM_USE_PYTHON3
+    pyv = "3";
+#endif // PICSOM_USE_PYTHON3
+    // this should obey quiet switch -q ...
+    // WriteLog("Python"+pyv+" initialized");
+    // TestPyGILState("PicSOM::PicSOM()");
+#endif // PICSOM_USE_PYTHON
 
     if (env.find("_CONDOR_JOB_AD")==env.end()) {
       gpudevice = SolveGpuDevice();
@@ -476,24 +489,35 @@ namespace picsom {
     size_t ssub = 0, ssta = 0, ster = 0, stas = 0, sres = 0;
     vector<string> limbos;
 
+    CancelSlaveStatusThread();
+    
     RwLockWriteSlaveList();
 
-    for (auto i=slave_list.begin(); i!=slave_list.end(); i++) {
+    size_t j = 0;
+    for (auto& i : slave_list) {
       if (debug_slaves)
-	cout << SlaveInfoString(*i, false) << endl;
-      if (i->hostname=="" && i->status.find("_wait")!=string::npos)
-	ssub += i->n_slaves_started;
-      if (!IsTimeZero(i->started))
+	cout << SlaveInfoString(i, false) << endl;
+      if (i.hostname=="" && i.status.find("_wait")!=string::npos)
+	ssub += i.n_slaves_started;
+      if (!IsTimeZero(i.started))
 	ssta++;
-      if (i->status=="terminated")
+      if (i.status=="terminated")
 	ster++;
-      if (i->status=="limbo")
-	limbos.push_back(i->hostname);
+      if (i.status=="limbo")
+	limbos.push_back(i.hostname);
 
-      stas += i->n_tasks_tot;
-      sres += i->n_tasks_fin;
+      stas += i.n_tasks_tot;
+      sres += i.n_tasks_fin;
 
-      TerminateSlave(*i, "it's the time to go");
+      UpdateSlaveInfo(true);
+
+      bool skip = i.Locked() && !i.ThisThreadLocks();
+      cout << "TerminateSlave(" << i.n_slaves_started << "/"
+	   << i.hostname << ") " << j++ << "/" << slave_list.size()
+	   << " skip=" << (skip?"true":"false") << endl;
+
+      if (!skip)
+	TerminateSlave(i, "it's the time to go", 0);
     }
 
     RwUnlockWriteSlaveList();
@@ -524,11 +548,6 @@ namespace picsom {
     }
 
 #ifdef PICSOM_USE_PTHREADS
-    if (HasSlaveStatusThread() && !IsSlaveStatusThread()) {
-      if (pthread_cancel(slavestatus_thread)) //obs! should we wait?
-	ShowError("cancelling slavestatus_thread failed");
-      slavestatus_thread_set = false;
-    }
     if (HasAnalysisThread() && !IsAnalysisThread()) {
       if (pthread_cancel(analysis_thread)) //obs! should we wait?
 	ShowError("cancelling analysis_thread failed");
@@ -708,9 +727,7 @@ namespace picsom {
 
     ostream& errout = cerr;
     // errout << "STARTING"<< endl;
-
     // Simple::TrapAfterError(true);
-
 
     try {
       vector<string> psargs { args[0] };
@@ -806,6 +823,8 @@ namespace picsom {
 
     set<string> vars;
     vars.insert("PATH");
+    vars.insert("LD_LIBRARY_PATH");
+    vars.insert("LD_PRELOAD");
     vars.insert("PYTHONPATH");
     vars.insert("LOADEDMODULES");
     vars.insert("CUDA_VISIBLE_DEVICES");
@@ -1171,6 +1190,13 @@ bool PicSOM::DoSshForwarding(int p) {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  bool PicSOM::IsRootlessSlave() const {
+    // return MasterAddress()!="";
+    return false; // ugly hack for the time being...
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   bool PicSOM::HasFreeSlaves() const {
     RwLockReadSlaveList();
 
@@ -1206,7 +1232,8 @@ bool PicSOM::DoSshForwarding(int p) {
     
     bool default_quiet = true;
 
-    is_slave = true;
+    is_slave   = true;
+    use_slaves = false;
     string slave_key;
     string addr;
 
@@ -1359,7 +1386,8 @@ bool PicSOM::DoSshForwarding(int p) {
        << " conn=" << (slave.conn?slave.conn->StateString():"nil")
        << " load=" << slave.load 
        << " cpus=" << slave.cpucount 
-       << " usage=" << slave.cpuusage 
+       << " usage=" << slave.cpuusage
+       << " returned_empty=" << int(slave.returned_empty)
        << endl << "      "
        << " n_slaves_now=" << slave.n_slaves_now
        << " n_slaves_started=" << slave.n_slaves_started
@@ -1797,7 +1825,7 @@ bool PicSOM::DoSshForwarding(int p) {
 	} else
 	  tmpx << "analyse=dummy" << endl;
 
- 	slave.command.push_back("sbatch");
+ 	slave.command.push_back("/usr/bin/sbatch");
  	slave.command.push_back(tempfile);
         slave.command.push_back("1>"+logfile);
         slave.command.push_back("2>&1");
@@ -1848,7 +1876,7 @@ bool PicSOM::DoSshForwarding(int p) {
 	    WriteLog("Submitted sbatch job "+jobid);
 
 	  } else
-	    ShowError(msg+"sbatch failed with result: "+logtxt);
+	    ShowError(msg+"sbatch failed with result: <"+logtxt+"> in <"+logfile+">");
 	}
       }
 
@@ -1963,6 +1991,7 @@ bool PicSOM::DoSshForwarding(int p) {
 
 	  slave_info_t sp2(*sp);
 	  sp2.parent = &*sp;
+	  sp2.command.clear();
  	  sp2.keys = vector<string> { slave_key };
  	  sp2.jobids = vector<string> { jobid };
 	  sp2.status = "connected";
@@ -2038,6 +2067,29 @@ bool PicSOM::DoSshForwarding(int p) {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  bool PicSOM::CancelSlaveStatusThread() {
+#ifdef PICSOM_USE_PTHREADS
+    if (HasSlaveStatusThread() && !IsSlaveStatusThread()) {
+      WriteLog("Cancelling and joining SlaveStatusThread");
+      if (pthread_cancel(slavestatus_thread))
+	return ShowError("cancelling slavestatus_thread failed");
+      
+      void *retval = NULL;
+      if (pthread_join(slavestatus_thread, &retval))
+	return ShowError("joining slavestatus_thread failed");
+      if (retval!=PTHREAD_CANCELED)
+	return ShowError("joining slavestatus_thread returned strange");
+      slavestatus_thread_set = false;
+      return true;
+    }
+    return false;
+#endif // PICSOM_USE_PTHREADS
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   bool PicSOM::SlaveStatusThreadMain() {
     RegisterThread(pthread_self(), gettid(), "picsom", "slave-status",
 		   NULL, NULL);
@@ -2046,8 +2098,12 @@ bool PicSOM::DoSshForwarding(int p) {
 
     WriteLog(msg+"started");
 
+    int old = 0;
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &old);
     for (;;) {
-      UpdateSlaveInfo();
+      pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &old);
+      UpdateSlaveInfo(false);
+      pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &old);
       sleep(1);
     }
 
@@ -2159,7 +2215,7 @@ bool PicSOM::DoSshForwarding(int p) {
     when_next.tv_sec += updatetime;
     bool updated = false;
     if (false && MoreRecent(now, when_next)) { // falsed 2014-12-04 (too late?)
-      UpdateSlaveInfo();
+      UpdateSlaveInfo(false);
       SetTimeNow(prev_update);
       updated = true;
     }
@@ -2289,62 +2345,64 @@ bool PicSOM::DoSshForwarding(int p) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool PicSOM::UpdateSlaveInfo() {
-    if (HasSlaveStatusThread() && !IsSlaveStatusThread())
+  bool PicSOM::UpdateSlaveInfo(bool stats_only) {
+    if (!stats_only && HasSlaveStatusThread() && !IsSlaveStatusThread())
       return true; //obs!  these cases should be eliminated...
 
-    return UpdateSlaveInfoNewest();
-
-    // return UpdateSlaveInfoRatherOld();
+    return UpdateSlaveInfoNewest(stats_only);
   }
 
   /////////////////////////////////////////////////////////////////////////////
-
-  bool PicSOM::UpdateSlaveInfoNewest() {
+  
+  bool PicSOM::UpdateSlaveInfoNewest(bool stats_only) {
     string msg = ThreadIdentifierUtil()+" UpdateSlaveInfoNewest() : ";
 
-    bool debug = true;
+    bool debug = debug_slaves;
 
     if (debug)
       WriteLog(msg+"locking");
     RwLockReadSlaveList();
 
-    size_t n_locked = 0, n_term = 0, n_limbo = 0;
+    size_t n_locked_tot = 0, n_locked_other = 0;
+    size_t n_keep_locked = 0, n_term = 0, n_limbo = 0;
     size_t no_conn = 0, n_close = 0, n_fail = 0, no_mpi = 0;
     size_t no_req = 0, n_sent = 0, n_rcvd = 0, n_norcvd = 0, n_wait = 0; 
-    for (auto i=slave_list.begin(); i!=slave_list.end(); i++) {
-      if (i->Locked() && !i->ThisThreadLocks()) {
-	n_locked++;
-	continue;
+    for (auto& i : slave_list) {
+      if (i.Locked()) {
+	n_locked_tot++;
+	if (!i.ThisThreadLocks()) {
+	  n_locked_other++;
+	  continue;
+	}
       }
-
-      bool was_locked = i->ThisThreadLocks(), keep_locked = false;
+      
+      bool was_locked = i.ThisThreadLocks(), keep_locked = false;
       if (!was_locked)
-	i->RwLockIt();
+	i.RwLockIt();
 
-      if (i->status=="terminated")
+      if (i.status=="terminated")
 	n_term++;
 
-      else if (i->status=="limbo")
+      else if (i.status=="limbo")
 	n_limbo++;
 
-      else if (!i->conn)
+      else if (!i.conn)
 	no_conn++;
 
-      else if (i->conn->IsClosed())
+      else if (i.conn->IsClosed())
 	n_close++;
 
-      else if (i->conn->IsFailed())
+      else if (i.conn->IsFailed())
 	n_fail++;
       
-      else {
-	if (i->conn->Type()!=Connection::conn_mpi_down)
+      else if (!stats_only) {
+	if (i.conn->Type()!=Connection::conn_mpi_down)
 	  no_mpi++;
 
-	if (i->status_requested==false) {
+	if (i.status_requested==false) {
 	  // now _should_ be was_locked==false
-	  UpdateSlaveInfoWrite(*i, false);
-	  if (i->status_requested) {
+	  UpdateSlaveInfoWrite(i, false);
+	  if (i.status_requested) {
 	    keep_locked = true;
 	    n_sent++;
 	  } else
@@ -2352,13 +2410,13 @@ bool PicSOM::DoSshForwarding(int p) {
 
 	} else {
 	  // now _should_ be was_locked==true
-	  if (i->conn->Available()) {
-	    if (UpdateSlaveInfoRead(*i, false))
+	  if (i.conn->Available()) {
+	    if (UpdateSlaveInfoRead(i, false))
 	      n_rcvd++;
 	    else {
 	      n_norcvd++;
-	      string sinfo = "job=["+(i->jobids.size()?i->jobids[0]:"")
-		+"] in <"+i->hostname+"> ("+i->hostspec+")";
+	      string sinfo = "job=["+(i.jobids.size()?i.jobids[0]:"")
+		+"] in <"+i.hostname+"> ("+i.hostspec+")";
 	      WriteLog(msg+sinfo+" failing");
 	    }
 	  } else {
@@ -2369,23 +2427,27 @@ bool PicSOM::DoSshForwarding(int p) {
       }
 
       if (!keep_locked)
-	i->RwUnlockIt();
+	i.RwUnlockIt();
+      else
+	n_keep_locked++;
     }
 
     stringstream ss;
-    ss << "total=" << slave_list.size()
-       << " locked=" << n_locked
-       << " term="   << n_term
-       << " limbo="  << n_limbo
-       << " conn="   << no_conn
-       << " close="  << n_close
-       << " fail="   << n_fail
-       << " mpi="    << no_mpi
-       << " req="    << no_req
-       << " wait="   << n_wait
-       << " norcvd=" << n_norcvd
-       << " rcvd="   << n_rcvd
-       << " sent="   << n_sent;
+    ss << "total="         << slave_list.size()
+       << " locked_tot="   << n_locked_tot
+       << " locked_other=" << n_locked_other
+       << " keep_locked="  << n_keep_locked
+       << " term="   	   << n_term
+       << " limbo="  	   << n_limbo
+       << " no_conn="	   << no_conn
+       << " close="  	   << n_close
+       << " fail="   	   << n_fail
+       << " no_mpi=" 	   << no_mpi
+       << " no_req=" 	   << no_req
+       << " wait="   	   << n_wait
+       << " rcvd="   	   << n_rcvd
+       << " no_rcvd="	   << n_norcvd
+       << " sent="   	   << n_sent;
 
     if (debug)
       WriteLog(msg+ss.str());
@@ -2393,56 +2455,6 @@ bool PicSOM::DoSshForwarding(int p) {
     RwUnlockReadSlaveList();
     if (debug)
       WriteLog(msg+"unlocked");
-
-    return true;
-  }
-
-  /////////////////////////////////////////////////////////////////////////////
-
-  bool PicSOM::UpdateSlaveInfoRatherOld() {
-    string msg = "UpdateSlaveInfoRatherOld() : ";
-
-    bool debug = false;
-
-    if (debug)
-      WriteLog(msg+"locking");
-    RwLockReadSlaveList();
-
-    if (debug)
-      WriteLog(msg+"starting writes");
-
-    for (auto i=slave_list.begin(); i!=slave_list.end(); i++)
-      UpdateSlaveInfoWrite(*i);
-
-    if (debug)
-      WriteLog(msg+"writes ready");
-
-    if (true || slave_list.size()<10) { // pure heuristics...
-      struct timespec ts = { 0, 10000000 }; // 10 millisecond
-      nanosleep(&ts, NULL);
-    }
-
-    if (debug)
-      WriteLog(msg+"starting reads");
-
-    for (auto i=slave_list.begin(); i!=slave_list.end(); i++)
-      UpdateSlaveInfoRead(*i);
-
-    if (debug)
-      WriteLog(msg+"reads ready");
-
-    RwUnlockReadSlaveList();
-    if (debug)
-      WriteLog(msg+"unlocked");
-
-    return true;
-  }
-
-  /////////////////////////////////////////////////////////////////////////////
-
-  bool PicSOM::UpdateSlaveInfoOld() {
-    for (auto i=slave_list.begin(); i!=slave_list.end(); i++)
-      UpdateSlaveInfo(*i);
 
     return true;
   }
@@ -2968,12 +2980,13 @@ bool PicSOM::DoSshForwarding(int p) {
 				      thread_info_t*>& si) {
     string msg = "RemoveSlaveThread() : ";
 
-    stringstream ss;
-    ss << SlaveInfoString(*si.first, false) << "\n  "
-       << ThreadInfoString(*si.second, true);
+    if (debug_slaves) {
+      stringstream ss;
+      ss << SlaveInfoString(*si.first, false) << "\n  "
+	 << ThreadInfoString(*si.second, true);
+      WriteLog("Removing slave thread "+ss.str());
+    }
     
-    WriteLog("Removing slave thread "+ss.str());
-
     string name = si.second->name;
 
     bool erased = false;
@@ -3046,29 +3059,40 @@ bool PicSOM::DoSshForwarding(int p) {
       WriteLog(msg+"s_used="+ToStr(s_used)+" s_left="+ToStr(s_left)+
 	       " s_last="+ToStr(s_last));
 
-    if (s_left<mul*s_last) {
-      string why = " because "+ToStr(s_left)+"<"+ToStr(mul*s_last);
-      return TerminateSlave(slave, why);
-    }
+    string why;
+    if (s_left<mul*s_last)
+      why = "because "+ToStr(s_left)+"<"+ToStr(mul*s_last);
+
+    if (slave.returned_empty)
+      why = "because returned empty";
+    
+    if (why!="")
+      return TerminateSlave(slave, why, 3);
 
     return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool PicSOM::TerminateSlave(slave_info_t& slave, const string& why) {
+  bool PicSOM::TerminateSlave(slave_info_t& slave, const string& why,
+			      int sleepsec) {
     slave.RwLockIt();
 
-    string msg = "TerminateSlave() : ";
+    // string msg = "TerminateSlave() : ";
 
-    WriteLog("Terminating slave "+SlaveInfoString(slave, true)+" "+why);
-
+    if (debug_slaves) {
+      string out = "Terminating slave "+SlaveInfoString(slave, true);
+      out += string(" [")+why+string("]");
+      WriteLog(out);
+    }
+  
     if (slave.conn) {
       XmlDom req = XmlDom::Doc("picsom:command");
       XmlDom roo = req.Root("command");
       roo.Element("terminate");
       slave.conn->WriteOutXml(req);
-      sleep(3);
+      if (sleepsec>0)
+	sleep(sleepsec);
       slave.conn->Close();
       slave.conn = NULL;
     }
@@ -3956,6 +3980,7 @@ bool PicSOM::DoSshForwarding(int p) {
 	pthreads_tssom = pthreads_connection = true;
 #endif // PICSOM_USE_PTHREADS
 	development = false;
+	DataBase::OpenReadWrite("sql+fea+txt");
 	RunInBackGround(); SetLogging(); ListenPort();
 	continue;
       }
@@ -3968,6 +3993,7 @@ bool PicSOM::DoSshForwarding(int p) {
 #ifdef PICSOM_USE_PTHREADS
 	pthreads_tssom = pthreads_connection = true;
 #endif // PICSOM_USE_PTHREADS
+	DataBase::OpenReadWrite("sql+fea+txt");
 	RunInBackGround(); SetLogging(); ListenPort(UserName(), true);
 	continue;
       }
@@ -5104,7 +5130,8 @@ bool PicSOM::DoSshForwarding(int p) {
 	*/
       if (astr=="-gc" || astr.find("-gc=")==0) {
 	launch_browser_str = astr=="-gc" ? "true" : astr.substr(4);
-	browser = "google-chrome";
+	//browser = "google-chrome";
+	browser = "chromium-browser";
 	continue;
       }
 
@@ -5808,9 +5835,14 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     struct timespec start = TimeNow();
     int r = system(cmd.c_str());
     
-    if (ok && !r)
-      WriteLog("Successfully executed system("+cmd+") in "+
-	       ToStr(TimeDiff(TimeNow(), start))+" s");
+    if (ok) {
+      if (!r)
+	WriteLog("Successfully executed system("+cmd+") in "+
+		 ToStr(TimeDiff(TimeNow(), start))+" s");
+      else if (!err)
+	WriteLog("Failed to execute system("+cmd+") status=", ToStr(r));
+    }
+    
     if (err && r)
       ShowError("Failed to execute system("+cmd+") status=", ToStr(r));
     
@@ -5825,7 +5857,7 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     pair<bool,vector<string> >  err = make_pair(false, vector<string>());
 
     static size_t n = 0;
-    string tmp = TempDirPersonal()+"/shell_execute_"+ToStr(n++);
+    string tmp = TempDirPersonal()+"/shell_execute_"+ToStr(n++)+".out";
     vector<string> cmd = cmdin;
     bool inredir = false;
     for (size_t i=0; !inredir && i<cmd.size(); i++)
@@ -5836,17 +5868,25 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     cmd.push_back("1>"+tmp);
     if (also_err)
       cmd.push_back("2>&1");
-    bool ok = ExecuteSystem(cmd, verbose, verbose, verbose)==0;
+    bool ok = ExecuteSystem(cmd, verbose, verbose, false)==0;
 
     string st = FileToString(tmp);
-    Unlink(tmp);
-
-    if (!ok)
-      return err;
+    if (!keep_temp)
+      Unlink(tmp);
 
     vector<string> l = SplitInSomething("\n", true, st);
 
-    return make_pair(true, l);
+    return make_pair(ok, l);
+
+    // old version:
+    // Unlink(tmp);
+    //
+    // if (!ok)
+    //   return err;
+    //
+    // vector<string> l = SplitInSomething("\n", true, st);
+    //
+    // return make_pair(true, l);
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -6226,6 +6266,13 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 		     stringize(GIFLIB_MINOR) "." stringize(GIFLIB_RELEASE));
 #endif // GIFLIB_MAJOR     
 
+#ifdef H5_VERSION
+    unsigned int majnum = 0, minnum = 0, relnum = 0;
+    H5get_libversion(&majnum, &minnum, &relnum);
+    pieces.push_back("hdf5_" H5_VERSION " ("+ToStr(majnum)+"."+
+		     ToStr(minnum)+"."+ToStr(relnum)+")");
+#endif // H5_VERSION    
+
     string piecestr = JoinWithString(pieces, ", ");
     for (size_t split=60; piecestr.size()>split; split+=60) {
       size_t p = piecestr.rfind(", ", split);
@@ -6250,6 +6297,14 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
 #ifdef LUAJIT_VERSION_SYM
     SetVersionData("LuaJIT", string(stringize(LUAJIT_VERSION_SYM))+" ()");
 #endif // LUAJIT_VERSION_SYM
+
+#ifdef RAPTOR_VERSION_STRING
+    SetVersionData("Raptor", string(RAPTOR_VERSION_STRING)+" ("+raptor_version_string+")");
+#endif // RAPTOR_VERSION_STRING
+
+#ifdef RASQAL_VERSION_STRING
+    SetVersionData("Rasqal", string(RASQAL_VERSION_STRING)+" ("+rasqal_version_string+")");
+#endif // RASQAL_VERSION_STRING
 
 #ifdef TF_VERSION_STRING
     SetVersionData("TensorFlow", string(TF_VERSION_STRING)+" ("+")");
@@ -6382,11 +6437,10 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
   bool PicSOM::AddToXMLversions(XmlDom& xml) const {
     XmlDom vers = xml.Element("versions");
 
-    for (version_data_type::const_iterator i = version_data.begin();
-	 i!=version_data.end(); i++) {
+    for (auto const& i : version_data) {
       XmlDom e = vers.Element("piece");
-      e.Prop("name",    i->first);
-      e.Prop("version", i->second);
+      e.Prop("name",    i.first);
+      e.Prop("version", i.second);
     }
 
     return true;
@@ -7935,6 +7989,12 @@ bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
 	  return c;
 	}
       }
+
+      if (c->IsClosed()) { // added 20191119 because all were Keep-Open
+	if (CloseConnection(c, true, false, true))
+	  j--;
+	nconn = Connections(false, false);
+      }
     }
   
     return NULL;
@@ -9444,7 +9504,7 @@ bool PicSOM::HasTerminalInput() {
   /////////////////////////////////////////////////////////////////////////////
 
   bool PicSOM::CloseConnection(Connection *c, bool dodel, bool angry,
-			       bool notify) {
+				 bool notify) {
     if (!c)
       return false;
 
@@ -9744,87 +9804,85 @@ bool PicSOM::HasTerminalInput() {
     return n;
   }
 
-///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
-bool PicSOM::JoinThreads(bool /*wait*/) {
-  ThreadListSanityCheck();
+  bool PicSOM::JoinThreads(bool /*wait*/) {
+    ThreadListSanityCheck();
 
-  Threads("");
+    Threads("");
 
-  for (thread_list_t::iterator i=thread_list.begin();
-       i!=thread_list.end(); i++)
-    if (i->phase=="created") {
-      bool do_join = false;
+    for (auto& i : thread_list )
+      if (i.phase=="created") {
+	bool do_join = false;
 
-      if (i->type=="picsom" && i->text=="listen") {
-	if (pthread_cancel(i->id)) {
-	  i->phase="cancel failed";
-	  return ShowError("JoinThreads() : pthread_cancel() failed");
+	if (i.type=="picsom" && i.text=="listen") {
+	  if (pthread_cancel(i.id)) {
+	    i.phase="cancel failed";
+	    return ShowError("JoinThreads() : pthread_cancel() failed");
+	  }
+	  do_join = true;
 	}
-	do_join = true;
-      }
 
-      string state = ThreadState(&*i);
+	string state = ThreadState(&i);
       
-      if (i->type=="analysis" && (state=="ready" || state=="errored"))
-	do_join = true;
+	if (i.type=="analysis" && (state=="ready" || state=="errored"))
+	  do_join = true;
 
-      if (!do_join)
-	continue;
+	if (!do_join)
+	  continue;
 
-      void *p = NULL;
-      if (pthread_join(i->id, &p)) {
-	i->phase="join failed";
-	return ShowError("JoinThreads() : pthread_join() failed");
+	void *p = NULL;
+	if (pthread_join(i.id, &p)) {
+	  i.phase="join failed";
+	  return ShowError("JoinThreads() : pthread_join() failed");
+	}
+
+	i.phase="joined";
+	WriteLog("Joined thread "+ThreadInfoString(i, false));
+	// i.thread_set = false; // commented out 2012-05-16, may cause trouble?
       }
 
-      i->phase="joined";
-      WriteLog("Joined thread "+ThreadInfoString(*i, false));
-      // i->thread_set = false; // commented out 2012-05-16, may cause trouble?
-    }
+    return ThreadListSanityCheck();
+  }
 
-  return ThreadListSanityCheck();
-}
+  /////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////
-
-bool PicSOM::ThreadListSanityCheck() const {
-  string msg = "ThreadListSanityCheck() : ";
+  bool PicSOM::ThreadListSanityCheck() const {
+    string msg = "ThreadListSanityCheck() : ";
 
 #ifndef PTW32_VERSION
-  set<pthread_t> p;
-  set<string> n;
+    set<pthread_t> p;
+    set<string> n;
 
-  for (thread_list_t::const_iterator i=thread_list.begin();
-       i!=thread_list.end(); i++)
-    if (i->phase=="created") {
-      if (p.find(i->id)!=p.end())
-	return ShowError(msg+"id duplicated : "+ThreadInfoString(*i, false));
+    for (const auto& i : thread_list)
+      if (i.phase=="created") {
+	if (p.find(i.id)!=p.end())
+	  return ShowError(msg+"id duplicated : "+ThreadInfoString(i, false));
 
-      if (n.find(i->name)!=n.end())
-	return ShowError(msg+"name duplicated : "+ThreadInfoString(*i, false));
+	if (n.find(i.name)!=n.end())
+	  return ShowError(msg+"name duplicated : "+ThreadInfoString(i, false));
 
-      if (!i->thread_set)
-	return ShowError(msg+"thread_set==false : "+ThreadInfoString(*i, false));
+	if (!i.thread_set)
+	  return ShowError(msg+"thread_set==false : "+ThreadInfoString(i, false));
 			 
-      p.insert(i->id);
-      n.insert(i->name);
+	p.insert(i.id);
+	n.insert(i.name);
 
-    } else if (i->phase=="joined") {
-      if (i->thread_set && false) // test disabled 2012-05-16
-	return ShowError(msg+"thread_set==true : "+ThreadInfoString(*i, false));
+      } else if (i.phase=="joined") {
+	if (i.thread_set && false) // test disabled 2012-05-16
+	  return ShowError(msg+"thread_set==true : "+ThreadInfoString(i, false));
 
-      if (n.find(i->name)!=n.end())
-	return ShowError(msg+"name duplicated : "+ThreadInfoString(*i, false));
+	if (n.find(i.name)!=n.end())
+	  return ShowError(msg+"name duplicated : "+ThreadInfoString(i, false));
 
-      n.insert(i->name);
+	n.insert(i.name);
 
-    } else
-      return ShowError(msg+"phase unknown : "+ThreadInfoString(*i, false));
+      } else
+	return ShowError(msg+"phase unknown : "+ThreadInfoString(i, false));
 #endif // PTW32_VERSION
 
-  return true;
-}
+    return true;
+  }
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -10858,16 +10916,127 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
   list<string> PicSOM::Translate(const string& meth, const string& src,
 				 const string& dst, const list<string>& txt) {
     if (meth=="yandex")
-      return TranslateYandex(src, dst, txt);
-
+      return TranslateYandexV1(src, dst, txt);
+      // ShowError("Yandex.Translate v1 discontinued");
+    
+    if (meth=="google")
+      return TranslateGoogle(src, dst, txt);
+    
     return list<string>();
   }
   
   /////////////////////////////////////////////////////////////////////////////
 
-  list<string> PicSOM::TranslateYandex(const string& src, const string& dst,
+  pair<string,string> PicSOM::GoogleCredentials(const string& a) {
+    string msg = "PicSOM::GoogleCredentials("+a+") : ";
+
+#if defined(HAVE_JSON_JSON_H)
+    string project = GetSecret(a, true);
+    if (project=="") {
+      ShowError(msg+"\""+a+"\" not found");
+      return {"", ""};
+    }
+
+    if (project.substr(0, 2)=="~/")
+      project.replace(0, 1, UserHomeDir());
+
+    if (!FileExists(project)) {
+      ShowError(msg+"file <"+project+"> not found");
+      return {"", ""};
+    }
+    
+    Json::Value doc;
+    ifstream(project) >> doc;
+    string project_id = doc.get("project_id", "").asString();
+    if (project_id=="") {
+      ShowError(msg+"project_id not found");
+      return {"", ""};
+    }
+
+    vector<string> cmd
+      { "env", "GOOGLE_APPLICATION_CREDENTIALS="+project,
+	"gcloud", "auth", "application-default", "print-access-token" };
+
+    auto r = ShellExecute(cmd, false, true);
+    if (!r.first || r.second.size()!=2) {
+      ShowError(msg+"gcloud auth failed");
+      return {"", ""};
+    }
+
+    return { project_id, r.second[0] };
+    
+#else
+    ShowError(msg+"HAVE_JSON_JSON_H not defined");
+    return {"", ""};
+#endif // HAVE_JSON_JSON_H
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<string> PicSOM::TranslateGoogle(const string& src, const string& dst,
 				       const list<string>& input) {
-    string msg = "PicSOM::TranslateYandex("+src+","+dst+") : ";
+    string msg = "PicSOM::TranslateGoogle("+src+","+dst+","+ToStr(input)+") : ";
+
+    list<string> ret;
+    auto google = GoogleCredentials("google-translate-project");
+    if (google.first=="") {
+      ShowError(msg+"could not get google credentials");
+      return ret;
+    }
+    
+#if defined(HAVE_JSON_JSON_H)
+    const string& project_id = google.first, key = google.second;
+
+    list<pair<string,string> >
+      hdrs { 
+	    {"Content-Type",  "application/json; charset=utf-8"},
+	    {"Authorization", "Bearer "+key},
+	    {"Connection",    "close"} };
+
+    Json::Value contents(Json::arrayValue);
+    for (const auto& i : input)
+      contents.append(i);
+    Json::Value req;
+    req["contents"] = contents;
+    req["sourceLanguageCode"] = src;
+    req["targetLanguageCode"] = dst;
+    req["mimeType"] = "text/plain";
+    
+    string cntnt = Json::FastWriter().write(req);
+
+    string url = "https://translation.googleapis.com/v3beta1/projects/"
+      +project_id+"/locations/global:translateText", txt, ctype;
+
+    if (!Connection::DownloadString(this, "POST", url, hdrs, cntnt,
+				    txt, ctype)) {
+      ShowError(msg+"POST <"+url+"> failed");
+      return ret;
+    }
+    if (ctype!="application/json; charset=UTF-8") {
+      ShowError(msg+"content-type <"+ctype+"> not handled");
+      return ret;
+    }
+
+    // cout << txt << endl;
+    Json::Value res;
+    istringstream(txt) >> res;
+    Json::Value translations = res["translations"];
+    for (const auto& t : translations)
+      ret.push_back(t["translatedText"].asString());
+    
+    return ret;
+
+#else
+    ShowError(msg+"HAVE_JSON_JSON_H not defined");
+    return list<string>();
+#endif // HAVE_JSON_JSON_H
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<string> PicSOM::TranslateYandexV1(const string& src, const string& dst,
+				       const list<string>& input) {
+    string msg = "PicSOM::TranslateYandexV1("+src+","+dst+") : ";
 
     bool debug = false;
 
@@ -11042,6 +11211,20 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
   
   /////////////////////////////////////////////////////////////////////////////
 
+  void PicSOM::TestPyGILState(const string& m) const {
+#ifdef PICSOM_USE_PYTHON
+    WriteLog("PicSOM::TestPyGILState() "+m+" a");
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    WriteLog("PicSOM::TestPyGILState() "+m+" b");
+    PyGILState_Release(gstate);
+    WriteLog("PicSOM::TestPyGILState() "+m+" c");
+#else
+    WriteLog("PicSOM::TestPyGILState() "+m+" PICSOM_USE_PYTHON not defined");
+#endif // PICSOM_USE_PYTHON
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
   // bool PicSOM::() {
   // 
   // }
@@ -11198,7 +11381,8 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  string textline_t::str_common(bool full, bool val, bool enc) const {
+  string textline_t::str_common_x(bool multi, bool full, bool time,
+				  bool val, bool enc) const {
     stringstream ss;
     
     if (full) {
@@ -11216,14 +11400,17 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	ss << "evaluator=[" << evaluator << "] ";
     }
 
-    if (has_time_set())
+    if (time && is_time_set())
       ss << start << " " << end << " ";
 
     size_t j = 0;
-    for (auto& i : txt_val) {
+    for (auto& i : txt_val_box) {
+      if (!multi && j)
+	break;
+      
       if (j++)
 	ss << " # ";
-      string t = i.first;
+      string t = i.t;
       if (enc) {
 	size_t p = 0;
 	for (;;) {
@@ -11235,8 +11422,12 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	}
       }
       ss << t;
-      if (val)
-	ss << " (" << i.second << ")";
+      if (val) {
+	if (i.is_val_set())
+	  ss << " (" << i.v << ")";
+	if (i.is_box_set())
+	  ss << " [" << i.x << " " << i.y << " " << i.h << " " << i.w << "]";
+      }
     }
 	  
     return ss.str();
@@ -11259,44 +11450,100 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
     p = s.find_first_not_of("0123456789.: \t");
     if (p!=0 && s.substr(0, 2)!=" (") {
       size_t q = s.find_first_of(" \t");
-      if (q==0 || q==string::npos || q>p)
+      if (q==0 || q==string::npos)
 	return ShowError(msg+"error #1");
-      size_t r = s.find_first_not_of(" \t", q);
-      if (r==string::npos)
-	return ShowError(msg+"error #2");
-      size_t t = s.find_first_of(" \t", r);
-      if (t==string::npos || t>p)
-	return ShowError(msg+"error #3");
+      if (q<=p) {
+	size_t r = s.find_first_not_of(" \t", q);
+	if (r==string::npos)
+	  return ShowError(msg+"error #2");
 
-      start = TimeStrToSec(s.substr(0, q));
-      end   = TimeStrToSec(s.substr(r, t-r));
-      
-      s.erase(0, p);
+	size_t t = s.find_first_of(" \t", r);
+	if (t!=string::npos && t<=p) {      
+	  start = TimeStrToSec(s.substr(0, q));
+	  end   = TimeStrToSec(s.substr(r, t-r));
+	  s.erase(0, p);
+	}
+      }
     }
-
+    
     vector<string> m = SplitOnWord(" # ", s);
-    for (auto i=m.begin(); i!=m.end(); i++) {
-      double val = 0; // obs!?
-      string a = *i;
-      size_t p = a.find(" (");
-      if (p!=string::npos && a[a.size()-1]==')') {
-	val = atof(a.substr(p+2).c_str());
-	a.erase(p);
+    for (auto i : m ) {
+      double v = empty_v, x = 0, y = 0, w = 0, h = 0;
+      string t = i, b = i;
+      size_t p = t.find(" (");
+      if (p!=string::npos) {
+	char *endptr = NULL;
+	errno = 0;
+	string ss = t.substr(p+2);
+	double d = strtod(ss.c_str(), &endptr);
+	if (!errno && endptr && *endptr==')') {
+	  v = d;
+	  t.erase(p);
+	}
+      }
+      p = b.find(" [");
+      if (p!=string::npos && b[b.size()-1]==']') {
+	int r = sscanf(b.substr(p+2).c_str(), "%lg %lg %lg %lg",
+		       &x, &y, &w, &h);
+	if (r!=4)
+	  x = y = w = h = 0;
       }
 
       p = 0;
       for (;;) {
-	p = a.find("##", p);
+	p = t.find("##", p);
 	if (p==string::npos)
 	  break;
-	a.erase(p, 1);
+	t.erase(p, 1);
 	p += 1;
       }
       
-      txt_val.push_back(make_pair(a, val));
+      add(t, v, x, y, w, h);
+      // txt_val.push_back(make_pair(a, val));
     }
 
     return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  boxdata_t::boxdata_t(const DataBase *d, const vector<string>& a) {
+    string msg = "boxdata_t::() : ";
+    db = d;
+    if (a.size())
+      idx = db->LabelIndexGentle(a[0], false);
+    if (a.size()>1)
+      segm = a[1];
+    if (a.size()>2)
+      recog = a[2];
+    if (a.size()>6) {
+      tl_x = atof(a[3].c_str());
+      tl_y = atof(a[4].c_str());
+      br_x = atof(a[5].c_str());
+      br_y = atof(a[6].c_str());
+    }
+    if (a.size()>7)
+      val = atof(a[7].c_str());
+    if (a.size()>8)
+      type = a[8];
+
+    if (a.size()>9) {
+      vector<string> b = a;
+      for (size_t i=0; i<9; i++)
+	b.erase(b.begin());
+      txt = JoinWithString(b, " ");
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string boxdata_t::str() const {
+    stringstream ss;
+    ss << "[" << db->Name() << " #" << idx << " <" << db->Label(idx)
+       << "> " << segm << "/" << recog << " [" << tl_x << "," << tl_y
+       << " " << br_x << "," << br_y << "] " << val << " (" << type
+       << ") \"" << txt << "\"";
+    return ss.str();
   }
 
 ///////////////////////////////////////////////////////////////////////////////

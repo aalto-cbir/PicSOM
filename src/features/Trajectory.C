@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: Trajectory.C,v 1.10 2016/12/19 08:15:43 jorma Exp $	
+// -*- C++ -*-  $Id: Trajectory.C,v 1.11 2019/04/10 10:31:09 jormal Exp $	
 
 //  r -d6 trajectory -o densetraj=trajectory-dense-raw-0-27-kmeans1000.bin -o hog=trajectory-dense-raw-28-123-kmeans1000.bin -o hof=trajectory-dense-raw-124-231-kmeans1000.bin -o mbhx=trajectory-dense-raw-232-327-kmeans1000.bin -o mbhy=trajectory-dense-raw-328-423-kmeans1000.bin person01_boxing_d1_uncomp.avi
 
@@ -13,7 +13,7 @@
 
 namespace picsom {
   static const char *vcid =
-    "$Id: Trajectory.C,v 1.10 2016/12/19 08:15:43 jorma Exp $";
+    "$Id: Trajectory.C,v 1.11 2019/04/10 10:31:09 jormal Exp $";
 
   static Trajectory list_entry(true);
 
@@ -106,39 +106,39 @@ namespace picsom {
     size_t tr_dim = 30;
 
     if (densetrajname!="" && !densetraj.is_open()) {
-      densetraj.open(densetrajname, false, bin_data::header::format_float,
-		     32*tr_dim, tr_dim);
+      densetraj.open(densetrajname, false, 1.0,
+		     bin_data::header::format_float, 32*tr_dim, tr_dim);
       if (MethodVerbose())
 	cout << "Trajectory::Initialize() read in densetraj <" << densetrajname
 	     << "> " << densetraj.nobjects() << "x" << densetraj.vdim() << endl;
     }
     if (hogname!="" && !hog.is_open()) {
-      hog.open(hogname, false, bin_data::header::format_float,
-	       32*96, 96);
+      hog.open(hogname, false, 1.0,
+	       bin_data::header::format_float, 32*96, 96);
       if (MethodVerbose())
 	cout << "Trajectory::Initialize() read in hog <" << hogname
 	     << "> " << hog.nobjects() << "x" << hog.vdim() << endl;
     }
 
     if (hofname!="" && !hof.is_open()) {
-      hof.open(hofname, false, bin_data::header::format_float,
-	       32*108, 108);
+      hof.open(hofname, false, 1.0,
+	       bin_data::header::format_float, 32*108, 108);
       if (MethodVerbose())
 	cout << "Trajectory::Initialize() read in hof <" << hofname
 	     << "> " << hof.nobjects() << "x" << hof.vdim() << endl;
     }
 
     if (mbhxname!="" && !mbhx.is_open()) {
-      mbhx.open(mbhxname, false, bin_data::header::format_float,
-		32*96, 96);
+      mbhx.open(mbhxname, false, 1.0,
+		bin_data::header::format_float, 32*96, 96);
       if (MethodVerbose())
 	cout << "Trajectory::Initialize() read in mbhx <" << mbhxname
 	     << "> " << mbhx.nobjects() << "x" << mbhx.vdim() << endl;
     }
 
     if (mbhyname!="" && !mbhy.is_open()) {
-      mbhy.open(mbhyname, false, bin_data::header::format_float,
-		32*96, 96);
+      mbhy.open(mbhyname, false, 1.0,
+		bin_data::header::format_float, 32*96, 96);
       if (MethodVerbose())
 	cout << "Trajectory::Initialize() read in mbhy <" << mbhyname
 	     << "> " << mbhy.nobjects() << "x" << mbhy.vdim() << endl;

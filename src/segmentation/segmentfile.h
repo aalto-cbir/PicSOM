@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: segmentfile.h,v 1.120 2016/01/27 21:10:25 jorma Exp $
+// -*- C++ -*-  $Id: segmentfile.h,v 1.121 2019/02/04 09:10:34 jormal Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -652,12 +652,10 @@ namespace picsom {
     size_t count() const{ return methodInfo.size();}
   
     std::string collectChainedName() const;
-
   };
 
-  class FrameSizeInfo{
+  class FrameSizeInfo {
   public:
-
     xmlNodePtr outputXML() const;
     bool parseXML(const xmlNodePtr node);
     
@@ -667,9 +665,8 @@ namespace picsom {
     int height;
   };
 
-  class SequenceInfo{
+  class SequenceInfo {
   public:
-    
     bool frameNrOk(int f) const { return f>=0 && f<=lastframe;}
     coord frameSize(int f) const;
     void setFromImagedata(const imagedata& i);
@@ -684,8 +681,7 @@ namespace picsom {
     std::vector<FrameSizeInfo> sizeinfo;
   };
 
-
-  class ProcessInfoProvider{
+  class ProcessInfoProvider {
   public:
     ///
     virtual ProcessInfo getProcessInfo() const =0;
@@ -991,9 +987,6 @@ namespace picsom {
     std::vector<string> v;
   };
 
-
-
-
   /// list of coordinate pairs
   class PixelChain {
   public:
@@ -1101,7 +1094,7 @@ namespace picsom {
     int *d0,*d45,*d90,*d135;
   };
 
-   class preprocessResult_SobelMax: public preprocessResult{
+  class preprocessResult_SobelMax: public preprocessResult{
   public:
     preprocessResult_SobelMax(){
       d=NULL;
@@ -1114,7 +1107,7 @@ namespace picsom {
     float *d;
   };
 
-   class preprocessResult_Sobel: public preprocessResult{
+  class preprocessResult_Sobel: public preprocessResult{
   public:
     preprocessResult_Sobel(){
       ds0=ds45=ds90=ds135=NULL;
@@ -1130,15 +1123,12 @@ namespace picsom {
       delete[] di45;
       delete[] di90;
       delete[] di135;
-      
     }
 
-     float *ds0,*ds45,*ds90,*ds135,*di0,*di45,*di90,*di135;
+    float *ds0,*ds45,*ds90,*ds135,*di0,*di45,*di90,*di135;
   };
 
-
-
-   class preprocessResult_Cielab: public preprocessResult{
+  class preprocessResult_Cielab: public preprocessResult{
   public:
     preprocessResult_Cielab(){
       l=a=b=NULL;
@@ -1851,7 +1841,7 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
     ///
     static const string& version() {
       static string v =
-	"$Id: segmentfile.h,v 1.120 2016/01/27 21:10:25 jorma Exp $";
+	"$Id: segmentfile.h,v 1.121 2019/02/04 09:10:34 jormal Exp $";
       return v;
     }
 
@@ -1923,28 +1913,30 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
     }
 
     ///
-    int getNumFrames() const { return description.sequenceinfo.nframes(); }
+    int getNumFrames() const {
+      return description.sequenceinfo.nframes();
+    }
 
     ///
-    bool isPrepared() const {return _is_prepared;}
+    bool isPrepared() const { return _is_prepared; }
 
     ///
-    void setPrepared(bool p=true){_is_prepared=p;} 
+    void setPrepared(bool p=true) { _is_prepared = p; }
 
     ///
-    int getCurrentFrame() const{ return current_frame;}
+    int getCurrentFrame() const { return current_frame; }
 
     ///
-    void setCurrentFrame(int f){
+    void setCurrentFrame(int f) {
       ensureFrameOk(f);
-      current_frame=f;
+      current_frame = f;
     }
 
     ///
     bool isFrameNrOk() const { return isFrameNrOk(current_frame);}
 
     ///
-    bool isFrameNrOk(int f) const { return (f>=0 && f<getNumFrames()); }
+    bool isFrameNrOk(int f) const { return f>=0 && f<getNumFrames(); }
 
     ///
     bool isFrameOk() const { return isFrameOk(current_frame); }
@@ -1958,7 +1950,7 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
 
     ///
     void ensureFrameOk(int f) const {
-      if(!isFrameOk(f)){
+      if (!isFrameOk(f)) {
 	char nrstr[20];
 	sprintf(nrstr,"%d",f);
 	throw name_head() + " ensureFrameOk("+nrstr+"): invalid frame";
@@ -1970,7 +1962,7 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
   
     ///
     void ensureFrameNrOk(int f) const {
-      if(!isFrameNrOk(f))
+      if (!isFrameNrOk(f))
 	throw name_head() + " : invalid frame number";
     }
 
@@ -2112,22 +2104,22 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
     void allocateSegments();
 
     ///
-    void forceImages(const std::vector<imagedata> &);
+    void forceImages(const std::vector<imagedata>&);
 
     ///
-    void forceSegments(const std::vector<imagedata> &);
+    void forceSegments(const std::vector<imagedata>&);
 
     ///    
-    void forceImage(const imagedata &,int);
+    void forceImage(const imagedata&, int);
 
     ///
-    void forceImage(const imagedata &i){ forceImage(i,getCurrentFrame());}
+    void forceImage(const imagedata &i) { forceImage(i, getCurrentFrame()); }
 
     ///
-    void forceSegment(const imagedata &,int);
+    void forceSegment(const imagedata&, int);
 
     ///
-    void forceSegment(const imagedata &i){ forceSegment(i,getCurrentFrame());}
+    void forceSegment(const imagedata &i){ forceSegment(i, getCurrentFrame());}
 
     ///
     void rotateFrame(int f, const scalinginfo &si);
@@ -2278,7 +2270,6 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
 
     /// 
     bool emptyImages() {
-
       return _is_sequence_empty(image_frames);
     }
 
@@ -2290,29 +2281,30 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
     ///
     void get_pixel_rgb(int f, int x, int y, std::vector<float> &vf)  {
       ensureFrameOk(f);
-      vf = imageFrame(f)->get_float(x,y); 
-      if (vf.size()!=3) throw string("segmentfile::get_pixel_rgb : didn't get all three components.");
+      vf = imageFrame(f)->get_float(x, y); 
+      if (vf.size()!=3) throw string("segmentfile::get_pixel_rgb : "
+				     "didn't get all three components.");
     }
 
     ///
     void get_pixel_rgb(int f, const coord &c, std::vector<float> &vf)  {
-      get_pixel_rgb(f,c.x,c.y,vf);
+      get_pixel_rgb(f, c.x, c.y, vf);
     }
 
     ///
     void get_pixel_rgb(int x, int y, std::vector<float> &vf)  {
-      get_pixel_rgb(getCurrentFrame(),x,y,vf);
+      get_pixel_rgb(getCurrentFrame(), x, y, vf);
     }
 
     ///
     void get_pixel_rgb(const coord &c, std::vector<float> &vf)  {
-      get_pixel_rgb(c.x,c.y,vf);
+      get_pixel_rgb(c.x, c.y, vf);
     }
 
     /// to help in converting old code
     void get_pixel_rgb(int x, int y, float &r, float &g, float &b)  {
       std::vector<float> vf;
-      get_pixel_rgb(x,y,vf);
+      get_pixel_rgb(x, y, vf);
       r=vf[0];
       g=vf[1];
       b=vf[2];
@@ -2320,180 +2312,178 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
 
     /// to help in converting old code
     void get_pixel_rgb(const coord &c, float &r, float &g, float &b)  {
-      get_pixel_rgb(c.x,c.y,r,g,b);
+      get_pixel_rgb(c.x, c.y, r, g, b);
     }
 
     ///
     void set_pixel_rgb(int f, int x, int y, const std::vector<float> &vf)
     {
       ensureFrameOk(f);
-      imageFrame(f)->set(x,y,vf); 
+      imageFrame(f)->set(x, y, vf); 
     }
 
     ///
-    void set_pixel_rgb(int f,const coord &c, const std::vector<float> &vf){
-      set_pixel_rgb(f,c.x,c.y,vf); 
+    void set_pixel_rgb(int f,const coord &c, const std::vector<float> &vf) {
+      set_pixel_rgb(f, c.x, c.y, vf); 
     }
 
     ///
-    void set_pixel_rgb(int x, int y, const std::vector<float> &vf){
-      set_pixel_rgb(getCurrentFrame(),x,y,vf); 
+    void set_pixel_rgb(int x, int y, const std::vector<float> &vf) {
+      set_pixel_rgb(getCurrentFrame(), x, y, vf); 
     }
 
     ///
-    void set_pixel_rgb(const coord &c, const std::vector<float> &vf){
-      set_pixel_rgb(c.x,c.y,vf); 
+    void set_pixel_rgb(const coord &c, const std::vector<float> &vf) {
+      set_pixel_rgb(c.x, c.y, vf); 
     }
 
     /// to help in converting old code
-    void set_pixel_rgb(int x, int y, float r, float g, float b){
-      set_pixel_rgb(x,y,RGBTriple(r,g,b).v); 
+    void set_pixel_rgb(int x, int y, float r, float g, float b) {
+      set_pixel_rgb(x, y, RGBTriple(r, g, b).v); 
     }
 
     /// to help in converting old code
-    void set_pixel_rgb(const coord &c, float r, float g, float b){
-      set_pixel_rgb(c.x,c.y,r,g,b); 
+    void set_pixel_rgb(const coord &c, float r, float g, float b) {
+      set_pixel_rgb(c.x, c.y, r, g, b); 
     }
 
     ///
-    void get_pixel_grey(int f, int x, int y, float &val)  {
+    void get_pixel_grey(int f, int x, int y, float &val) {
       std::vector<float> vf;
-      get_pixel_rgb(f,x,y,vf);
+      get_pixel_rgb(f, x, y, vf);
       val=(vf[0]+vf[1]+vf[2])/3;
     }
 
     ///
-    void get_pixel_grey(int f, const coord &c, float &val)  {
-      get_pixel_grey(f,c.x,c.y,val);
+    void get_pixel_grey(int f, const coord &c, float &val) {
+      get_pixel_grey(f, c.x, c.y, val);
     }
 
     ///
     void get_pixel_grey(int x, int y, float &val)  {
-      get_pixel_grey(getCurrentFrame(),x,y,val);
+      get_pixel_grey(getCurrentFrame(), x, y, val);
     }
 
     ///
     void get_pixel_grey(const coord &c, float &val)  {
-      get_pixel_grey(c.x,c.y,val);
+      get_pixel_grey(c.x, c.y, val);
     }
 
     ///
     void set_pixel_grey(int f, int x, int y, float val)
     {
-      set_pixel_rgb(f,x,y,std::vector<float>(3,val));
+      set_pixel_rgb(f, x, y, std::vector<float>(3, val));
     }
 
     ///
     void set_pixel_grey(int f, const coord &c, float val){
-      set_pixel_grey(f,c.x,c.y,val); 
+      set_pixel_grey(f, c.x, c.y, val); 
     }
 
     ///
     void set_pixel_grey(int x, int y, float val){
-      set_pixel_grey(getCurrentFrame(),x,y,val); 
+      set_pixel_grey(getCurrentFrame(), x, y, val); 
     }
 
     ///
     void set_pixel_grey(const coord &c, float val){
-      set_pixel_grey(c.x,c.y,val); 
+      set_pixel_grey(c.x, c.y, val); 
     }
 
     ///
     void get_pixel_segment(int f, int x, int y, int &i)  {
       ensureFrameOk(f);
-      i=segmentFrame(f)->get_one_uint32(x,y); 
+      i=segmentFrame(f)->get_one_uint32(x, y); 
     }
 
     ///
     void get_pixel_segment(int f,const coord &c, int &i)  {
-      get_pixel_segment(f,c.x,c.y,i); 
+      get_pixel_segment(f, c.x, c.y, i); 
     }
 
     ///
     void get_pixel_segment(int x, int y, int &i)  {
-      get_pixel_segment(getCurrentFrame(),x,y,i); 
+      get_pixel_segment(getCurrentFrame(), x, y, i); 
     }
 
     ///
     void get_pixel_segment(const coord &c, int &i)  {
-      get_pixel_segment(c.x,c.y,i); 
+      get_pixel_segment(c.x, c.y, i); 
     }
 
     ///
     void get_pixel_segment_extended(int f, int x, int y, int &i,int bklabel,
 				    const PredefinedTypes::Box *bb=NULL)  {
-      if(bb){
-	if(bb->isInside(coord(x,y)))
-	  get_pixel_segment(f,x,y,i);
+      if (bb) {
+	if (bb->isInside(coord(x, y)))
+	  get_pixel_segment(f, x, y, i);
 	else
-	  i=bklabel;
+	  i = bklabel;
 
-      } else{
-	if(coordinates_ok(x,y))
-	  get_pixel_segment(f,x,y,i);
+      } else {
+	if (coordinates_ok(x, y))
+	  get_pixel_segment(f, x, y, i);
 	else
-	  i=bklabel;
+	  i = bklabel;
       }
     }
 
     ///
-    void get_pixel_segment_extended(int f, const coord &c, int &i,int bklabel,
-				    const PredefinedTypes::Box *bb=NULL)  {
-      get_pixel_segment_extended(f,c.x,c.y,i,bklabel,bb); 
+    void get_pixel_segment_extended(int f, const coord &c, int &i, int bklabel,
+				    const PredefinedTypes::Box *bb=NULL) {
+      get_pixel_segment_extended(f, c.x, c.y, i, bklabel, bb); 
     }
 
     ///
-    void get_pixel_segment_extended(int x, int y, int &i,int bklabel,
-				    const PredefinedTypes::Box *bb=NULL)  {
-      get_pixel_segment_extended(getCurrentFrame(),x,y,i,bklabel,bb); 
+    void get_pixel_segment_extended(int x, int y, int &i, int bklabel,
+				    const PredefinedTypes::Box *bb=NULL) {
+      get_pixel_segment_extended(getCurrentFrame(), x, y, i, bklabel, bb); 
     }
 
     ///
-    void get_pixel_segment_extended(const coord &c, int &i,int bklabel,
-				    const PredefinedTypes::Box *bb=NULL)  {
-      get_pixel_segment_extended(c.x,c.y,i,bklabel,bb); 
+    void get_pixel_segment_extended(const coord &c, int &i, int bklabel,
+				    const PredefinedTypes::Box *bb=NULL) {
+      get_pixel_segment_extended(c.x, c.y, i, bklabel, bb); 
     }
 
     ///
-    void set_pixel_segment(int f, int x, int y, int i)
-    {
+    void set_pixel_segment(int f, int x, int y, int i) {
       ensureFrameOk(f);
-      segmentFrame(f)->set(x,y,(uint32_t)i); 
+      segmentFrame(f)->set(x, y, (uint32_t)i); 
     }
 
     ///
     void set_pixel_segment(int f, const coord &c, int i) {
-      set_pixel_segment(f,c.x,c.y,i); 
+      set_pixel_segment(f, c.x, c.y, i); 
     }
 
     ///
     void set_pixel_segment(int x, int y, int i) {
-      set_pixel_segment(getCurrentFrame(),x,y,i); 
+      set_pixel_segment(getCurrentFrame(), x, y, i); 
     }
 
     ///
     void set_pixel_segment(const coord &c, int i) {
-      set_pixel_segment(c.x,c.y,i); 
+      set_pixel_segment(c.x, c.y, i); 
     }
 
     ///
-    vector<int> getSegmentVector(int x,int y){
+    vector<int> getSegmentVector(int x, int y){
       // obs! frame information not used
 
       vector<int> ret;
-      if(region_spec.empty()){
+      if(region_spec.empty()) {
       	int s;
-      	get_pixel_segment(x,y,s);
+      	get_pixel_segment(x, y, s);
       	ret.push_back(s);
       	return ret;
        }
-
-            for (size_t i=0; i<region_spec.size(); i++){
-
+      
+      for (size_t i=0; i<region_spec.size(); i++) {
 	if (region_spec[i]->contains(x, y)) { // f not used!
-		  ret.push_back(i+1); // FIRST_REGION_BASED_SEGMENT==1
-		}
-	if(ret.empty()) ret.push_back(0);
+	  ret.push_back(i+1); // FIRST_REGION_BASED_SEGMENT==1
+	}
+	if (ret.empty()) ret.push_back(0);
       }
       return ret;
     }
@@ -2612,7 +2602,7 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
     bool prepareZoning(const std::string& zoningType);
 
     ///
-    bool zoningTiles(int xlen, int ylen, int dx, int dy);
+    bool zoningTiles(int w, int h, int xlen, int ylen, int dx, int dy);
 
     ///
     bool zoningTiles_old(int tilesX, int tilesY);
@@ -3562,9 +3552,7 @@ bool outerBoundaries=false,
       tagFrameAsProcessed(m,getCurrentFrame());
     }
     
-
   private:
- 
     ///
     void _free_image_sequences(){
       image_frames.free();
@@ -3608,8 +3596,6 @@ bool outerBoundaries=false,
       return empty;
     }
 
- 
-
     static xmlNodePtr xmlFromToc(const _toc_type &toc){
       xmlNodePtr ret = xmlNewNode(NULL,(xmlChar*)"tifftoc");
       for(_toc_type::const_iterator it=toc.begin();it!=toc.end();it++)
@@ -3621,6 +3607,7 @@ bool outerBoundaries=false,
   public:
     ///
     void _dump_xml();
+
   private:
     ///
     _toc_type _read_toc(xmlNodePtr node);
@@ -3648,27 +3635,27 @@ bool outerBoundaries=false,
     int resolve_sec(int x, int y, int w, int h);
 
     ///
-    bool zoningTheOriginalOne();
+    bool zoningTheOriginalOne(int w, int h);
 
     ///
-    bool zoningCenterHorizVert();
+    bool zoningCenterHorizVert(int w, int h);
     
     ///
-    bool zoningHorizVert();
+    bool zoningHorizVert(int w, int h);
     
     ///
-    bool zoningHoriz();
+    bool zoningHoriz(int w, int h);
     
     ///
-    bool zoningVert();
+    bool zoningVert(int w, int h);
     
     ///
-    bool zoningCenter();
+    bool zoningCenter(int w, int h);
     
     ///
-    bool zoningNone();
+    bool zoningNone(int w, int h);
 
-
+    ///
     static std::string _find_prefix(const std::string &s);
   
     ///
@@ -4059,19 +4046,6 @@ bool outerBoundaries=false,
 
     ///
     imagefile *input_segment_file;
-
-    /// 
-    //std::string *input_description;
-
-
-    //std::map<int,_nodeinfo_type> frame_nodes;
-
-    ///
-    //xmlDocPtr xml_description;
-    
-    ///
-    //xmlNodePtr file_methodresultslist_node;
-
 
     ///
     _description_type description;

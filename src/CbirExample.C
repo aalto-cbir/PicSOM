@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: CbirExample.C,v 2.26 2010/03/16 23:28:42 jorma Exp $
+// -*- C++ -*-  $Id: CbirExample.C,v 2.27 2019/04/04 08:12:03 jormal Exp $
 // 
-// Copyright 1998-2010 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science and Technology
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -12,7 +12,7 @@
 namespace picsom {
   ///
   static const string CbirExample_C_vcid =
-    "@(#)$Id: CbirExample.C,v 2.26 2010/03/16 23:28:42 jorma Exp $";
+    "@(#)$Id: CbirExample.C,v 2.27 2019/04/04 08:12:03 jormal Exp $";
 
   /// This is the "factory" instance of the class.
   static CbirExample list_entry(true);
@@ -38,7 +38,7 @@ namespace picsom {
     // Picsom() has lots of useful information, for example:
     cout << hdr << "UserName()=\"" << Picsom()->UserName() << "\"" << endl;
     cout << hdr << "HostName()=\"" << Picsom()->HostName() << "\"" << endl;
-    cout << hdr << "Cwd()=\""      << Picsom()->Cwd()      << "\"" << endl;
+    cout << hdr << "Cwd()=\""      << Cwd()                << "\"" << endl;
   }
 
   //===========================================================================

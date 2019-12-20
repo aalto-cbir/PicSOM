@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: object_info.h,v 2.6 2018/08/31 10:51:33 jormal Exp $
+// -*- C++ -*-  $Id: object_info.h,v 2.7 2019/03/21 15:06:47 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -14,7 +14,7 @@
 using namespace std;
 
 static const string object_info_h_vcid =
-  "@(#)$Id: object_info.h,v 2.6 2018/08/31 10:51:33 jormal Exp $";
+  "@(#)$Id: object_info.h,v 2.7 2019/03/21 15:06:47 jormal Exp $";
 
 namespace picsom {
   class DataBase;
@@ -57,6 +57,13 @@ namespace picsom {
       os << endl;
     }
 
+    ///
+    string dump_str() const {
+      stringstream ss;
+      dump_nonl(ss);
+      return ss.str();
+    }
+    
     ///
     static const object_info& dummy() {
       static const object_info d(NULL, -1, "", target_no_target);

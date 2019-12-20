@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: VectorIndex.C,v 2.107 2018/12/16 21:12:59 jormal Exp $
+// -*- C++ -*-  $Id: VectorIndex.C,v 2.110 2019/04/17 08:03:43 jormal Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -13,7 +13,7 @@
 
 namespace picsom {
   static const string VectorIndex_C_vcid =
-    "@(#)$Id: VectorIndex.C,v 2.107 2018/12/16 21:12:59 jormal Exp $";
+    "@(#)$Id: VectorIndex.C,v 2.110 2019/04/17 08:03:43 jormal Exp $";
 
   bool VectorIndex::bin_data_full_test = false;
   bool VectorIndex::fast_bin_check     = false;
@@ -264,9 +264,10 @@ namespace picsom {
 
   bool VectorIndex::ReadDataFileBin(bool /*nodata*/) {
     string msg = "VectorIndex::ReadDataFileBin() : ";
-    
+
+    bool rw = false; // db->OpenReadWriteFea()
     const string augm;
-    if (!BinDataOpen(/*db->OpenReadWrite()*/ false, db->Size(), false, augm))
+    if (!BinDataOpen(rw, db->Size(), false, 0.0, augm))
       return ShowError(msg+"BinDataOpen() failed");
 
     data.FileName(_bin_data_m.begin()->second.filename());
@@ -354,10 +355,10 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool VectorIndex::BinDataOpen(bool rw, size_t n, bool create,
+  bool VectorIndex::BinDataOpen(bool rw, size_t n, bool create, float v,
 				const string& augm) {
     string msg = "VectorIndex::BinDataOpen("+ToStr(rw)+","+ToStr(n)+
-      ","+ToStr(create)+") <"+BinInfoFileName()+"> : ";
+      ","+ToStr(create)+","+ToStr(v)+","+augm+") <"+BinInfoFileName()+"> : ";
 
     bool tolerate_large = true;
 
@@ -365,7 +366,7 @@ namespace picsom {
     //   return ShowError(msg+"VectorLength()==0");
 
     if (BinInfoRawDataLength(augm)==0)
-      BinDataOpenFile(rw, create, augm);
+      BinDataOpenFile(rw, create, v, augm);
 
     if (VectorLength() && BinInfoVectorLength()!=VectorLength())
       return ShowError(msg+"vdim error VectorLength()="+
@@ -379,7 +380,7 @@ namespace picsom {
 		       ">"+ToStr(BinInfoRawDataLength(n, augm))+" "+
 		       _bin_data_m.begin()->second.str());
 
-    if (rw && create &&
+    if (rw && create && v==1.0 &&
 	BinInfoRawDataLength(augm)<BinInfoRawDataLength(n, augm))
       return BinDataExpand(n);
 
@@ -430,8 +431,9 @@ namespace picsom {
     list<string> clx = db->SplitClassNames(c);
     vector<string> cl(clx.begin(), clx.end());
 
-    _bin_data_m.begin()->second.open("/dev/null/"+r, true, bin_data::header::format_float,
-		   0, cl.size());
+    _bin_data_m.begin()->second.open("/dev/null/"+r, true, 1.0,
+				     bin_data::header::format_float,
+				     0, cl.size());
     _bin_data_m.begin()->second.resize(n);
 
     for (size_t i=0; i<n; i++) {
@@ -496,7 +498,8 @@ namespace picsom {
 
     cout << msg << "[" << f << "] " << c << " " << z << " " << n << endl;
 
-    _bin_data_m.begin()->second.open("/dev/null/"+r, true, bin_data::header::format_float, 0, c*z);
+    _bin_data_m.begin()->second.open("/dev/null/"+r, true, 1.0,
+				     bin_data::header::format_float, 0, c*z);
     _bin_data_m.begin()->second.resize(n);
 
     for (size_t i=0; i<n; i++) {
@@ -559,7 +562,7 @@ namespace picsom {
 
     cout << msg << " dim=" << dim << endl;
 
-    _bin_data_m.begin()->second.open("/dev/null/"+r, true,
+    _bin_data_m.begin()->second.open("/dev/null/"+r, true, 1.0,
 		   bin_data::header::format_float, 0, dim);
     _bin_data_m.begin()->second.resize(n);
 
@@ -589,9 +592,10 @@ namespace picsom {
    
   /////////////////////////////////////////////////////////////////////////////
 
-  bool VectorIndex::BinDataOpenFile(bool rw, bool create, const string& augm) {
+  bool VectorIndex::BinDataOpenFile(bool rw, bool create, float v,
+				    const string& augm) {
     string msg = "VectorIndex::BinDataOpenFile("+string(rw?"rw":"ro")
-      +","+string(create?"1":"0")+","+augm+") : ";
+      +","+string(create?"1":"0")+","+ToStr(v)+","+augm+") : ";
 
     string fff = augm!="" ? augm : FeatureFileName();
     string key = fff==FeatureFileName() ? "" : fff;
@@ -620,7 +624,7 @@ namespace picsom {
     msg += "<"+fname+"> : ";
 
     try {
-      _bin_data_m[key].open(fname, rw, bin_data::header::format_float,
+      _bin_data_m[key].open(fname, rw, v, bin_data::header::format_float,
 			    0, VectorLength());
 
       if (prodquant!="")
@@ -654,13 +658,13 @@ namespace picsom {
 
     WriteLog("Extending bin data file <"+
 	     db->ShortFileName(_bin_data_m.begin()->second.filename())+
-	     "> from "+ToStr(_bin_data_m.begin()->second.rawsize())+" to "+ToStr(l)+" bytes ("
-	     +HumanReadableBytes(l)+")");
+	     "> from "+ToStr(_bin_data_m.begin()->second.rawsize())+" to "+
+	     ToStr(l)+" bytes ("+HumanReadableBytes(l)+")");
 
     try {
       _bin_data_m.begin()->second.resize(n, 255);
       WriteLog("  "+_bin_data_m.begin()->second.str());
-    } catch (string& s)  {
+    } catch (string& s) {
       return ShowError(msg+s);
     }
 
@@ -733,7 +737,7 @@ namespace picsom {
 		       " != VectorLength()="+ToStr(VectorLength()));
 
     const string augm;
-    if (!BinDataOpen(true, db->Size(), true, augm))
+    if (!BinDataOpen(true, db->Size(), true, db->BinFeatureVersion(), augm))
       return ShowError(msg+"BinDataOpen(true) failed");
 
     if (debug) {
@@ -742,7 +746,7 @@ namespace picsom {
       cout << db->Label(idx) << endl;
     }
 
-    if (!_bin_data_m.begin()->second.set_float(idx, vec))
+    if (!_bin_data_m.begin()->second.set_float(idx, vec, db->Size()))
       return ShowError(msg+"idx="+ToStr(idx)+" set_float() failed");
 
     return true;
@@ -992,7 +996,7 @@ namespace picsom {
 
     FloatVectorSet empty, res;
 
-    if (!BinDataOpen(false, db->Size(), false, augm))
+    if (!BinDataOpen(false, db->Size(), false, 0.0, augm))
       return ShowError(msg+"BinDataOpen() failed");
 
     if (!_bin_data_m.begin()->second.is_ok()) {
@@ -1235,7 +1239,7 @@ namespace picsom {
 
       if (may_add && j==-1) {
         target_type tt = db->SolveTargetTypeFromLabel(l, segm_is_mod);
-        j = db->AddLabelAndParents(l, tt, true);
+        j = db->AddLabelAndParents(l, tt, true, true);
         added = true;
         if (j==-1) {
           ShowError(msg+"failed to add label <"+l+">");

@@ -1,3 +1,36 @@
+2019-11-18  jormal  <jormal@cs-271>
+
+	* videofile.C 1.52: Improved error message.
+
+2019-09-20  jormal  <jormal@cs-271>
+
+	* videofile.C 1.51: Summary: Improved debugging.
+
+2019-06-18  jormal  <jormal@cs-271>
+
+	* imagefile-opencv.C 1.40:
+	Summary: Added try catch in display_impl_int().
+
+2019-05-29  jormal  <jormal@cs-271>
+
+	* imagefile-opencv.C 1.39, imagefile.h 1.57: Added extend_last_frame().
+
+2019-04-04  jormal  <jormal@cs-271>
+
+	* imagefile-opencv.C 1.38:
+	Summary: Conditioned detailed gif debugging with debug_impl()>1.
+
+	* imagefile-opencv.C 1.37:
+	Summary: fps should now be correctly solved from gifs.
+
+	* imagefile-opencv.C 1.36:
+	Summary: Started work for obtaing fps in multiframe gifs.
+
+2019-04-02  jormal  <jormal@cs-271>
+
+	* imagefile-opencv.C 1.35, imagefile.h 1.56:
+	Implemented solving of video_fps() in imagefile-opencv.C.
+
 2018-11-09  jormal  <jormal@cs-271>
 
 	* imagefile-opencv.C 1.34:

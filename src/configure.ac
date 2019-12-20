@@ -1,18 +1,18 @@
-## -*- autoconf -*-  $Id: configure.ac,v 2.131 2018/12/19 10:40:23 jormal Exp $
+## -*- autoconf -*-  $Id: configure.ac,v 2.135 2019/12/20 13:28:52 jormal Exp $
 ## 
-## Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+## Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
 ## PO Box 15400, FI-00076 Aalto, FINLAND
 ## 
 
-AC_INIT(PicSOM, 0.37, picsom@ics.aalto.fi)
+AC_INIT(PicSOM, 0.38, picsom@ics.aalto.fi)
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
 AC_PREREQ(2.59)
 AC_COPYRIGHT(PicSOM Development Group)
-AC_REVISION($Revision: 2.131 $)
+AC_REVISION($Revision: 2.135 $)
 
 #AC_CONFIG_MACRO_DIRS([m4])
 
@@ -151,6 +151,12 @@ AC_CHECK_HEADERS([gif_lib.h],[],
 
 AC_CHECK_HEADERS([tiffio.h],[],
         [warnings="$warnings|TIFF use disabled due to missing header."])
+
+AC_CHECK_HEADERS([H5Cpp.h],[],
+        [warnings="$warnings|HDF5 use disabled due to missing header."])
+
+AC_CHECK_HEADERS([raptor2.h rasqal.h],[],
+        [warnings="$warnings|RDF use disabled due to missing header."])
 
 AC_CHECK_HEADERS([libavcodec/avcodec.h libavdevice/avdevice.h   \
 		  libavfilter/avfilter.h libavformat/avformat.h \

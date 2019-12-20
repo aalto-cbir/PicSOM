@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Analysis.C,v 2.1232 2018/12/16 08:26:23 jormal Exp $
+// -*- C++ -*-  $Id: Analysis.C,v 2.1275 2019/12/20 13:21:58 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -131,7 +131,7 @@ extern "C" {
 
 namespace picsom {
   static const string Analysis_C_vcid =
-    "@(#)$Id: Analysis.C,v 2.1232 2018/12/16 08:26:23 jormal Exp $";
+    "@(#)$Id: Analysis.C,v 2.1275 2019/12/20 13:21:58 jormal Exp $";
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -206,7 +206,7 @@ namespace picsom {
     expand = true; // for now only...
     keeporder = false;
     dirplot = unseenzero = false;
-    featextbatchsize = -100;
+    batchsize = -100;
     hard_negative_mining = 0;
     
     clicks_min = 0;
@@ -379,7 +379,9 @@ namespace picsom {
       || method=="sentences" || method=="kmeans"
       || method=="extractrawfeatures" || method=="videoshotsequence"
       || method=="nearest" || method=="featuretest"
-      || method=="maskeddetection" || method=="exportlmdbfeatures"; 
+      || method=="maskeddetection" || method=="exportlmdbfeatures"
+      || method=="featuremean" || method=="featuremapping"
+      || method=="exportorderedfeatures"; 
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -606,11 +608,18 @@ namespace picsom {
   Analysis::AnalyseSlaves(script_list_t& sl, bool sync) {
     string msg = "AnalyseSlaves() : ";
 
+    list<analyse_result> results, error;
+
+    DataBase *db = GetDataBase();
+    if (db->OpenReadWriteSql() && !db->SqliteInTemp()) {
+      ShowError(msg+"database <"+db->Name()+"> opened -rw=sql but"
+		" tempsqlitedb=false");
+      return error;
+    }
+    
     // see maxtaskspar / max_tasks_par
     bool allow_many = AllowManySlaveThreads(sl); 
     WriteLog(msg+"starting with allow_many=", ToStr(allow_many));
-
-    list<analyse_result> results, error;
 
     script_list_t::const_iterator i = sl.begin();
 
@@ -716,7 +725,7 @@ namespace picsom {
 	  }	      
 	}
 	if (!outdir_set)
-	  script << "outdir=" << PicSOM::Cwd() << endl;
+	  script << "outdir=" << Cwd() << endl;
 	
 	string scriptstr = script.str(), cmdline = scriptstr;
 	while (true) { //inner 1
@@ -771,7 +780,8 @@ namespace picsom {
 		 << msg+"ReadAndParseXML() failed 1, continuing still..."
 		 << endl;
 	    Picsom()->TerminateSlave(*slave,
-				     "because ReadAndParseXML() failed 1");
+				     "because ReadAndParseXML() failed 1",
+				     3);
 	    continue;
 	  }
 	  
@@ -787,7 +797,7 @@ namespace picsom {
 		 << "[[[" << res.Stringify() << "]]]"
 		 << endl;
 	    Picsom()->TerminateSlave(*slave, "because <analyse_result/"
-				     "thread/name> missing");
+				     "thread/name> missing", 3);
 	    continue;
 	  }
 
@@ -852,10 +862,11 @@ namespace picsom {
 	}
 
 	// si.first->RwLockIt();
-        WriteLog("Slave "+Picsom()->SlaveInfoString(*si.first, false)+
-                 " finished with thread "+
-                 Picsom()->ThreadInfoString(*si.second, true));
-
+	if (Picsom()->DebugSlaves())
+	  WriteLog("Slave "+Picsom()->SlaveInfoString(*si.first, false)+
+		   " finished with thread "+
+		   Picsom()->ThreadInfoString(*si.second, true));
+	
 	n_finish++;
 
         if (si.second->slave_state!="ready") {
@@ -882,7 +893,7 @@ namespace picsom {
 	       << msg+"ReadAndParseXML() failed 2, continuing still..."
 	       << endl;
 	  Picsom()->TerminateSlave(*si.first,
-				   "because ReadAndParseXML() failed 2");
+				   "because ReadAndParseXML() failed 2", 3);
 	  result_ok = false;
 	  continue;
         }
@@ -896,7 +907,7 @@ namespace picsom {
 	       << msg+"FindPath(/result/analysis/analyse_result) failed"
 	       << endl;
 	  Picsom()->TerminateSlave(*si.first,
-				   "because <analyse_result> missing");
+				   "because <analyse_result> missing", 3);
 	  result_ok = false;
         }
 
@@ -975,7 +986,7 @@ namespace picsom {
   /////////////////////////////////////////////////////////////////////////////
 
   bool Analysis::ProcessSlaveXmlResult(const XmlDom& xml,
-				       const PicSOM::slave_info_t& si) {
+				       PicSOM::slave_info_t& si) {
     string msg = "Analysis::ProcessSlaveXmlResult() : ";
 
     bool allow_overwrite = true;
@@ -1013,13 +1024,16 @@ namespace picsom {
 	ok = ProcessSlaveXmlResultFeatureVectorList(n, allow_overwrite, fn, c);
 	WriteLog("Stored "+ToStr(c)+" <"+fn+"> features from"+info.str());
 	slave_features_stored += c;
-
+	si.returned_empty = !c;
+	
       } else if (n.NodeName()=="detectionvectorlist") {
 	string fn;
 	size_t c = 0;
-	ok = ProcessSlaveXmlResultDetectionVectorList(n, allow_overwrite, fn, c);
+	ok = ProcessSlaveXmlResultDetectionVectorList(n, allow_overwrite, 
+						      fn, c);
 	WriteLog("Stored "+ToStr(c)+" <"+fn+"> detections from"+info.str());
 	slave_detections_stored += c;
+	si.returned_empty = !c;
 
       } else if (n.NodeName()=="captionlist") {
 	string fn;
@@ -1027,18 +1041,21 @@ namespace picsom {
 	ok = ProcessSlaveXmlResultCaptionList(n, allow_overwrite, fn, c);
 	WriteLog("Stored "+ToStr(c)+" <"+fn+"> captions from"+info.str());
 	slave_captions_stored += c;
+	si.returned_empty = !c;
 
       } else if (n.NodeName()=="objectinfohashlist") {
 	size_t c = 0;
 	ok = ProcessSlaveXmlResultObjectInfoHashList(n, c);
 	WriteLog("Stored "+ToStr(c)+" objects' info from"+info.str());
 	slave_objectinfos_stored += c;
+	si.returned_empty = !c;
 
       } else if (n.NodeName()=="objectchildinfolist") {
 	size_t c1 = 0, c2 = 0;
 	ok = ProcessSlaveXmlResultObjectChildInfoList(n, c1, c2);
 	WriteLog("Stored info on "+ToStr(c1)+" objects' "+ToStr(c2)
 		 +" children from"+info.str());
+	si.returned_empty = !(c1+c2);
 
       } else if (n.NodeName()=="detectionsummary") {
 	PicSOM::detection_stat_t& dstat = detection_stat;
@@ -1364,7 +1381,8 @@ namespace picsom {
     // existing captions are not yet checked...
 
     XmlDom dummy;
-    if (!db->StoreCaptioningResult(oidx, name, tl, use_textindex, do_flush, dummy))
+    if (!db->StoreCaptioningResult(oidx, name, tl, use_textindex, 
+				   do_flush, dummy))
       return ShowError(msg+"StoreCaptioningResult() failed with name="+name
 		       +" idx="+ToStr(oidx));
 
@@ -1429,7 +1447,7 @@ namespace picsom {
     int idx     = db->LabelIndexGentle(label, false);
     bool update = idx>=0;
     if (!update) {
-      target_type tt = target_image; // obs! hard-coded
+      target_type tt = SolveTargetTypes(m["type"]);
       idx = db->AddOneLabel(label, tt, false, false);
     }
     db->UpdateOriginsInfoSql(idx, m, update);
@@ -1448,16 +1466,23 @@ namespace picsom {
     if (xml.NodeName()!="objectchildinfolist")
       return ShowError(msg+"not an <objectchildinfolist> element");
 
+    DataBase *db = CheckDB();
+
+    if (!db->SqlBeginTransaction())
+      return ShowError(msg+"SqlBeginTransaction() failed");
+    
     bool ok = true;
-    for (XmlDom n=xml.FirstElementChild(); ok&&n; n=n.NextElement()) {
+    for (XmlDom n=xml.FirstElementChild(); ok&&n; n=n.NextElement())
       if (n.NodeName()=="objectchildinfo") {
 	size_t c = 0;
 	ok = ProcessSlaveXmlResultObjectChildInfo(n, c);
 	c1++;
 	c2 += c;
       } else
-	return ShowError(msg+"element <"+n.NodeName()+"> unknown");
-    }
+	ok = ShowError(msg+"element <"+n.NodeName()+"> unknown");
+
+    if (!db->SqlEndTransaction())
+      return ShowError(msg+"SqlEndTransaction() failed");
 
     return ok;
   }
@@ -1488,8 +1513,9 @@ namespace picsom {
 
     c = civ.size();
 
+    XmlDom dummy;
     for (auto i=piv.begin(); i!=piv.end(); i++)
-      if (!db->AppendSubobjectsFile(*i, civ))
+      if (!db->AppendSubobjectsFile(*i, civ, dummy))
 	return ShowError(msg+"AppendSubobjectsFile() failed");
 
     return true;
@@ -3009,8 +3035,16 @@ namespace picsom {
       func = &Analysis::AnalyseDummy;
       tt_needed = db_needed = features_needed = ifile_preferred = false;
     }
+    else if (method_x=="echo") {
+      func = &Analysis::AnalyseEcho;
+      tt_needed = db_needed = features_needed = ifile_preferred = false;
+    }
     else if (method_x=="env") {
       func = &Analysis::AnalyseEnv;
+      tt_needed = db_needed = features_needed = ifile_preferred = false;
+    }
+    else if (method_x=="versions") {
+      func = &Analysis::AnalyseVersions;
       tt_needed = db_needed = features_needed = ifile_preferred = false;
     }
     else if (method_x=="sleep") {
@@ -3163,13 +3197,25 @@ namespace picsom {
       func = &Analysis::AnalyseTranslateTest;
       db_needed = tt_needed = features_needed = ifile_preferred = false;
     }
+    else if (method_x=="speechrecognitiontest") {
+      func = &Analysis::AnalyseSpeechRecognitionTest;
+      db_needed = tt_needed = features_needed = ifile_preferred = false;
+    }
+    else if (method_x=="corenlptest") {
+      func = &Analysis::AnalyseCoreNLPTest;
+      db_needed = tt_needed = features_needed = ifile_preferred = false;
+    }
     else if (method_x=="sparqltest") {
       func = &Analysis::AnalyseSparqlTest;
       tt_needed = features_needed = ifile_preferred = false;
     }
+    else if (method_x=="linkeddatatest") {
+      func = &Analysis::AnalyseLinkedDataTest;
+      tt_needed = features_needed = ifile_preferred = false;
+    }
     else if (method_x=="rdftest") {
       func = &Analysis::AnalyseRdfTest;
-      tt_needed = features_needed = ifile_preferred = false;
+      ifile_preferred = db_needed = tt_needed = features_needed = false;
     }
     else if (method_x=="types") {
       func = &Analysis::AnalyseTypes;
@@ -3265,7 +3311,11 @@ namespace picsom {
     else if (method_x=="shotboundaryparams")
       func = &Analysis::AnalyseShotBoundaryParams;
   
-    else if (method_x=="trecvidsindevel") {
+    else if (method_x=="totalduration") {
+      func = &Analysis::AnalyseTotalDuration;
+      tt_needed = features_needed = ifile_preferred = false;
+
+    } else if (method_x=="trecvidsindevel") {
       func = &Analysis::AnalyseTrecvidSINdevel;
       tt_needed = features_needed = ifile_preferred = false;
 
@@ -3460,10 +3510,6 @@ namespace picsom {
       func = &Analysis::AnalyseSubtitles;
       tt_needed = features_needed = ifile_preferred = false;
     }
-    else if (method_x=="subtitlesold") {
-      func = &Analysis::AnalyseSubtitlesOld;
-      tt_needed = features_needed = ifile_preferred = false;
-    }
     else if (method_x=="elanize") {
       func = &Analysis::AnalyseElanize;
       features_needed = ifile_preferred = false;
@@ -3520,6 +3566,10 @@ namespace picsom {
     else if (method_x=="nearest") {
       func = &Analysis::AnalyseNearest;
       ifile_preferred = false;
+    }
+    else if (method_x=="featuremapping") {
+      func = &Analysis::AnalyseFeatureMapping;
+      features_needed = ifile_preferred = false;
     }
     else if (method_x=="detectordifference") {
       func = &Analysis::AnalyseDetectorDifference;
@@ -3682,6 +3732,10 @@ namespace picsom {
       func = &Analysis::AnalyseCOCOmasks;
       ifile_preferred = features_needed = false;
     }
+    else if (method_x=="densecaptest") {
+      func = &Analysis::AnalyseDenseCapTest;
+      ifile_preferred = features_needed = tt_needed = false;
+    }
     else if (method_x=="featuretest") {
       func = &Analysis::AnalyseFeatureTest;
       ifile_preferred = false;
@@ -3706,6 +3760,14 @@ namespace picsom {
       func = &Analysis::AnalyseExportLmdbFeatures;
       ifile_preferred = false;
     }
+    else if (method_x=="exportorderedfeatures") {
+      func = &Analysis::AnalyseExportOrderedFeatures;
+      ifile_preferred = false;
+    }
+    else if (method_x=="featuremean") {
+      func = &Analysis::AnalyseFeatureMean;
+      ifile_preferred = false;
+    }
     else if (method_x=="createdummyfeatures") {
       func = &Analysis::AnalyseCreateDummyFeatures;
       ifile_preferred = tt_needed = false;
@@ -3726,12 +3788,24 @@ namespace picsom {
       func = &Analysis::AnalyseExportWadm;
       ifile_preferred = features_needed = false;
     }
+    else if (method_x=="exportturtleconcepts") {
+      func = &Analysis::AnalyseExportTurtleConcepts;
+      ifile_preferred = false;
+    }
+    else if (method_x=="exportturtletextindex") {
+      func = &Analysis::AnalyseExportTurtleTextIndex;
+      ifile_preferred = features_needed = false;
+    }
     else if (method_x=="importbindata") {
       func = &Analysis::AnalyseImportBinData;
       ifile_preferred = features_needed = false;
     }
     else if (method_x=="test") {
       func = &Analysis::AnalyseTest;
+      ifile_preferred = tt_needed = db_needed = features_needed = false;
+    }
+    else if (method_x=="numpytest") {
+      func = &Analysis::AnalyseNumPyTest;
       ifile_preferred = tt_needed = db_needed = features_needed = false;
     }
     else if (method_x=="rewritemapslabelsonly") {
@@ -3760,6 +3834,10 @@ namespace picsom {
     }
     else if (method_x=="captioning") {
       func = &Analysis::AnalyseCaptioning;
+      ifile_preferred = features_needed = false;
+    }
+    else if (method_x=="caption") {
+      func = &Analysis::AnalyseCaption;
       ifile_preferred = features_needed = false;
     }
     else if (method_x=="sentencecandidates") {
@@ -3911,23 +3989,34 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  Analysis::analyse_result Analysis::AnalyseEcho(const vector<string>& args) {
+    for (size_t i=0; i<args.size(); i++)
+      cout << i << " \"" << args[i] << "\"" << endl;
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   Analysis::analyse_result Analysis::AnalyseDummy(const vector<string>& args) {
     for (size_t i=0; i<args.size(); i++)
       cout << i << " \"" << args[i] << "\"" << endl;
 
-    RandVar rr;
-    size_t n = 43L*1024*1024, m = 0;
-    set<size_t> ss;
-    for (;;) {
-      size_t v = rr.RandomInt(n);
-      if (v>m)
-	cout << (m=v) << endl;
-      if (ss.size()==1000000)
-	break;
-      ss.insert(v);
-      cout << " "  << ss.size() << endl;
+    if (false) {
+      RandVar rr;
+      size_t n = 43L*1024*1024, m = 0;
+      set<size_t> ss;
+      for (;;) {
+	size_t v = rr.RandomInt(n);
+	if (v>m)
+	  cout << (m=v) << endl;
+	if (ss.size()==1000000)
+	  break;
+	ss.insert(v);
+	cout << " "  << ss.size() << endl;
+      }
     }
-
+  
     return true;
 
 
@@ -4029,6 +4118,15 @@ namespace picsom {
     return true;
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result Analysis::AnalyseVersions(const vector<string>&) {
+    WriteLog("Starting to dump version_data in XML");
+    EnsureXmlResult();
+    XmlDom root = XmlResult().Root();
+    return Picsom()->AddToXMLversions(root);
+  }
+  
   /////////////////////////////////////////////////////////////////////////////
 
   Analysis::analyse_result Analysis::AnalyseEnv(const vector<string>&) {
@@ -4606,7 +4704,14 @@ namespace picsom {
       }
       if (middleframe) {
 	pair<size_t,size_t> ii = db->VideoOrSegmentMiddleFrame(i);
-	out << " " << db->Label(ii.first);
+	if (ii.first!=(size_t)-1)
+	  out << " " << db->Label(ii.first);
+	else {
+	  cout << "Video <" << db->Label(i) << "> does not have middleframe"
+	       << endl;
+	  // return ShowError(msg+"VideoOrSegmentMiddleFrame() failed with <"
+	  //		   +db->Label(i)+">");
+	}
       }
       if (kf1) {
 	string labelkf = db->Label(i)+":kf1";
@@ -5024,11 +5129,286 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  Connection *Analysis::BuildNLPpipe(const string& n,
+				     const vector<string>& p) {
+    string msg = "BuildNLPpipe() : ";
+
+    vector<string> cmd {
+      Picsom()->UserHomeDir()+"/picsom/java/stanford-nlp/picsom-stanford-nlp"
+    };
+
+    // cmd.push_back("--debug");
+    // cmd.push_back("--compile");
+    cmd.push_back("--");
+
+    bool debug = false;
+    
+    if (debug)
+      WriteLog(msg+"command ["+JoinWithString(cmd, "][")+"]");
+
+    Connection *c = Picsom()->CreatePipeConnection(cmd, false);
+    if (!c) {
+      ShowError(msg+"creating stanford nlp pipe failed : ["+
+		JoinWithString(cmd, "][")+"]");
+      return NULL;
+    }
+    c->CanPossiblyBeSelected(false);
+
+    int r = fcntl(c->Wfd(), F_GETFL);
+    if (r==-1) {
+      ShowError(msg+"fcntl(F_GETFL) failed");
+      return NULL;
+    }
+
+    r = r | O_NONBLOCK;
+
+    r = fcntl(c->Wfd(), F_SETFL, r);
+    if (r==-1) {
+      ShowError(msg+"fcntl(F_SETFL) failed");
+      return NULL;
+    }
+
+    string line;
+    for (const auto& l : p)
+      line += (line==""?"":";")+l;
+    line = "build "+n+" "+line;
+
+    nlp_pipes[n] = c;
+
+    auto z = NLPOperation(n, {line}, true);
+    if (!z.first) {
+      ShowError(msg+"NLPOperation() failed");
+      return NULL;
+    }
+    
+    return c;
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  pair<bool,list<string> > Analysis::NLPOperation(const string& name,
+						  const list<string>& in,
+						  bool syncin) {
+    string msg = "Analysis::NLPOperation("+name+", "+ToStr(in.size())+
+      " lines, "+(syncin?"true":"false")+") : ";
+    list<string> out;
+
+    bool debug = false;
+    
+    if (debug)
+      WriteLog(msg+"starting");
+    
+    Connection *c = GetNLPpipe(name);
+    if (!c) {
+      ShowError(msg+"failing because GetNLPpipe() failed");
+      return make_pair(false, out);
+    }
+    
+    if (c->IsClosed()) {
+      ShowError(msg+"failing because connection "+c->Identity()+" has been closed");
+      return make_pair(false, out);
+    }
+
+    istream& is = *c->RfdIstream();
+    ostream& os = *c->WfdOstream();
+    
+    bool errored = false;
+    string errmsg;
+    size_t n = 0, m = 0;
+    for (auto i=in.begin();; i++) {
+      bool sync = syncin || i==in.end() || (m+1)%10==0;
+
+      if (i!=in.end()) {
+	os << *i << endl;
+	if (debug)
+	  cout << TimeStamp() << "corenlp in  " 
+	       << m << " " << n << " [" << *i << "]" << endl;
+	m++;
+      }
+
+      if (sync)
+	for (; !errored && n<m; n++)
+	  for (;;) {
+	    string s;
+	    getline(is, s);
+	    if (debug)
+	      cout << TimeStamp() << "corenlp out "
+		   << m << " " << n << " [" << s << "]" << endl;
+	    if (s=="* ok")
+	      break;
+	    if (s.find("* ERROR")==0) {
+	      errored = true;
+	      errmsg = s.substr(8);
+	      break;
+	    }
+	    if (s.find("* "))
+	      continue;
+	    out.push_back(s.substr(2));
+	  }
+
+      if (i==in.end())
+	break;
+    }
+
+    if (errored) {
+      ShowError(msg+"failing because ERROR \""+errmsg+"\"");
+      c->Close();
+
+      return make_pair(false, list<string>());
+    }
+
+    if (debug)
+      WriteLog(msg+"ending");
+    
+    return make_pair(true, out);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<vector<Analysis::nlptagged_word> >
+  Analysis::NLPtagPOS(const string& n, const list<string>& s) {
+    string err = "NLPtagPOS() : ";
+
+    string line = "apply "+n;
+    for (const auto& l : s)
+      line += " "+l;
+    
+    list<vector<nlptagged_word> > ret;
+
+    auto z = NLPOperation(n, {line}, true);
+    if (!z.first) {
+      ShowError(err+"NLPOperation() failed");
+      return ret;
+    }
+
+    vector<nlptagged_word> l;
+    bool skip = false;
+    for (const auto& w : z.second) {
+      if (w.find("Sentence #")==0) {
+	if (l.size())
+	  ret.push_back(l);
+	l.clear();
+	skip = false;
+      }
+      if (!skip && w.find("[Text=")==0) {
+	string wx = w.substr(1, w.size()-2);
+	nlptagged_word tw;
+	auto wv = SplitInSpaces(wx);
+	for (const auto& i : wv) {
+	  auto kw = SplitKeyEqualValueNew(i);
+	  if (kw.first=="Text")
+	    tw.text = kw.second;
+	  if (kw.first=="PartOfSpeech")
+	    tw.pos = kw.second;
+	  if (kw.first=="Lemma")
+	    tw.lemma = kw.second;
+	}
+	l.push_back(tw);
+      }
+      if (!skip && w.find("The top level annotation")==0)
+	skip = true;
+    }
+    if (l.size())
+      ret.push_back(l);
+    
+    return ret;
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
+  Analysis::AnalyseCoreNLPTest(const vector<string>& args) {
+    string err = "AnalyseCoreNLPTest() : ";
+
+    WriteLog(err+"starting");
+
+    string name = "mypipe";
+    
+    vector<string> prop { "annotators=tokenize,ssplit,pos,lemma,depparse" };
+
+    Connection *c = BuildNLPpipe(name, prop);
+    Connection *x = GetNLPpipe(name);
+    if (c!=x)
+      return ShowError(err+"???");
+
+    DataBase *db = GetDataBase(); 
+    if (args.empty() && db && query->TextIndex()!="") {
+      vector<size_t> idxs = QueryRestrictionGT().indices(1);
+      for (const auto& idx : idxs) {
+	auto tl = db->TextIndexAllLines(query->TextIndex(), idx);
+	if (tl.empty()) {
+	  cout << "No text line for <" << db->Label(idx) << ">" << endl;
+	  continue;
+	}
+	
+	for (const auto& k : tl)
+	  if (k.field=="text")
+	    for (const auto& j : k.txt_val_box) {
+	      
+	      string tx = j.t;
+	      Replace(tx, '.', "");
+	      Replace(tx, '!', "");
+	      Replace(tx, '?', "");
+	      Replace(tx, '"', "");
+	      vector<string> tt = SplitInSpaces(tx);
+	      for (auto& i : tt)
+		if (i!="I")
+		  i = LowerCase(i);
+	      string ta = JoinWithString(tt, " ");
+
+	      cout << j.t << endl;
+	      auto rr = NLPtagPOS(name, {ta});
+	      for (const auto& r : rr) {
+		cout << "POS ";
+		for (const auto& w : r)
+		  cout << w.str() << " ";
+		cout << endl;
+	      }
+	    }
+      }
+    }
+    
+    for (const auto& l : args) {
+      auto rr = NLPtagPOS(name, {l});
+      for (const auto& r : rr) {
+	for (const auto& w : r)
+	  cout << w.str() << " ";
+	cout << endl;
+      }
+    }
+
+    return true;
+  }
+    
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
+  Analysis::AnalyseSpeechRecognitionTest(const vector<string>& args) {
+    string err = "AnalyseSpeechRecognitionTest() : ";
+
+    WriteLog(err+"starting");
+
+    DataBase *db = CheckDB();
+    ground_truth gt(db->Size());
+    for (size_t i=0; i<args.size(); i++)
+      gt = gt.TernaryOR(GetDataBase()->GroundTruthExpression(args[i]));
+    vector<size_t> idxs = gt.indices(1);
+
+    // return db->GoogleSpeechRecognition("en", idxs);
+
+    //list<string> l { "/home/jorma/picsom/picsom_videofile_E9KZco.wav" };
+    list<string> l { "/home/jorma/picsom/picsom_audio.wav" };
+
+    return db->GoogleSpeechRecognition("en-US", l);
+  }
+    
+  /////////////////////////////////////////////////////////////////////////////
+
   Analysis::analyse_result Analysis::AnalyseTranslateTest(const vector<string>&
 							  args) {
     string err = "AnalyseTranslateTest() : ";
 
-    WriteLog("AnalyseTranslateTest");
+    WriteLog(err+"starting");
 
     if (args.size()<4)
       return ShowError(err+"4+ arguments needed, eg. "
@@ -5099,7 +5479,8 @@ namespace picsom {
 	if (si==NULL)
 	  return ShowError(err+"slave not found");
 
-	Picsom()->TerminateSlave(*(PicSOM::slave_info_t*)si, "just because");
+	Picsom()->TerminateSlave(*(PicSOM::slave_info_t*)si,
+				 "just because", 3);
 	sleep(1);
       }
     }
@@ -5528,9 +5909,169 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  Analysis::analyse_result Analysis::AnalyseRdfTest(const vector<string>&
-						    args) {
-    string err = "AnalyseRdfTest() : ";
+#ifdef HAVE_RAPTOR2_H
+  //raptor_statement_handler
+  extern "C" {
+    void triple_list_push_back(void *p, raptor_statement *statement) {
+      list<raptor_statement*>& sl = *(list<raptor_statement*>*)p;
+      sl.push_back(raptor_statement_copy(statement));
+      //raptor_statement_print(sl.back(), stdout);
+      //print("\n");
+    }
+  }
+#endif // HAVE_RAPTOR2_H
+  
+  Analysis::analyse_result 
+  Analysis::AnalyseRdfTest(const vector<string>& /*argv*/) {
+    string msg = "AnalyseRdfTest() : ";
+
+    bool raptor = false, rasqal = true;
+    
+#ifdef HAVE_RAPTOR2_H
+    if (raptor) {
+      raptor_world* world;
+      world = raptor_new_world();
+
+      string buf = FileToString("IO03.ttl");
+    
+      raptor_parser* rdf_parser
+	= raptor_new_parser_for_content(world, NULL, NULL, (unsigned char*)
+					buf.c_str(), buf.size(), NULL);
+
+      if (!rdf_parser)
+	ShowError(msg+"raptor_new_parser_for_content() failed");
+
+      list<raptor_statement*> triple_list;
+      raptor_parser_set_statement_handler(rdf_parser, &triple_list, triple_list_push_back);
+
+      raptor_uri *base_uri_p = raptor_new_uri(world, (unsigned char*)".");
+      raptor_parser_parse_start(rdf_parser, base_uri_p);
+      raptor_parser_parse_chunk(rdf_parser, (unsigned char*)
+				buf.c_str(), buf.size(), 1);
+
+      raptor_free_uri(base_uri_p);
+      raptor_free_parser(rdf_parser);
+
+      const char *ser_type = "turtle"; // "json"
+      raptor_serializer* rdf_serializer = raptor_new_serializer(world, ser_type);
+      raptor_uri *ns_uri_nif = raptor_new_uri(world, (unsigned char*)"http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#");
+      raptor_uri *ns_uri_oa = raptor_new_uri(world, (unsigned char*)"https://www.w3.org/ns/oa#");
+      raptor_uri *ns_uri_itsrdf = raptor_new_uri(world, (unsigned char*)"http://www.w3.org/2005/11/its/rdf#");
+      raptor_uri *ns_uri_xsd = raptor_new_uri(world, (unsigned char*)"http://www.w3.org/2001/XMLSchema#");
+      raptor_uri *ns_uri_memad = raptor_new_uri(world, (unsigned char*)"https://memad.eu/ontology#");
+      raptor_serializer_set_namespace(rdf_serializer, ns_uri_nif, (unsigned char*)"nif");
+      raptor_serializer_set_namespace(rdf_serializer, ns_uri_oa, (unsigned char*)"oa");
+      raptor_serializer_set_namespace(rdf_serializer, ns_uri_itsrdf, (unsigned char*)"itsrdf");
+      raptor_serializer_set_namespace(rdf_serializer, ns_uri_xsd, (unsigned char*)"xsd");
+      raptor_serializer_set_namespace(rdf_serializer, ns_uri_memad, (unsigned char*)"memad");
+      raptor_uri* base_uri_s = raptor_new_uri(world, (unsigned char*)"");
+      char *outbuf = NULL;
+      size_t outbuf_size = 0;
+      raptor_iostream* iostream = raptor_new_iostream_to_string(world, (void**)&outbuf,
+								&outbuf_size,
+								malloc);
+      raptor_serializer_start_to_iostream(rdf_serializer, base_uri_s, iostream);
+      for (auto& triple : triple_list) {
+	//raptor_statement_print(triple, stdout);
+	raptor_serializer_serialize_statement(rdf_serializer, triple);
+	raptor_free_statement(triple);
+      }
+      raptor_serializer_serialize_end(rdf_serializer);
+      raptor_free_uri(base_uri_s);
+      raptor_free_uri(ns_uri_nif);
+      raptor_free_uri(ns_uri_oa);
+      raptor_free_uri(ns_uri_itsrdf);
+      raptor_free_uri(ns_uri_xsd);
+      raptor_free_uri(ns_uri_memad);
+      raptor_free_serializer(rdf_serializer);
+      raptor_free_iostream(iostream);
+
+      raptor_free_world(world);
+
+      string outstr(outbuf, outbuf_size);
+      ofstream out("out.ttl");
+      out << outstr << endl;
+    }
+#endif // HAVE_RAPTOR2_H
+
+#ifdef HAVE_RASQAL_H
+    if (rasqal) {
+      string buf = FileToString("alice.ttl");
+      cout << buf << endl;
+
+      string qa = "PREFIX foaf: <http://xmlns.com/foaf/0.1/> "
+	"SELECT ?name (COUNT(?friend) AS ?count) "
+	"WHERE { "
+	"  ?person foaf:name ?name . "
+	"  ?person foaf:knows ?friend . "
+	"} GROUP BY ?person ?name";
+      
+      string qb = "SELECT * WHERE { ?s ?p ?o . }";
+
+      string q1 = qb;
+      
+      rasqal_world *world = rasqal_new_world();
+      if (rasqal_world_open(world))
+	return ShowError(msg+"rasqal_world_open() failed");
+      raptor_world *raptor = rasqal_world_get_raptor(world);
+      // raptor_iostream *iostream
+      //   = raptor_new_iostream_from_string(raptor, (void*)buf.c_str(), buf.size());
+      raptor_iostream *iostream
+	= raptor_new_iostream_from_filename(raptor, "alice.ttl");
+      if (!iostream)
+	return ShowError(msg+"raptor_new_iostream_from_string() failed");
+      raptor_uri *base_uri_p = raptor_new_uri(raptor, (unsigned char*)"");
+      //raptor_uri *name_uri_p = raptor_new_uri(raptor, (unsigned char*)"http://example.com/graph");
+      raptor_uri *name_uri_p = raptor_new_uri(raptor, (unsigned char*)"");
+      unsigned int flags = RASQAL_DATA_GRAPH_BACKGROUND;
+      // unsigned int flags = RASQAL_DATA_GRAPH_NAMED;
+      rasqal_data_graph *graph
+	= rasqal_new_data_graph_from_iostream(world, iostream, base_uri_p,
+					      NULL /*name_uri_p*/, flags, NULL, "turtle", NULL);
+      if (!graph)
+	return ShowError(msg+"rasqal_new_data_graph_from_iostream() failed");
+      rasqal_data_graph_print(graph, stdout);
+      printf("\n");
+      rasqal_query *rq = rasqal_new_query(world, "sparql", NULL);
+      if (!rq)
+	return ShowError(msg+"rasqal_new_query() failed");
+      if (rasqal_query_add_data_graph(rq, graph))
+	return ShowError(msg+"rasqal_query_add_data_graph() failed");
+      if (rasqal_query_prepare(rq, (const unsigned char*)q1.c_str(), NULL))
+	return ShowError(msg+"rasqal_query_prepare() failed");
+      rasqal_query_results *results = rasqal_query_execute(rq);
+      if (!results)
+	return ShowError(msg+"rasqal_query_execute() failed");
+      size_t j = 0;
+      while (!rasqal_query_results_finished(results)) {
+	printf("%lu", j++);
+        for (int i=0; i<rasqal_query_results_get_bindings_count(results); i++) {
+	  const unsigned char *name = rasqal_query_results_get_binding_name(results, i);
+	  rasqal_literal *value = rasqal_query_results_get_binding_value(results, i);
+	  printf(" [%s]=[%p ", name, value);
+	  rasqal_literal_print_type(value, stdout);
+	  printf(" ");
+	  rasqal_literal_print(value, stdout);
+	  printf("]");
+        }
+	printf("\n");
+        rasqal_query_results_next(results);
+      }
+      rasqal_free_query_results(results);
+      rasqal_free_query(rq);
+      raptor_free_uri(base_uri_p);
+      rasqal_free_world(world);
+    }
+#endif// HAVE_RASQAL_H
+    
+    return raptor || rasqal || true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result Analysis::AnalyseLinkedDataTest(const vector<string>&
+							   args) {
+    string err = "AnalyseLinkedDataTest() : ";
     WriteLog(err);
 
     for (auto r=args.begin(); r!=args.end(); r++) {
@@ -5606,7 +6147,7 @@ namespace picsom {
 
     string pd = Picsom()->UserHomeDir()+"/picsom/python";
     
-    PyObject *path = PySys_GetObject((char*)"path");
+    PyObject *path = PySys_GetObject("path");
     PyObject *dir  = PyString_FromString_x(pd.c_str());
     if (PyList_Insert(path, 0, dir))
       return ShowError(msg+"PyList_Insert() failed");
@@ -5654,7 +6195,8 @@ namespace picsom {
       return ShowError(msg+"B");
     }
 
-    pValue = PyObject_CallMethod(pInstance, (char*)"get_float", (char*)"(i)", 5794);
+    pValue = PyObject_CallMethod(pInstance, (char*)"get_float", 
+				 (char*)"(i)", 5794);
     if (PyErr_Occurred()) {
       PyErr_Print();
       return ShowError(msg+"C");
@@ -6129,7 +6671,7 @@ namespace picsom {
       return ShowError(msg+"empty set by queryrestriction");
 
     Unlink(filename);
-    bin_data bin(filename, true, bin_data::header::format_float,
+    bin_data bin(filename, true, 1.0, bin_data::header::format_float,
 		 4*8*vl, vl);
 
     WriteLog("Starting to extract raw \""+feat.Name()+"\" features from "
@@ -6368,7 +6910,7 @@ namespace picsom {
     vector<size_t> gto = gt.indices(1);
     WriteLog("Starting to extract "+ToStr(gto.size())+" objects");
     size_t n_not_missing = 0, n_existed = 0, n_tar = 0, n_videoframe = 0;
-    size_t n_bb = 0;
+    size_t n_bb = 0, n_fail = 0;
 
     vector<size_t> one_call;
 
@@ -6398,11 +6940,14 @@ namespace picsom {
 
       } else if (db->IsImageFromContainer(o)) {
 	string s = db->ObjectPathEvenExtract(o);
-	CopyFile(s, d);
-
-	WriteLog("Extracted <"+d+"> from a container");
-	n_tar++;
-
+	if (CopyFile(s, d)) {
+	  WriteLog("Extracted <"+d+"> from a container");
+	  n_tar++;
+	} else {
+	  ShowError("Failed to extract <"+d+"> from a container");
+	  n_fail++;
+	}
+	
 	if (bb.find(o)!=bb.end()) {
 	  const vector<size_t>& vi = bb[o];
 	  imagedata img = imagefile(s).frame(0);
@@ -6488,7 +7033,7 @@ namespace picsom {
     WriteLog("Done with "+ToStr(n_not_missing)+" not missing, "+
 	     ToStr(n_existed)+" existed, "+ToStr(n_tar)+" from tar, "+
 	     ToStr(n_videoframe)+" from video, "+ToStr(n_bb)+
-	     " bounding boxes");
+	     " bounding boxes, "+ToStr(n_fail)+" failures");
 
     return true;
   }
@@ -6710,9 +7255,9 @@ namespace picsom {
 	
 	if (verbose&512) {
 	  cout << "#" << idx[j] << " <" << db->Label(idx[j]) << ">";
-	  for (auto e=labelextras.begin(); e!=labelextras.end(); e++)
-	    if (m[*e]!="")
-	      cout << " " << *e << "=[" << m[*e] << "]";	    
+	  for (const auto& e : labelextras)
+	    if (m[e]!="")
+	      cout << " " << e << "=[" << m[e] << "]";	    
 	  cout << endl;
 	}
 
@@ -6801,7 +7346,7 @@ namespace picsom {
 	      VectorIndex *vidx = dynamic_cast<VectorIndex*>(db->GetIndex(k));
 	      const string augm;
 	      if (vidx) 
-		vidx->BinDataOpen(false, db->Size(), false, augm);
+		vidx->BinDataOpen(false, db->Size(), false, 0.0, augm);
 	    }
 	    FloatVector *v = db->FeatureData(iname, idx[j], false);
 	    if (!v)
@@ -6846,24 +7391,30 @@ namespace picsom {
 	  list<string> tilist;
 	  string qtiname = query->TextIndex();
 	  if (qtiname!="")
-	    tilist.push_back(qtiname);
+	    tilist = SplitInCommasList(qtiname);
 	  else
 	    tilist = db->TextIndices();
-	  for (auto in=tilist.begin(); in!=tilist.end(); in++) {
+	  for (const auto& in : tilist) {
 	    if (use_textindexretrieve) {
-	      list<pair<string,string> > td = db->TextIndexRetrieve(idx[j], *in);
+	      list<pair<string,string> > td = db->TextIndexRetrieve(idx[j], in);
 	      if (td.empty())
-		cout << "  " << *in << " : EMPTY" << endl;
-	      for (auto ti=td.begin(); ti!=td.end(); ti++)
-		if (ti->first!="label" || ti->second!=db->Label(idx[j]))
-		  cout << "  " << *in << " : " << ti->first
-		       << " = \"" << ti->second << "\"" << endl;
+		cout << "  " << in << " : EMPTY" << endl;
+	      for (const auto& ti : td)
+		if (ti.first!="label" || ti.second!=db->Label(idx[j]))
+		  cout << "  " << in << " : " << ti.first
+		       << " = \"" << ti.second << "\"" << endl;
 	    }
 	    if (use_textindexline) {
-	      textline_t tl = db->TextIndexLine(*in, "text", idx[j]);
-	      cout << "  " << tl.txt_display(true) << endl;
+	      textline_t tl = db->TextIndexLine(in, "text", idx[j]);
+	      cout << "  " << tl.txt_display_all(true) << endl;
 	    }
 	  }
+	}
+
+	if (verbose&2048) {
+	  auto l = db->BoxData(idx[j]);
+	  for (auto& b : l)
+	    cout << b.str() << endl;
 	}
       }
     }
@@ -7190,17 +7741,20 @@ namespace picsom {
       spec += string(spec!=""?";":"")+"lscom="+lscommap;
     spec += string(spec!=""?";":"")+"thr="+ToStr(threshold);
 
-
-    bool ok = true;
+    vector<string> slave_args;
     size_t v = 0;
-    for (; ok && v<args.size(); v++) {
+    for (; v<args.size(); v++) {
       const string& a = args[v];
       if (a=="ass" || a=="vtt") {
 	type = a;
+	slave_args.push_back(a);
 	continue;
       }
-      if (a.find("showprob=")==0 || a.find("showsegm=")==0) {
+      if (a.find("showprob=")==0  || a.find("showsegm=")==0 ||
+	  a.find("showempty=")==0 || a.find("concepts.")==0 ||
+	  a.find("subtitle.")==0) { // obs! also other styles exist...
 	spec += string(spec!=""?";":"")+a;
+	slave_args.push_back(a);
 	continue;
       }
       
@@ -7208,380 +7762,28 @@ namespace picsom {
     }
 
     ground_truth gt(db->Size());
-    for (; ok && v<args.size(); v++) {
+    for (; v<args.size(); v++) {
       ground_truth gta = db->GroundTruthExpression(args[v], target_video,
 						   -1, false);
       gt = gt.TernaryOR(gta);
     }
-
     vector<size_t> vidx = gt.indices(1);
-    for (auto vi=vidx.begin(); ok && vi!=vidx.end(); vi++)
-      ok = db->GenerateSubtitles(*vi, type, spec,
-				 db->Label(*vi)+filename+"."+type);
 
-    return ok;
-  }
-
-  /////////////////////////////////////////////////////////////////////////////
-
-  Analysis::analyse_result Analysis::AnalyseSubtitlesOld(const vector<string>&
-							 args) {
-    string err = "AnalyseSubtitles() : ";
-
-    bool debug1 = verbose>1, debug2 = verbose>2, debug3 = verbose>3;
-
-    if (args.empty())
-      return ShowError(err+"arguments should be given");
-
-    WriteLog("AnalyseSubtitles");
-
-    // if (segmentspec=="")
-    //   return ShowError(err+"segmentspec should be set");
-
-    string segmentspec_was = segmentspec;
-    vector<string> sspecs = SplitInCommas(segmentspec);
-
-    ReadFiles();
-    DataBase *db = GetDataBase();
-
-    bool ok = true;
-    for (size_t v=0; ok && v<args.size(); v++) {
-      const string& vlab = args[v];
-      string vfile = db->ObjectTypeAndPath(vlab, target_video);
-      if (vfile=="") {
-        ok = ShowError(err+"label <"+vlab+"> is not an existing video file");
-        break;
-      }
-      string vfile_x = vfile;
-      vfile = "";
-      
-      const object_info *oi = CheckDB()->FindObject(vlab);
-      oi->dump();
-      
-      WriteLog("Object <"+vlab+"> has "+
-	       ToStr(oi->children.size())+" children (before)");
-      CheckDB()->MakeSubObjectIndex();
-      WriteLog("Object <"+vlab+"> has "+
-	       ToStr(oi->children.size())+" children (after)");
-
-      string fname = vlab+".ass";
-      ofstream os(fname.c_str());
-      os << "[Script Info]" << endl
-	 << "Title:" << endl
-	 << "Original Script:" << endl
-	 << "Original Translation:" << endl
-	 << "Original Editing:" << endl
-	 << "Original Timing:" << endl
-	 << "Original Script Checking:" << endl
-	 << "ScriptType: v4.00+" << endl
-	 << "Collisions: Normal" << endl
-	 << "PlayResY: 1024" << endl
-	 << "PlayDepth: 0" << endl
-	 << "Timer: 100,0000" << endl
-	 << "[V4+ Styles]" << endl
-	 << "Format:"
-	 << " Name, Fontname, Fontsize, PrimaryColour, SecondaryColour,"
-	 << " OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut,"
-	 << " ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow,"
-	 << " Alignment, MarginL, MarginR, MarginV, Encoding" << endl;
-
-      string s1 = ",DejaVu Sans,70,";
-      string s2 = ",&H00B4FCFC,&H00000000,&H00000000,"
-	"0,0,0,0,100,100,0.00,0.00,1,2.50,0.00,";
-      string s4 = ",&H00B4FCFC,&H000000FF,&H00000000,"
-	"0,0,0,0,100,100,0.00,0.00,1,2.50,0.00,";
-      string s3 = ",50,50,50,0";
-      os << "Style: subtitle" << s1 << "&H00FFFFFF" << s2 << 2 << s3 << endl;
-      os << "Style: concepts" << s1 << "&H0000C000" << s2 << 7 << s3 << endl;
-      os << "Style: personte" << s1 << "&H00C00000" << s2 << 6 << s3 << endl;
-      os << "Style: personfa" << s1 << "&H00C000C0" << s2 << 6 << s3 << endl;
-      os << "Style: personvo" << s1 << "&H00C000C0" << s2 << 4 << s3 << endl;
-      os << "Style: facebox"  << s1 << "&HFF000000" << s4 << 7 << s3 << endl;
-      os << "Style: link"     << s1 << "&H000000FF" << s2 << 4 << s3 << endl;
-      os << "[Events]" << endl;
-      os << "Format: Layer, Start, End, Style, Name,"
-	" MarginL, MarginR, MarginV,Effect, Text" << endl;
-
-      for (size_t si=0; si<sspecs.size(); si++) {
-	segmentspec = sspecs[si];
-
-	if (segmentspec=="links") {
-	  float duration = 5;
-
-	  string lfile = CheckDB()->SolveObjectPath(vlab);
-	  size_t p = lfile.rfind('.');
-	  if (p==string::npos)
-	    lfile = "";
-	  else {
-	    lfile.erase(p);
-	    p = lfile.rfind('/');
-	    if (p==string::npos)
-	      lfile = "";
-	    else {
-	      string s = lfile.substr(p);
-	      lfile += ".d"+s+".links";
-	    }
-	  }
-	  if (FileExists(lfile)) {
-	    WriteLog("Processing LINKS file <"+ShortFileName(lfile)+">");
-	    list<textline_t> aline = CheckDB()->ReadOSRS(lfile);
-	    for (auto i=aline.begin(); i!=aline.end(); i++) {
-	      string txt = i->txt_val[0].first;
-
-	      os << "Dialogue: 0," << DataBase::ASStimeStr(i->start) << ","
-		 << DataBase::ASStimeStr(i->start+duration)
-		 << ",link,foo,000,000,000,," << txt << endl;
-	    }
-	  }
-	  continue;
-	}
-
-	if (CheckDB()->IsMetaClassFile(segmentspec)) {
-	  WriteLog("Processing METACLASSFILE file <"+
-		   ShortFileName(segmentspec)+">");
-	  
-	  list<textline_t> asrcooked;
-	  ground_truth_set clist;
-	  if (detections.size()==0)
-	    clist = CheckDB()->GroundTruthExpressionListNew(segmentspec);
-	  else {
-	    list<string> ls = CheckDB()->SplitClassNames(segmentspec);
-	    for (auto i=ls.begin(); i!=ls.end(); i++) {
-	      ground_truth gt;
-	      gt.label(*i);
-	      clist.insert(gt);
-	    }
-	  }
-
-	  // svm::ColorSIFTds-soft90-1x1-2x2::EXP_CHI2::tv12#lscom570.bin
-	  // -> detections=svm::ColorSIFTds-soft90-1x1-2x2::EXP_CHI2::tv12
-	  
-	  float thr = threshold;
-	  // if (thr==0)
-	  //   thr = 0.95;
-
-	  bool use_sec = false; // obs!
-	  float fps = 25;       // obs!
-
-	  for (size_t f_or_sec=0; f_or_sec<1000000; f_or_sec++) { // obs!
-	    string label = vlab+":"+(use_sec?"s":"")+ToStr(f_or_sec);
-	    int idx = CheckDB()->LabelIndexGentle(label, false);
-	    if (debug1)
-	      cout << label << " #" << idx;
-
-	    if (idx<0) {
-	      if (debug1)
-		cout << endl;
-	      break; // was continue;
-	    }
-
-	    string txt;
-	    map<float,string> valtxt;
-	    for (size_t a=0; a<clist.size(); a++) {
-	      if (clist[a].index_ok(idx) && clist[a][idx]==1)
-		txt += (txt==""?"":" ")+clist[a].label();
-
-	      if (detections.size()==1) {
-		string detname = detections.front();
-		detname += "#"+clist[a].label();
-
-		bool dummy = true;
-		map<string,vector<float> > dets
-		  = CheckDB()->RetrieveDetectionData(idx, detname, true, dummy);
-
-		if (dets.size()==1) {
-		  if (dets.begin()->second.size()!=1)
-		    return ShowError(err+"dets.begin()->second.size()!=1");
-		    
-		  string labo = clist[a].label(), lab = labo;
-
-		  float val = dets.begin()->second[0];
-		  if (debug3)
-		    cout << " " << labo << "=" << val;
-
-		  if (val>thr) {
-		    if (lab.substr(0, 5)=="lscom") {
-		      lab = CheckDB()->LscomName(lab, true, "trecvid2011");
-		      pair<string,string> lp = DataBase::SplitLscomName(lab);
-		      lab = lp.first;
-		    }
-		    if (lab.size()==9 && lab[0]=='n' &&
-			lab.find_first_not_of("0123456789", 1)==string::npos) {
-		      lab = CheckDB()->ImageNetName(lab, true);
-		      vector<string> labv = CheckDB()->SplitImageNetName(lab);
-		      lab = labv[0];
-		    }
-		
-		    if (debug2)
-		      cout << " *" << labo << "/" << lab << "=" << val << "*";
-
-		    string txt = lab;
-		    char valbuf[100];
-		    sprintf(valbuf, " (%1.3f)", val);
-		    txt += valbuf;
-		    valtxt.insert(make_pair(val, txt));
-		  }
-		}
-	      }
-	    }
-
-	    for (auto i=valtxt.rbegin(); i!=valtxt.rend(); i++)
-	      txt += (txt==""?"":" ")+i->second;
-
-	    if (txt!="") {
-	      textline_t aline;
-	      aline.start = f_or_sec/(use_sec?1:fps);
-	      aline.end   = (f_or_sec+1)/(use_sec?1:fps);
-	      aline.add(txt, 0);
-	      asrcooked.push_back(aline);
-
-	      if (debug1 && !debug2)
-		cout << " " << txt.substr(0, 50);
-	    }
-
-	    if (debug1)
-	      cout << endl;
-	  }
-
-	  for (auto i=asrcooked.begin(); i!=asrcooked.end(); i++) {
-	    string txt = i->txt_val[0].first;
-
-	    os << "Dialogue: 0," << DataBase::ASStimeStr(i->start) << ","
-	       << DataBase::ASStimeStr(i->end)
-	       << ",concepts,foo,000,000,000,," << txt << endl;
-	  }
-	  continue;
-	}
-
-	if (segmentspec=="dia") {
-	  string diafile = vfile_x;
-	  size_t p = diafile.rfind('.');
-	  size_t q = diafile.rfind('/', p);
-	  diafile.erase(p+1);
-	  diafile += "d"+diafile.substr(q, p-q+1)+"dia";
-	  list<textline_t> dia = CheckDB()->ReadOSRS(diafile);
-	  WriteLog("Processing DIA file <"+ShortFileName(diafile)+">");
-	  for (auto i=dia.begin(); i!=dia.end(); i++) {
-	    string txt = i->txt_val[0].first; // , t = txt.substr(0, 1);
-	    // if (t[0]>='a' && t[0]<='z')
-	    //   txt[0] = t[0]-32;
-	    // txt += ".";
-	    
-	    os << "Dialogue: 0," << DataBase::ASStimeStr(i->start) << ","
-	       << DataBase::ASStimeStr(i->end)
-	       << ",personvo,foo,000,000,000,," << txt << endl;
-	  }
-	  continue;
-	}
-
-	if (segmentspec=="asr") {
-	  string asrfile;
-	  list<textline_t> asrcooked = CheckDB()->OSRScooked(vfile_x, asrfile);
-	  if (asrfile!="") {
-	    WriteLog("Processing OSRS file <"+ShortFileName(asrfile)+">");
-	    for (auto i=asrcooked.begin(); i!=asrcooked.end(); i++) {
-	      string txt = i->txt_val[0].first; // , t = txt.substr(0, 1);
-	      // if (t[0]>='a' && t[0]<='z')
-	      //   txt[0] = t[0]-32;
-	      // txt += ".";
-
-	      os << "Dialogue: 0," << DataBase::ASStimeStr(i->start) << ","
-		 << DataBase::ASStimeStr(i->end)
-		 << ",subtitle,foo,000,000,000,," << txt << endl;
-	    }
-	  }
-	  continue;
-	}
-
-	int idx = db->LabelIndex(vlab);
-	string sfile = db->SolveSegmentFilePath(idx, segmentspec, true);
-	if (sfile=="")
-	  return ShowError(err+"segmentfile ["+segmentspec+"] for <"+
-			   vlab+"> not found");
-	
-	WriteLog("Opening segmentfile <"+ShortFileName(sfile)+">");
-
-	segmentfile segm(vfile, sfile, NULL, NULL, NULL, true, true, false);
-
-	size_t nframes = segm.getNumFrames();
-	SegmentationResultList *results = segm.readFileResultsFromXML("","");
-	set<int> flist = segm.listProcessedFrames();
-
-	WriteLog("Video file <"+ShortFileName(vfile_x)+"> contains "+
-		 ToStr(nframes)+" frames of which "+ToStr(flist.size())+
-		 " have been processed with <"+segmentspec+">");
-
-	for (set<int>::const_iterator it=flist.begin(); it!=flist.end(); it++) {
-	  int f = *it;
-	  string fs = segm.FrameSpec(f);
-	  if (debug1)
-	    cout << "FRAME [" << f << "] \"" << fs << "\" RESULTS of <"
-		 << segmentspec << "> :" << endl;
-	  results = segm.readFrameResultsFromXML(f, "", "");
-
-	  string cons;
-	  for (SegmentationResultList::const_iterator it=results->begin();
-	       it!=results->end(); it++) {
-	    if (debug1) {
-	      cout << "  NAME:  "   << it->name 	<< endl;
-	      cout << "  TYPE:  "   << it->type 	<< endl;
-	      cout << "  VALUE: "   << it->value	<< endl;
-	      cout << "  METHODID:" << it->methodid << endl;
-	      cout << "  RESULTID:" << it->resultid << endl << endl;
-	    }
-
-	    if (it->type=="detection") {
-	      cons += (cons!=""?" ":"")+it->value;
-	      continue;
-	    }
-
-	    if (it->type!="box" || it->name.substr(0, 4)!="face" ||
-		fs.substr(0, 2)!=":s")
-	      continue;
-
-	    double sec0 = atof(fs.substr(2).c_str()), sec1 = sec0+0.99;
-
-	    float mul = 1024.0/segm.getHeight();
-	    vector<string> vs = SplitInSpaces(it->value);
-	    vector<int> v(vs.size());
-	    for (size_t z=0; z<v.size(); z++)
-	      v[z] = (int)floor(mul*atoi(vs[z].c_str())+0.5);
-
-	    // http://en.wikipedia.org/wiki/SubStation_Alpha
-	    // http://aegisub.cellosoft.com/docs/ASS_Tagsnmen
-	  
-	    os << "Dialogue: 1," << DataBase::ASStimeStr(sec0) << ","
-	       << DataBase::ASStimeStr(sec1) << ",facebox,foo,000,000,000,,"
-	       << "{\\pos(0,0)\\p1}m " << v[0] << " " << v[1]
-	       << " l " << v[2] << " " << v[1] << " " << v[2] << " " << v[3]
-	       << " " << v[0] << " " << v[3] << "{\\p0}" << endl;
-
-	    if (debug2) {
-	      os << "Dialogue: 1," << DataBase::ASStimeStr(sec0) << ","
-		 << DataBase::ASStimeStr(sec1) << ",facebox,foo,000,000,000,,"
-		 << "{\\pos(0,0)\\p1}m 0 0 l 100 0 100 100 0 100{\\p0}" 
-		 << endl;
-	      os << "Dialogue: 1," << DataBase::ASStimeStr(sec0) << ","
-		 << DataBase::ASStimeStr(sec1) << ",facebox,foo,000,000,000,,"
-		 << "{\\pos(0,0)\\p1}m 200 200 l 300 200 300 300 200 300{\\p0}"
-		 << endl;
-	    }
-	  }
-
-	  if (cons!="" && fs.substr(0, 2)==":s") {
-	    double sec0 = atof(fs.substr(2).c_str()), sec1 = sec0+0.99;
-	    os << "Dialogue: 1," << DataBase::ASStimeStr(sec0) << ","
-	       << DataBase::ASStimeStr(sec1) << ",concepts,foo,000,000,000,,"
-	       << "Shot x: " << cons
-	       << endl;
-	  }
-	}
-      }
+    if (Picsom()->HasSlaves() && vidx.size()>1) {
+      list<analyse_result> ar = SplitTasksAndAnalyse(vidx, script, slave_args,
+						     "subtitles");
+      WriteLog("Created subtitles for "+ToStr(vidx.size())+
+	       " videos in slaves");
+      return true;
     }
 
-    segmentspec = segmentspec_was;
+    for (const auto& vi : vidx)
+      if (!db->GenerateSubtitles(vi, type, spec,
+				 db->Label(vi)+filename+"."+type))
+	return ShowError(err+"GenerateSubtitles() failed for <"
+			 +db->Label(vi)+">");
 
-    return ok;
+    return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -7590,7 +7792,7 @@ namespace picsom {
 						    args) {
     string err = "AnalyseElanize() : ";
 
-    bool debug = true;
+    bool debug = verbose>1;
 
     bool ignore_detector_name = true;
     bool txtlines_show_prob   = true;
@@ -7727,7 +7929,15 @@ namespace picsom {
       }
 
       const object_info *oi = CheckDB()->FindObject(vlab);
-      oi->dump();
+      if (debug)
+	oi->dump();
+      else {
+	string ds = oi->dump_str();
+	size_t max_l = 70;
+	if (ds.size()>max_l)
+	  ds = ds.substr(0, max_l-4)+" ..."; 
+	WriteLog(ds);
+      }
       size_t idx = CheckDB()->LabelIndex(vlab);
       const string& label = CheckDB()->Label(idx);
       
@@ -7758,8 +7968,11 @@ namespace picsom {
       }
 
       if (!elanconvert && !FileExists(video_url)) {
-	vector<string> cmdv { "ln", "-s", original, video_url };
-	Picsom()->ExecuteSystem(cmdv, true, true, true);
+	string opath    = FullPath(video_url);
+	string relpath  = RelativePath(original, opath);
+	if (!Symlink(relpath, opath))
+	  return ShowError(err+"failed to symlink <"+relpath+"> to<"+opath+">");
+	WriteLog("Symlinked video file <"+video_url+">");
       }
 
       string csv_url    = base_url_elan+".csv";
@@ -7904,21 +8117,27 @@ namespace picsom {
       map<string,list<textline_t> > voices;
       map<string,list<int> > faces;
       map<string,list<pair<pair<float,float>,string> > > concepts;
-      map<string,video_frange_list_t> shots, keyframes, tsegms;
+      map<string,video_frange_list_t> shots, keyframes;
+      map<string,video_frange_list_t> tsegms;
 
       int tsno = 0, ano = 0;
 
       string trange_tier_from, trange_text_from;
 
+      vector<pair<string,string> > tierorder;
+      
       for (size_t si=0; si<sspecs.size(); si++) {
 	segmentspec = sspecs[si];
+	cout << "STARTING with <" << segmentspec << ">" << endl;
 	if (segmentspec=="")
 	  break;
 
 	if (segmentspec=="asr") {
 	  list<textline_t> asrraw = CheckDB()->ASRlinesOrCombine(idx, true);
-	  for (auto i=asrraw.begin(); i!=asrraw.end(); i++) 
-	    voices["speech"].push_back(*i);
+	  if (asrraw.size())
+	    tierorder.push_back({"voices", "speech"});
+	  for (const auto i : asrraw) 
+	    voices["speech"].push_back(i);
 
 	  continue;
 	}
@@ -7927,8 +8146,10 @@ namespace picsom {
 	  segmentspec.erase(0, 4);
 	  list<pair<double,string> > ocrl
 	    = CheckDB()->OCRlinesOrCombine(idx, segmentspec, true);
-	  for (auto i=ocrl.begin(); i!=ocrl.end(); i++)
-	    ocr[segmentspec].push_back(*i);
+	  if (ocrl.size())
+	    tierorder.push_back({"ocr", segmentspec});
+	  for (const auto& i : ocrl)
+	    ocr[segmentspec].push_back(i);
 
 	  continue;
 	}
@@ -7963,37 +8184,52 @@ namespace picsom {
 	}
 
 	vector<size_t> segidx;
-	for (size_t ti=0; ti<1000000; ti++) {
-	  // obs! "t" hard-coded...
-	  string slab = segmentspec+":"+label+":t"+ToStr(ti);
-	  int sidx = db->LabelIndexGentle(slab, false);
-	  if (sidx<0)
-	    break;
-	  segidx.push_back(sidx);
+	size_t p = segmentspec.find(":");
+	if (p!=string::npos) {
+	  string spref, ssuff = segmentspec.substr(p);
+	  if (p>0)
+	    spref = segmentspec.substr(0, p+1);
+	  for (size_t ti=0; ti<1000000; ti++) {
+	    // until 20190904 this was segmentspec:<label>:t<ti> and ti=0 was required
+	    string slab = spref+label+ssuff+ToStr(ti);
+	    int sidx = db->LabelIndexGentle(slab, false);
+	    if (sidx<0) {
+	      if (ti>0)
+		break;
+	      else
+		continue;
+	    }
+	    segidx.push_back(sidx);
+	  }
 	}
-
+	
 	if (segidx.size()) {
 	  string tsegid = segmentspec;
+	  tierorder.push_back({"tsegms", tsegid});
 	  video_frange_list_t& tsegmx = tsegms[tsegid];
-	  for (auto si=segidx.begin(); si!=segidx.end(); si++) {
-	    cout << *si << endl;
-	    auto psd = db->ParentStartDuration(*si, target_video);
+
+	  for (const auto& si : segidx) {
+	    auto psd = db->ParentStartDuration(si, target_video);
 	    float beg = psd.second.first, dur = psd.second.second;
-	    video_frange segtxt(db, *si, beg, beg+dur, "trangetext",
-				segmentspec, db->Label(*si));
+	    video_frange segtxt(db, si, beg, beg+dur, "trangetext",
+				segmentspec, db->Label(si));
 
 	    tsegmx.push_back(segtxt);
+	    if (debug)
+	      cout << "#" << si << " <" << db->Label(si) << "> " << segtxt.str()
+		   << endl;
 	  }
 	  continue;
 	}
 
 	if (segmentspec.find("text|")==0) {
+	  cout << "Starting processing text of <" << segmentspec << ">" << endl;
 	  vector<string> sp = SplitInSomething("|", false, segmentspec);
-	  if (sp.size()!=3)
-	    return ShowError(err+"sp.size()!=3 for <"+segmentspec+">");
-	  string textindex = sp[1], field = "text", tsift = sp[2];
-	  string tsext = textindex;
-
+	  if (sp.size()!=4)
+	    return ShowError(err+"sp.size()!=4 for <"+segmentspec+">");
+	  string textindex = sp[1], field = "text", tsext = textindex;
+	  string segs = sp[2], tsift = sp[3];
+	  pair<string,string> s_ps = db->SegmentPrefSuff(segs, true);
 	  double timeshift = tsift!="" ? atof(tsift.c_str()) : 0;
 
 	  list<textline_t> txtlines;
@@ -8003,25 +8239,36 @@ namespace picsom {
 	    gto[*argsi] = 1;
 	    object_info *oi = db->FindObject(*argsi);
 	    if (oi)
-	      for (auto i=oi->children.begin(); i!=oi->children.end(); i++)
-		if (db->ObjectsTargetTypeContains(*i, target_videosegment)) {
-		  auto mid = db->VideoOrSegmentMiddleFrame(*i);
-		  cout << "#" << *i << " : middle=#" << mid.first << " frame="
-		       << mid.second << endl;		    
-		  i2sm[mid.first] = *i;
+	      for (const auto& i : oi->children)
+		if (db->ObjectsTargetTypeContains(i, target_videosegment) &&
+		    db->SegmentPrefSuffMatch(i, s_ps)) {
+		  auto mid = db->VideoOrSegmentMiddleFrame(i);
+		  if (debug)
+		    cout << "#" << *argsi << " <" << db->Label(*argsi) << "> #"
+			 << i << " <" << db->Label(i) << "> : middle=#"
+			 << mid.first << " <" << db->Label(mid.first)
+			 << "> frame=" << mid.second << endl;		    
+		  i2sm[mid.first] = i;
 		  gto[mid.first]  = 1;
+		  gto[i]          = 1; // added 20190913
 		}
 	     
 	    ground_truth gtx = gto.TernaryAND(QueryRestrictionGT());
 	    txtlines = db->TextIndexLines(textindex, "text", gtx);
+	    if (txtlines.size()==0)
+	      cout << "WARNING: textindex <"+textindex+"> was empty for <"+
+		gtx.label()+">" << endl;
 	    for (auto i=txtlines.begin(); i!=txtlines.end(); i++) {
-	      cout << "A : " << i->txt_display(true) << endl;
+	      if (debug)
+		cout << "A : " << i->txt_display_all(true) << endl;
 	      if (i->start==-1 && i2sm.find(i->idx)!=i2sm.end()) {
-		auto psd = db->ParentStartDuration(i2sm[i->idx], target_videofile);
+		auto psd = db->ParentStartDuration(i2sm[i->idx],
+						   target_videofile);
 		i->start = psd.second.first;
 		i->end   = i->start+psd.second.second;
 	      }
-	      cout << "B : " << i->txt_display(true) << endl;
+	      if (debug)
+		cout << "B : " << i->txt_display_all(true) << endl;
 	    }
 	    
 	  } else {
@@ -8036,27 +8283,29 @@ namespace picsom {
 	  }
 	  
 	  for (auto ai=txtlines.begin(); ai!=txtlines.end(); ai++) {
-	    // should this be inside ReadOSRS()?
-	    string text = ai->txt_val[0].first;
-	    if (!txtlines_show_prob) {
-	      size_t p = text.rfind(" (");
-	      if (p!=string::npos) {
-		size_t q = text.find_first_not_of("0123456789.+-e", p+2);
-		if (q==text.size()-1 && text[q]==')')
-		  text.erase(p);
-	      }
-	    } else if (ai->txt_val[0].second) {
-	      // now assume that the probablities are not there already
-	      text += " ("+ToStr(ai->txt_val[0].second)+")";
-	    }
+	    // removed 20190827 because "text line (value)" should already be parsed
+	    // string text = ai->txt_val_box[0].t;
+	    // if (!txtlines_show_prob) {
+	    //   size_t p = text.rfind(" (");
+	    //   if (p!=string::npos) {
+	    // 	size_t q = text.find_first_not_of("0123456789.+-e", p+2);
+	    // 	if (q==text.size()-1 && text[q]==')')
+	    // 	  text.erase(p);
+	    //   }
+	    // } else if (ai->txt_val_box[0].v) {
+	    //   // now assume that the probablities are not there already
+	    //   text += " ("+ToStr(ai->txt_val_box[0].v)+")";
+	    // }
 
 	    textline_t aline(*ai);
-	    aline.set(text, 0);         // was add() until 2018-05-04
+	    // aline.set(text, 0);         // was add() until 2018-05-04
 	    aline.start += timeshift;
 	    aline.end   += timeshift;
 	    voices[tsext].push_back(aline);
-
-	    cout << text << endl;
+	    tierorder.push_back({"voices", tsext});
+	    
+	    if (debug)
+	      cout << "zzz " << aline.txt_display_one(true, txtlines_show_prob) << endl;
 	  }
 
 	  continue;
@@ -8073,12 +8322,16 @@ namespace picsom {
 
 	video_frange_list_t franges = ReadRangeSegments(segm, "frange");
 	WriteLog("  "+ToStr(franges.size())+" frange results found");
-	video_frange_list_t& shotsx = shots[segmentspec+":shot"];
+	string shotsxn = segmentspec+":shot";
+	tierorder.push_back({"shots", shotsxn});
+	video_frange_list_t& shotsx = shots[shotsxn];
 	shotsx.insert(shotsx.end(), franges.begin(), franges.end());
 
 	video_frange_list_t kfs = ReadKeyFrames(segm);
 	WriteLog("  "+ToStr(kfs.size())+" keyframe results found");
-	video_frange_list_t& kfsx = keyframes[segmentspec+":kf"];
+	string kfsxn = segmentspec+":kf";
+	tierorder.push_back({"keyframes", kfsxn});
+	video_frange_list_t& kfsx = keyframes[kfsxn];
 	kfsx.insert(kfsx.end(), kfs.begin(), kfs.end());
 
 	video_frange_list_t tranges = ReadRangeSegments(segm, "trange");
@@ -8087,12 +8340,12 @@ namespace picsom {
 	WriteLog("  "+ToStr(trangetxt.size())+" trangetext results found");
 	tranges.insert(tranges.end(), trangetxt.begin(), trangetxt.end());
 
-	for (auto q=tranges.begin(); q!=tranges.end(); q++) {
+	for (const auto& q : tranges) {
 	  string tier_name = "xxx";
 	  if (trange_tier_from=="type")
-	    tier_name = q->type;
+	    tier_name = q.type;
 	  if (trange_tier_from.find("name")==0) {
-	    tier_name = q->name;
+	    tier_name = q.name;
 	    if (trange_tier_from.find("base")!=string::npos) {
 	      while (true) {
 		size_t l = tier_name.size();
@@ -8110,10 +8363,12 @@ namespace picsom {
 	  // is already included in tier_name
 	  string tsegid = tier_name; 
 	  if (debug)
-	    cout << tsegid << " (" << q->name << "/" << q->type << ") : "
-		 << q->str() << endl;
+	    cout << tsegid << " (" << q.name << "/" << q.type << ") : "
+		 << q.str() << endl;
+
+	  tierorder.push_back({"tsegms", tsegid});
 	  video_frange_list_t& tsegmx = tsegms[tsegid];
-	  tsegmx.push_back(*q);
+	  tsegmx.push_back(q);
 	}
 
 	size_t nframes = segm.getNumFrames();
@@ -8152,12 +8407,14 @@ namespace picsom {
 		fs.substr(0, 2)!=":s")
 	      continue;
 
+	    tierorder.push_back({"faces", it->name});
 	    faces[it->name].push_back(atoi(fs.substr(2).c_str()));
 	  }
 
 	  if (cons!="" && fs.substr(0, 2)==":s") {
 	    float t = atof(fs.substr(2).c_str());
-	    concepts[""].push_back(make_pair(make_pair(t, t+1), cons));
+	    tierorder.push_back({"concepts", ""});
+	    concepts[""].push_back({ {t, t+1}, cons });
 	  }
 	}
       }
@@ -8165,6 +8422,7 @@ namespace picsom {
       for (auto d=det_exp_tier.begin(); d!=det_exp_tier.end(); d++) {
 	cout << "detection " << d->first << " " << d->second << endl;
 
+	tierorder.push_back({"concepts", d->second});
 	list<pair<pair<float,float>,string> >& detlist = concepts[d->second];
 
 	float maxval = 0;
@@ -8192,9 +8450,10 @@ namespace picsom {
 	      slabel = li<subol.size() ? subol[li] : "???";
 	    li++;
 
-	    cout << slabel << " " << psd.second.first << " "
-		 << psd.second.second << " " << startend.second
-		 << endl;
+	    if (debug)
+	      cout << slabel << " " << psd.second.first << " "
+		   << psd.second.second << " " << startend.second
+		   << endl;
 
 	    detlist.push_back(make_pair(startend, slabel));
 	  }
@@ -8213,8 +8472,9 @@ namespace picsom {
 
 	  float val = dets.begin()->second[0];
 
-	  cout << d->first << " " << och[fi] << " " << flabel
-	       << " : " << val << endl;
+	  if (debug)
+	    cout << d->first << " " << och[fi] << " " << flabel
+		 << " : " << val << endl;
 
 	  if (val<=0)
 	    continue;
@@ -8244,214 +8504,264 @@ namespace picsom {
 	}
       }
 
-      for (auto fp = shots.begin(); fp!=shots.end(); fp++) {
-	XmlDom tier = docu.Element("TIER");
-	tier.Prop("DEFAULT_LOCALE", "en");
-	tier.Prop("LINGUISTIC_TYPE_REF", "shot_t");
-	tier.Prop("TIER_ID", fp->first);
+      set<pair<string,string> > tierdone;
+      
+      for (const auto& to : tierorder) {
+	if (tierdone.find(to)!=tierdone.end())
+	  continue;
+	tierdone.insert(to);
 	
-	for (auto sp = fp->second.begin(); sp!=fp->second.end(); sp++) {
-	  string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
-	  string a0 = "a"+ToStr(ano++);
+	cout << "Handling tier <" << to.first << "," << to.second << ">" << endl;
 
-	  double sec0 = sp->begin/fps, sec1 = sp->end/fps;
-	  XmlDom slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts0);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
-	  slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts1);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
+	if (to.first=="shots")
+	  for (const auto &fp : shots) {
+	    if (fp.first!=to.second)
+	      continue;
+	  
+	    cout << "Adding TIER \"" << fp.first << "\" from shots" << endl;
+	    XmlDom tier = docu.Element("TIER");
+	    tier.Prop("DEFAULT_LOCALE", "en");
+	    tier.Prop("LINGUISTIC_TYPE_REF", "shot_t");
+	    tier.Prop("TIER_ID", fp.first);
+	
+	    for (const auto &sp : fp.second) {
+	      string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
+	      string a0 = "a"+ToStr(ano++);
 
-	  XmlDom anno = tier.Element("ANNOTATION");
-	  XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
-	  alan.Prop("ANNOTATION_ID",  a0);
-	  alan.Prop("TIME_SLOT_REF1", ts0);
-	  alan.Prop("TIME_SLOT_REF2", ts1);
-	  alan.Element("ANNOTATION_VALUE", sp->name);
-	}
-      }
+	      double sec0 = sp.begin/fps, sec1 = sp.end/fps;
+	      XmlDom slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts0);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
+	      slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts1);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
 
-      for (auto fp = keyframes.begin(); fp!=keyframes.end(); fp++)
-	if (fp->second.size()) {
-	  XmlDom tier = docu.Element("TIER");
-	  tier.Prop("DEFAULT_LOCALE", "en");
-	  tier.Prop("LINGUISTIC_TYPE_REF", "keyframe_t");
-	  tier.Prop("TIER_ID", fp->first);
+	      XmlDom anno = tier.Element("ANNOTATION");
+	      XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
+	      alan.Prop("ANNOTATION_ID",  a0);
+	      alan.Prop("TIME_SLOT_REF1", ts0);
+	      alan.Prop("TIME_SLOT_REF2", ts1);
+	      alan.Element("ANNOTATION_VALUE", sp.name);
+	    }
+	  }
 
-	  for (auto sp = fp->second.begin(); sp!=fp->second.end(); sp++) {
-	    string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
-	    string a0 = "a"+ToStr(ano++);
+	if (to.first=="keyframes")
+	  for (const auto &fp : keyframes) {
+	    if (fp.first!=to.second)
+	      continue;
+	  
+	    if (fp.second.size()) {
+	    cout << "Adding TIER \"" << fp.first << "\" from keyframes" << endl;
+	    XmlDom tier = docu.Element("TIER");
+	    tier.Prop("DEFAULT_LOCALE", "en");
+	    tier.Prop("LINGUISTIC_TYPE_REF", "keyframe_t");
+	    tier.Prop("TIER_ID", fp.first);
 
-	    double sec0 = sp->begin/fps, sec1 = sec0+1/fps;
-	    XmlDom slot = time.Element("TIME_SLOT");
-	    slot.Prop("TIME_SLOT_ID", ts0);
-	    slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
-	    slot = time.Element("TIME_SLOT");
-	    slot.Prop("TIME_SLOT_ID", ts1);
-	    slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
+	    for (const auto &sp : fp.second) {
+	      string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
+	      string a0 = "a"+ToStr(ano++);
 
-	    XmlDom anno = tier.Element("ANNOTATION");
-	    XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
-	    alan.Prop("ANNOTATION_ID",  a0);
-	    alan.Prop("TIME_SLOT_REF1", ts0);
-	    alan.Prop("TIME_SLOT_REF2", ts1);
-	    alan.Element("ANNOTATION_VALUE", sp->name);
+	      double sec0 = sp.begin/fps, sec1 = sec0+1/fps;
+	      XmlDom slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts0);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
+	      slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts1);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
+
+	      XmlDom anno = tier.Element("ANNOTATION");
+	      XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
+	      alan.Prop("ANNOTATION_ID",  a0);
+	      alan.Prop("TIME_SLOT_REF1", ts0);
+	      alan.Prop("TIME_SLOT_REF2", ts1);
+	      alan.Element("ANNOTATION_VALUE", sp.name);
+	    }
 	  }
 	}
-
-      for (auto fp = tsegms.begin(); fp!=tsegms.end(); fp++) {
-	XmlDom tier = docu.Element("TIER");
-	tier.Prop("DEFAULT_LOCALE", "en");
-	tier.Prop("LINGUISTIC_TYPE_REF", "tsegm_t");
-	tier.Prop("TIER_ID", fp->first);
 	
-	for (auto sp = fp->second.begin(); sp!=fp->second.end(); sp++) {
-	  string ann = "zzz";
-	  if (sp->type=="trangetext")
-	    ann = sp->text;
-	  else if (trange_text_from=="name")
-	    ann = sp->name;
-	  else if (trange_text_from=="type")
-	    ann = sp->type;
+	if (to.first=="tsegms")
+	  for (const auto &fp : tsegms) {
+	    if (fp.first!=to.second)
+	      continue;
+	  
+	    cout << "Adding TIER \"" << fp.first << "\" from tsegms" << endl;
+	    XmlDom tier = docu.Element("TIER");
+	    tier.Prop("DEFAULT_LOCALE", "en");
+	    tier.Prop("LINGUISTIC_TYPE_REF", "tsegm_t");
+	    tier.Prop("TIER_ID", fp.first);
+	
+	    for (const auto &sp : fp.second) {
+	      string ann = "zzz";
+	      if (sp.type=="trangetext")
+		ann = sp.text;
+	      else if (trange_text_from=="name")
+		ann = sp.name;
+	      else if (trange_text_from=="type")
+		ann = sp.type;
 
-	  if (debug)
-	    cout << fp->first << " (" << sp->name << "/" << sp->type
-		 << ") : " << ann << " " << sp->begin_t << " " << sp->end_t
-		 << endl;
+	      if (debug)
+		cout << fp.first << " (" << sp.name << "/" << sp.type
+		     << ") : " << ann << " " << sp.begin_t << " " << sp.end_t
+		     << endl;
 
-	  string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
-	  string a0 = "a"+ToStr(ano++);
+	      string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
+	      string a0 = "a"+ToStr(ano++);
 
-	  double sec0 = sp->begin_t, sec1 = sp->end_t;
-	  XmlDom slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts0);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
-	  slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts1);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
+	      double sec0 = sp.begin_t, sec1 = sp.end_t;
+	      XmlDom slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts0);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
+	      slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts1);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
 
-	  XmlDom anno = tier.Element("ANNOTATION");
-	  XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
-	  alan.Prop("ANNOTATION_ID",  a0);
-	  alan.Prop("TIME_SLOT_REF1", ts0);
-	  alan.Prop("TIME_SLOT_REF2", ts1);
-	  alan.Element("ANNOTATION_VALUE", ann);
-	}
+	      XmlDom anno = tier.Element("ANNOTATION");
+	      XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
+	      alan.Prop("ANNOTATION_ID",  a0);
+	      alan.Prop("TIME_SLOT_REF1", ts0);
+	      alan.Prop("TIME_SLOT_REF2", ts1);
+	      alan.Element("ANNOTATION_VALUE", ann);
+	    }
+	  }
+
+	if (to.first=="voices")
+	  for (const auto &fp : voices) {
+	    if (fp.first!=to.second)
+	      continue;
+	  
+	    cout << "Adding TIER \"" << fp.first << "\" from voices" << endl;
+	    XmlDom tier = docu.Element("TIER");
+	    tier.Prop("DEFAULT_LOCALE", "en");
+	    tier.Prop("LINGUISTIC_TYPE_REF", "voice_t");
+	    tier.Prop("TIER_ID", fp.first);
+
+	    for (const auto& sp : fp.second) {
+	      string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
+	      string a0 = "a"+ToStr(ano++);
+
+	      double sec0 = sp.start, sec1 = sp.end;
+	      XmlDom slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts0);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
+	      slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts1);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
+
+	      XmlDom anno = tier.Element("ANNOTATION");
+	      XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
+	      alan.Prop("ANNOTATION_ID",  a0);
+	      alan.Prop("TIME_SLOT_REF1", ts0);
+	      alan.Prop("TIME_SLOT_REF2", ts1);
+	      // alan.Element("ANNOTATION_VALUE", sp.txt_val_box[0].t);
+	      string txt = sp.txt_display_one(false, txtlines_show_prob, false);
+	      alan.Element("ANNOTATION_VALUE", txt);
+	      if (debug)
+		cout << txt << endl;		       
+	    }
+	  }
+
+	if (to.first=="ocr")
+	  for (const auto &fp : ocr) {
+	    if (fp.first!=to.second)
+	      continue;
+	  
+	    cout << "Adding TIER \"" << fp.first << "\" from ocr" << endl;
+	    XmlDom tier = docu.Element("TIER");
+	    tier.Prop("DEFAULT_LOCALE", "en");
+	    tier.Prop("LINGUISTIC_TYPE_REF", "ocr_t");
+	    tier.Prop("TIER_ID", fp.first);
+
+	    for (const auto& sp : fp.second) {
+	      string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
+	      string a0 = "a"+ToStr(ano++);
+
+	      double sec = sp.first, sec0 = sec-0.5, sec1 = sec+0.5;
+	      if (sec0<0)
+		sec0 = 0;
+	      XmlDom slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts0);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
+	      slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts1);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
+
+	      XmlDom anno = tier.Element("ANNOTATION");
+	      XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
+	      alan.Prop("ANNOTATION_ID",  a0);
+	      alan.Prop("TIME_SLOT_REF1", ts0);
+	      alan.Prop("TIME_SLOT_REF2", ts1);
+	      alan.Element("ANNOTATION_VALUE", sp.second);
+	    }
+	  }
+
+	if (to.first=="faces")
+	  for (const auto &fp : faces) {
+	    if (fp.first!=to.second)
+	      continue;
+	  
+	    cout << "Adding TIER \"" << fp.first << "\" from faces" << endl;
+	    XmlDom tier = docu.Element("TIER");
+	    tier.Prop("DEFAULT_LOCALE", "en");
+	    tier.Prop("LINGUISTIC_TYPE_REF", "face_t");
+	    tier.Prop("TIER_ID", fp.first);
+
+	    for (const auto& sp : fp.second) {
+	      string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
+	      string a0 = "a"+ToStr(ano++);
+
+	      double sec0 = sp, sec1 = sec0+1;
+	      XmlDom slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts0);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
+	      slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts1);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
+
+	      XmlDom anno = tier.Element("ANNOTATION");
+	      XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
+	      alan.Prop("ANNOTATION_ID",  a0);
+	      alan.Prop("TIME_SLOT_REF1", ts0);
+	      alan.Prop("TIME_SLOT_REF2", ts1);
+	      alan.Element("ANNOTATION_VALUE", fp.first);
+	    }
+	  }
+
+	if (to.first=="concepts")
+	  for (const auto &fp : concepts) {
+	    if (fp.first!=to.second)
+	      continue;
+	  
+	    cout << "Adding TIER \"" << fp.first << "\" from concepts" << endl;
+	    XmlDom tier = docu.Element("TIER");
+	    tier.Prop("DEFAULT_LOCALE", "en");
+	    tier.Prop("LINGUISTIC_TYPE_REF", "concept_t");
+	    if (fp.first=="")
+	      tier.Prop("TIER_ID", "concepts");
+	    else
+	      tier.Prop("TIER_ID", fp.first);
+
+	    for (const auto& sp : fp.second) {
+	      string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
+	      string a0 = "a"+ToStr(ano++);
+
+	      double sec0 = sp.first.first, sec1 = sp.first.second;
+	      XmlDom slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts0);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
+	      slot = time.Element("TIME_SLOT");
+	      slot.Prop("TIME_SLOT_ID", ts1);
+	      slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
+
+	      XmlDom anno = tier.Element("ANNOTATION");
+	      XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
+	      alan.Prop("ANNOTATION_ID",  a0);
+	      alan.Prop("TIME_SLOT_REF1", ts0);
+	      alan.Prop("TIME_SLOT_REF2", ts1);
+	      alan.Element("ANNOTATION_VALUE", sp.second);
+	    }
+	  }
       }
-
-      for (auto fp = voices.begin(); fp!=voices.end(); fp++) {
-	XmlDom tier = docu.Element("TIER");
-	tier.Prop("DEFAULT_LOCALE", "en");
-	tier.Prop("LINGUISTIC_TYPE_REF", "voice_t");
-	tier.Prop("TIER_ID", fp->first);
-
-	for (auto sp = fp->second.begin(); sp!=fp->second.end(); sp++) {
-	  string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
-	  string a0 = "a"+ToStr(ano++);
-
-	  double sec0 = sp->start, sec1 = sp->end;
-	  XmlDom slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts0);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
-	  slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts1);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
-
-	  XmlDom anno = tier.Element("ANNOTATION");
-	  XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
-	  alan.Prop("ANNOTATION_ID",  a0);
-	  alan.Prop("TIME_SLOT_REF1", ts0);
-	  alan.Prop("TIME_SLOT_REF2", ts1);
-	  alan.Element("ANNOTATION_VALUE", sp->txt_val[0].first);
-	}
-      }
-
-      for (auto fp = ocr.begin(); fp!=ocr.end(); fp++) {
-	XmlDom tier = docu.Element("TIER");
-	tier.Prop("DEFAULT_LOCALE", "en");
-	tier.Prop("LINGUISTIC_TYPE_REF", "ocr_t");
-	tier.Prop("TIER_ID", fp->first);
-
-	for (auto sp = fp->second.begin(); sp!=fp->second.end(); sp++) {
-	  string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
-	  string a0 = "a"+ToStr(ano++);
-
-	  double sec = sp->first, sec0 = sec-0.5, sec1 = sec+0.5;
-	  if (sec0<0)
-	    sec0 = 0;
-	  XmlDom slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts0);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
-	  slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts1);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
-
-	  XmlDom anno = tier.Element("ANNOTATION");
-	  XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
-	  alan.Prop("ANNOTATION_ID",  a0);
-	  alan.Prop("TIME_SLOT_REF1", ts0);
-	  alan.Prop("TIME_SLOT_REF2", ts1);
-	  alan.Element("ANNOTATION_VALUE", sp->second);
-	}
-      }
-
-      for (auto fp = faces.begin(); fp!=faces.end(); fp++) {
-	XmlDom tier = docu.Element("TIER");
-	tier.Prop("DEFAULT_LOCALE", "en");
-	tier.Prop("LINGUISTIC_TYPE_REF", "face_t");
-	tier.Prop("TIER_ID", fp->first);
-
-	for (auto sp = fp->second.begin(); sp!=fp->second.end(); sp++) {
-	  string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
-	  string a0 = "a"+ToStr(ano++);
-
-	  double sec0 = *sp, sec1 = sec0+1;
-	  XmlDom slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts0);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
-	  slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts1);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
-
-	  XmlDom anno = tier.Element("ANNOTATION");
-	  XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
-	  alan.Prop("ANNOTATION_ID",  a0);
-	  alan.Prop("TIME_SLOT_REF1", ts0);
-	  alan.Prop("TIME_SLOT_REF2", ts1);
-	  alan.Element("ANNOTATION_VALUE", fp->first);
-	}
-      }
-
-      for (auto fp = concepts.begin(); fp!=concepts.end(); fp++) {
-	XmlDom tier = docu.Element("TIER");
-	tier.Prop("DEFAULT_LOCALE", "en");
-	tier.Prop("LINGUISTIC_TYPE_REF", "concept_t");
-	if (fp->first=="")
-	  tier.Prop("TIER_ID", "concepts");
-	else
-	  tier.Prop("TIER_ID", fp->first);
-
-	for (auto sp = fp->second.begin(); sp!=fp->second.end(); sp++) {
-	  string ts0 = "ts"+ToStr(tsno++), ts1 = "ts"+ToStr(tsno++);
-	  string a0 = "a"+ToStr(ano++);
-
-	  double sec0 = sp->first.first, sec1 = sp->first.second;
-	  XmlDom slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts0);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec0)));
-	  slot = time.Element("TIME_SLOT");
-	  slot.Prop("TIME_SLOT_ID", ts1);
-	  slot.Prop("TIME_VALUE", ToStr((int)floor(1000*sec1)));
-
-	  XmlDom anno = tier.Element("ANNOTATION");
-	  XmlDom alan = anno.Element("ALIGNABLE_ANNOTATION");
-	  alan.Prop("ANNOTATION_ID",  a0);
-	  alan.Prop("TIME_SLOT_REF1", ts0);
-	  alan.Prop("TIME_SLOT_REF2", ts1);
-	  alan.Element("ANNOTATION_VALUE", sp->second);
-	}
-      }
-
+      
       if (!eaf.Write(eafname))
 	return ShowError(err+"failed to write ELAN file <"+eafname+">");
       
@@ -9200,7 +9510,7 @@ namespace picsom {
 	  return ShowError(err+"label <"+l+"> already exists");
 
 	target_type tt = target_image;
-	if (!db->AddLabelAndParents(l, tt, false))
+	if (!db->AddLabelAndParents(l, tt, false, true))
 	  return ShowError(err+"AddLabelAndParents() failed for <"+l+">");
 	size_t idx = db->LabelIndex(l);
 
@@ -9213,7 +9523,8 @@ namespace picsom {
 	int nframes = 0;
 	float framerate = 0.0;
 	XmlDom xml;
-	if (!db->InsertOriginsInfo(idx, false, "", jpeg, mime, tar, "-",
+	bool solve = false;  // naybe this was earlier true...
+	if (!db->InsertOriginsInfo(idx, false, solve, "", jpeg, mime, tar, "-",
 				   "", oi, "-", tt, nframes, framerate, xml))
 	  return ShowError(err+"InsertOriginsInfo() failed for <"+l+">");
       }
@@ -9484,7 +9795,7 @@ namespace picsom {
 	  VectorIndex *vidx = dynamic_cast<VectorIndex*>(db->GetIndex(k));
 	  const string augm;
 	  if (vidx) 
-	    vidx->BinDataOpen(false, db->Size(), false, augm);
+	    vidx->BinDataOpen(false, db->Size(), false, 0.0, augm);
 	  break;
 	}
 
@@ -11491,7 +11802,7 @@ string Analysis::SBDParamString(vector<float> &params) {
 	// aa:0:t1 video+segment aa:0:t1.mp4 0.mp4[T0:0:25:0F25/PT20S0N25F]
 	// - video/mp4 >256 10x10 - 0 -
 	target_type tt = target_videosegment;
-	if (write_it && !db->AddLabelAndParents(seglabel, tt, false))
+	if (write_it && !db->AddLabelAndParents(seglabel, tt, false, true))
 	  return ShowError(msg+"AddLabelAndParents() failed with <"+
 			   seglabel+">");
 
@@ -11511,7 +11822,7 @@ string Analysis::SBDParamString(vector<float> &params) {
 	float framerate = 0.0;
 	XmlDom xml;
 	if (write_it &&
-	    !db->InsertOriginsInfo(segidx, false,
+	    !db->InsertOriginsInfo(segidx, false, false,
 				   "", seglabel+".mp4", "video/mp4",
 				   spec, "-", "", oi, "-", tt, nframes,
 				   framerate, xml))
@@ -11527,8 +11838,10 @@ string Analysis::SBDParamString(vector<float> &params) {
 			     line1+"] ["+line2+"]");
 	}
       }
-      if (write_it)
-	db->AppendSubobjectsFile(idx, sidx);
+      if (write_it) {
+	XmlDom dummy;
+	db->AppendSubobjectsFile(idx, sidx, dummy);
+      }
     }
 
     return true;
@@ -11602,7 +11915,7 @@ string Analysis::SBDParamString(vector<float> &params) {
   Analysis::AnalyseShotBoundaryThreshold(const vector<string>& argv) { 
     string msg = "Analysis::AnalyseShotBoundaryThreshold() : ";
 
-    bool write_it = !dryrun;
+    // bool write_it = !dryrun;
 
     size_t len = 25;
     float thr = threshold;
@@ -11718,42 +12031,15 @@ string Analysis::SBDParamString(vector<float> &params) {
       }
       b.push_back(last+1);  //obs! dangerous??? no...
 
-      vector<size_t> sidx;
-      for (size_t i=0; i<b.size()-1; i++) {
-	// obs! this _might_ have some in common with similar code in
-	// AnalyseFinlandiaKatsaus() and should be placed in DataBase.
-	
-	float sta = b[i]/fps, end = b[i+1]/fps;
-	string seglabel = sspec+":"+db->Label(vvidx)+":t"+ToStr(i);
-	string spec = pvid+"["+SecondsToMPEG7MediaTimePoint(sta)+"/"+
-	  SecondsToMPEG7MediaDuration(end-sta)+"]";
-	target_type tt = target_videosegment;
-	cout << "   " << seglabel << " " << b[i] << " ... " << b[i+1]-1
-	     << "  " << spec << endl;
-	if (write_it && !db->AddLabelAndParents(seglabel, tt, false))
-	  return ShowError(msg+"AddLabelAndParents() failed with <"+
-			   seglabel+">");
+      vector<double> t;
+      for (auto& i : b)
+	t.push_back(i/fps);
 
-	size_t segidx = write_it ? db->LabelIndex(seglabel) : 127;
-	sidx.push_back(segidx);
-
-	map<string,string> oi;
-	oi["colors"] = ">256"; 
-	oi["dimensions"] = "0x0";
-	oi["checksum"] = "0";
-	int nframes = 0;
-	float framerate = 0.0;
-	XmlDom xml;
-	if (write_it &&
-	    !db->InsertOriginsInfo(segidx, false,
-				   "", seglabel+".mp4", "video/mp4",
-				   spec, "-", "", oi, "-", tt, nframes,
-				   framerate, xml))
-	  return ShowError(msg+"InsertOriginsInfo() failed with <"+
-			   seglabel+">");
-      }
-      if (write_it)
-	db->AppendSubobjectsFile(vvidx, sidx);
+      XmlDom dummy;
+      bool addmid = true;
+      if (!db->AddVideoSegments(vvidx, t, {sspec,"t"},
+				dummy, dummy, dryrun, addmid))
+	return ShowError(msg+"AddVideoSegments() failed");
     }
 
     return true;
@@ -11764,9 +12050,13 @@ string Analysis::SBDParamString(vector<float> &params) {
   Analysis::analyse_result Analysis::AnalyseShotBoundary(const vector<string>& 
 							 argv) { 
     string msg = "Analysis::AnalyseShotBoundary() : ";
-    if (argv.size()==0 || (argv[0]!="summary" && argv[0]!="features"))
-      return ShowError(msg+"1st argument should be either \"summary\""
-		       " or \"features\"");
+
+    /// obs! should start using shotdetector instead of argv[0]
+    
+    if (argv.size()==0 || (argv[0]!="summary" && argv[0]!="features" &&
+			   argv[0]!="elan" && argv[0]!="ffmpeg"))
+      return ShowError(msg+"1st argument should be either \"summary\"",
+		       " \"features\", \"elan\" or \"ffmpeg\"");
 
     vector<string> a = argv;
     a.erase(a.begin());
@@ -11780,7 +12070,103 @@ string Analysis::SBDParamString(vector<float> &params) {
     if (argv[0]=="elan")
       return AnalyseShotBoundaryFromElan(a);
 
+    if (argv[0]=="ffmpeg")
+      return AnalyseShotBoundaryFromFfmpeg(a);
+
     return false;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result 
+  Analysis::AnalyseShotBoundaryFromFfmpeg(const vector<string>& argv) { 
+    string msg = "Analysis::AnalyseShotBoundaryFromFfmpeg() : ";
+    bool silently_skip_empty = true;
+    
+    string sspec = segmentspec;
+    if (sspec=="")
+      return ShowError(msg+"segmentspec should be given");
+    
+    // ffprobe -show_frames -of compact=p=0 -f lavfi
+    //    movie=zzz.mp4,select=gt(scene\,.4)
+
+    DataBase *db = CheckDB();
+    ground_truth gt(db->Size());
+    for (auto a=argv.begin(); a!=argv.end(); a++) {
+      ground_truth gta = db->GroundTruthExpression(*a, target_video,
+						   -1, false);
+      gt = gt.TernaryOR(gta);
+    }
+    vector<size_t> vidx = gt.indices(1);
+
+    if (Picsom()->HasSlaves() && vidx.size()>1) {
+      vector<string> aa { "ffmpeg" };
+      list<analyse_result> ar = SplitTasksAndAnalyse(vidx, script, aa,
+						     "shotboundary");
+      WriteLog("Extracted shot boundaries for "+ToStr(vidx.size())+
+	       " videos in slaves");
+      return true;
+    }
+
+    EnsureXmlResult();
+    XmlDom oixml, soxml;
+    bool first = true;
+    for (const auto& idx : vidx) {
+      double end = db->VideoDuration(idx);
+      if (end==0) {
+	if (silently_skip_empty) {
+	  WriteLog(msg+"skipping video <"+db->Label(idx)+"> with 0 duration");
+	  continue;
+	} else
+	  return ShowError(msg+"<"+db->Label(idx)+"> has 0 duration");
+      }
+      
+      string f = db->ObjectPathEvenExtract(idx);
+      
+      vector<string> cmd {
+			  "ffprobe", "-show_frames", "-of", "compact=p=0",
+			  "-f", "lavfi", "\"movie="+f+",select=gt(scene\\,.4)\""
+      };
+
+      cmd.push_back("2>/dev/null");
+
+      auto r = Picsom()->ShellExecute(cmd, false, verbose>1);
+      if (!r.first)
+	return ShowError(msg+"ShellExecute() failed");
+
+      vector<double> t { 0 };
+      for (auto& j : r.second) {
+	//cout << ">>> " << j << endl;
+	vector<string> l = SplitInSomething("|", false, j);
+	for (auto& k : l ) {
+	  auto p = SplitKeyEqualValueNew(k);
+	  if (p.first=="best_effort_timestamp_time") {
+	    double s = atof(p.second.c_str());
+	    if (s>=end) {
+	      WriteLog(msg+"video <"+db->Label(idx)+"> ffmpeg boundary beyond end");
+	      continue;
+	    }
+	    t.push_back(s);
+	    //cout << t << " " << s << endl;
+	    break;
+	  }
+	}
+      }
+      t.push_back(end);
+
+      if (first) {
+	oixml = xml_result.Root().Element("objectinfohashlist");
+	soxml = xml_result.Root().Element("objectchildinfolist");
+	first = false;
+      }
+
+      bool addmid = true;
+      if (!db->AddVideoSegments(idx, t, {sspec,"t"},
+				oixml, soxml, dryrun, addmid))
+	return ShowError(msg+"AddVideoSegments() failed");
+    }
+    
+    return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -11790,6 +12176,75 @@ string Analysis::SBDParamString(vector<float> &params) {
     string msg = "Analysis::AnalyseShotBoundaryFromElan() : ";
 
     return false;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result 
+  Analysis::AnalyseTotalDuration(const vector<string>& argv) { 
+    string msg = "Analysis::AnalyseTotalDuration() : ";
+
+    DataBase *db = CheckDB();
+    ground_truth gt(db->Size());
+    for (auto &a : argv)
+      gt = gt.TernaryOR(db->GroundTruthExpression(a, target_video,
+						  -1, false));
+    vector<size_t> vidx = gt.indices(1);
+    double sum = 0, min = -1, max = 0;
+    map<size_t,size_t> n;
+    
+    for (auto &i : vidx) {
+      if (!db->ObjectsTargetTypeContains(i, target_video))
+	return ShowError(msg+"<"+db->Label(i)+"> is not a video");
+      
+      double d = db->VideoDuration(i);
+      sum += d;
+      if (d<min || min<0)
+	min = d;
+      if (d>max)
+	max = d;
+
+      int p = db->ParentObject(i, false);
+      if (p<0)
+	continue;
+      n[size_t(p)]++;
+    }
+
+    size_t avg_n = 0, min_n = 0, max_n = 0;
+    double avg_mean = 0, min_mean = -1, max_mean = 0;
+    for (auto &i : n) {
+      avg_n += i.second;
+      if (i.second<min_n || min_n==0)
+	min_n = i.second;
+      if (i.second>max_n)
+	max_n = i.second;
+      double mean = db->VideoDuration(i.first)/i.second;
+      avg_mean += mean;
+       if (mean<min_mean || min_mean<0)
+	min_mean = mean;
+      if (mean>max_mean)
+	max_mean = mean;
+    }
+    
+    WriteLog("Total "+ToStr(vidx.size())+" videos");
+    WriteLog("Total duration "+ToStr(sum)+" seconds");
+    WriteLog("Total duration "+ToStr(sum/60)+" minutes");
+    WriteLog("Total duration "+ToStr(sum/3600)+" hours");
+    WriteLog("Average duration "+ToStr(sum/vidx.size())+" seconds");
+    WriteLog("Minimum duration "+ToStr(min)+" seconds");
+    WriteLog("Maximum duration "+ToStr(max)+" seconds");
+
+    if (n.size()) {
+      WriteLog("Average video-wise mean duration "+ToStr(avg_mean/n.size())+" seconds");
+      WriteLog("Minimum video-wise mean duration "+ToStr(min_mean)+" seconds");
+      WriteLog("Maximum video-wise mean duration "+ToStr(max_mean)+" seconds");
+      
+      WriteLog("Average shot count per video "+ToStr(float(avg_n)/n.size()));
+      WriteLog("Minimum shot count per video "+ToStr(min_n));
+      WriteLog("Maximum shot count per video "+ToStr(max_n));
+    }
+    
+    return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -11977,7 +12432,7 @@ string Analysis::SBDParamString(vector<float> &params) {
 	bool ok = true;
 	for (size_t l=0; ok && l<newlab.size(); l++)
 	  ok = CheckDB()->AddLabelAndParents(newlab[l].first,
-					     target_videosegment, true);
+					     target_videosegment, true, true);
 	if (newlab.size())
 	  CheckDB()->CloseLabelsFile(true);
 
@@ -20316,7 +20771,7 @@ Analysis::AnalyseResultsCommon(const objectlist_t& bestidxval,
 	gt1[idx1] = 1;
 	auto cc = db->TextIndexLines(tindex, "text", gt1);
 	if (cc.size()==0) {
-	  idx2 = db->MiddleFrameTrick(idx1, false);
+	  idx2 = db->MiddleFrameTrick(idx1, tindex, false);
 	  ground_truth gt2(db->Size());
 	  gt2[idx2] = 1;
 	  cc = db->TextIndexLines(tindex, "text", gt2);
@@ -20332,18 +20787,18 @@ Analysis::AnalyseResultsCommon(const objectlist_t& bestidxval,
 	  }
 	}
 
-	if (cc.front().txt_val.size()>1 &&
-	    cc.front().txt_val[0].first=="") {
-	  cc.front().txt_val.erase(cc.front().txt_val.begin());
+	if (cc.front().txt_val_box.size()>1 &&
+	    cc.front().txt_val_box[0].t=="") {
+	  cc.front().txt_val_box.erase(cc.front().txt_val_box.begin());
 	  cout << "SKIPPED EMPTY CAPTION" << endl;
 	}
 
-	if (cc.front().txt_val.size()<1)
+	if (cc.front().txt_val_box.size()<1)
 	  return ShowError(msg+"<"+tindex+"> didn't contain value for #"+
 			   ToStr(idx1)+" "+db->Label(idx1)+" nor #"+
 			   ToStr(idx2)+" "+db->Label(idx2)+" nor #");
       
-	ccc = cc.front().txt_val[0].first;
+	ccc = cc.front().txt_val_box[0].t;
       }
       
       os   << bb[0] << " " << ccc << endl;
@@ -20541,7 +20996,7 @@ Analysis::AnalyseResultsCommon(const objectlist_t& bestidxval,
       if (tl.size()!=1)
 	return ShowError(msg+"TextIndexLines("+textindex+",#"+ToStr(idx)+") failed");
 
-      string txt = tl.front().txt_val[0].first;
+      string txt = tl.front().txt_val_box[0].t;
       if (txt=="")
 	return ShowError(msg+"empty string for #"+ToStr(idx)+" "+db->Label(idx));
 
@@ -20625,7 +21080,7 @@ Analysis::AnalyseResultsCommon(const objectlist_t& bestidxval,
       int id = atoi(db->Label(idx).c_str());
       JAULA::Value_Object item;
       item.insertItem("image_id", JAULA::Value_Number_Int(id));
-      item.insertItem("caption",  JAULA::Value_String(tl.txt_val[0].first));
+      item.insertItem("caption",  JAULA::Value_String(tl.txt_val_box[0].t));
       doc.addItem(item);
       n++;
 #endif // PICSOM_USE_JAULA && HAVE_JAULA_H
@@ -20718,7 +21173,7 @@ Analysis::AnalyseResultsCommon(const objectlist_t& bestidxval,
 	is_lsmdc = true;
       }
 
-      string txt = tl.txt_val[0].first, txtwas = txt;
+      string txt = tl.txt_val_box[0].t, txtwas = txt;
       
       for (auto j=commons.begin(); j!=commons.end(); j++) {
 	size_t q = 0;
@@ -21155,7 +21610,7 @@ Analysis::AnalyseResultsCommon(const objectlist_t& bestidxval,
 	  map<string,string> kv(l.begin(), l.end());
 	  textline_t tl(db, *s);
 	  tl.txt_decode(kv["text"]);
-	  string capttxt = tl.txt_val[0].first;
+	  string capttxt = tl.txt_val_box[0].t;
 	  cout << "XXX " << capttxt << " XXX" << endl;
 	  
 	  result["results"]["timeline"][trange] = capttxt;
@@ -22456,41 +22911,6 @@ Analysis::AnalyseSearchVideoTopic(const XmlDom& node,
   }
 
   return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Analysis::SplitSecondsTime(const double secs, int& hour, int& min, 
-                                int& sec, int& msec) {
-  // fixme: calculate hour as well...
-  hour = 0;
-  min = (int)floor(secs/60);
-  double totsec = secs-min*60;
-  sec  = (int)floor(totsec);
-  msec = (int)floor((totsec-sec)*1000+0.5);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-string Analysis::SecondsToMPEG7MediaTimePoint(const double secs) {
-  char buf[30];
-  int hour, min, sec, msec;
-  SplitSecondsTime(secs, hour, min, sec, msec);
-  sprintf(&buf[0],"T%02d:%02d:%02d:%dF%d",hour,min,sec,msec,1000);
-  return string(buf);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-string Analysis::SecondsToMPEG7MediaDuration(const double secs) {
-  char buf[30];
-  int hour, min, sec, msec;
-  SplitSecondsTime(secs, hour, min, sec, msec);
-  if (hour != 0)
-        sprintf(&buf[0],"PT%dH%dM%dS%dN%dF",hour,min,sec,msec,1000);
-  else
-        sprintf(&buf[0],"PT%dM%dS%dN%dF",min,sec,msec,1000);
-  return string(buf);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -23938,15 +24358,23 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 
     DataBase *refdb = Picsom()->FindDataBase(refdatabase);
     ground_truth gt = refdb->GroundTruthExpression(refqueryrestriction);
+    vector<size_t> gtidxs = gt.indices(1);
+    WriteLog("Creating a reference set of "+ToStr(gtidxs.size())+" vectors");
+
     FloatVectorSet set;
-    for (size_t i=0; i<gt.size(); i++)
-      if (gt[i]==1) {
-	FloatVector *v = refdb->FeatureData(featname, i, true);
-	if (!v)
-	  return ShowError(msg+"vector #"+ToStr(i)+" of <"+featname+
-			   "> not found in "+refdatabase);
-	set.Append(v);
-      }
+    vector<size_t> refidx;
+    for (const auto& i : gtidxs) {
+      FloatVector *v = refdb->FeatureData(featname, i, true);
+      if (!v)
+	return ShowError(msg+"vector #"+ToStr(i)+" of <"+featname+
+			 "> not found in "+refdatabase);
+      set.Append(v);
+      refidx.push_back(i);
+      if (set.Nitems()%1000==0)
+	cout << TimeStamp() << set.Nitems() << "/" << gtidxs.size()
+	     << "\r" << flush;
+    }
+    cout << endl;
     
     // cout << set.Nitems() << endl;
     // if (set.Nitems())
@@ -23974,12 +24402,121 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 	return ShowError(msg+"NearestNeighBors("+ToStr(idx)+") failed");
       delete v;
 
-      cout << "##";
+      if (false) {
+	cout << "##";
+	for (int j=0; j<vi.Length(); j++)
+	  cout << " " << vi[j];
+	cout << " " << db->Label(idx) << endl;
+      }
+
+      cout << "MATCH " << db->Label(idx);
       for (int j=0; j<vi.Length(); j++)
-	cout << " " << vi[j];
-      cout << " " << db->Label(idx) << endl;
+	cout << " " << refdb->Label(refidx[vi[j]]);
+      cout << endl;
     }
 
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
+  Analysis::AnalyseFeatureMapping(const vector<string>& args) {
+    string msg = "AnalyseFeatureMapping() : ";
+
+    WriteLog("AnalyseFeatureMapping");
+
+    if (args.size()!=4) 
+      return ShowError(msg+"exactly four arguments should be given: "
+		       "match-file ref-database feature-name output-file");
+
+    string matchfile   = args[0];
+    string refdatabase = args[1];
+    string featurename = args[2];
+    string outputfile  = args[3];
+
+    DataBase *db = CheckDB();
+    DataBase *refdb = Picsom()->FindDataBase(refdatabase);
+    if (!refdb)
+      return ShowError(msg+"database <"+refdatabase+"> not found");
+    
+    auto ll = SplitInSomething("\n", true, FileToString(matchfile));
+    map<string,vector<string> > m;
+    for (const auto& l : ll) {
+      auto e = SplitInSpaces(l);
+      if (e.size()>2 && e[0]=="MATCH")
+	e.erase(e.begin());
+      if (e.size()>=2) {
+	int i = db->LabelIndexGentle(e[0], true);
+	int j = refdb->LabelIndexGentle(e[1], true);
+	if (i<0 || j<0)
+	  return ShowError(msg+"label not found");
+	if (m.find(e[0])!=m.end())
+	  return ShowError(msg+"label <"+e[0]+"> mapped multiple times");
+	string k = e[0];
+	e.erase(e.begin());
+	m[k] = e;
+      }
+    }
+
+    if (m.size()==0)
+      return ShowError(msg+"no mappings found in <"+matchfile+">");
+
+    FloatVector *vp = NULL;
+    for (const auto& k : m.begin()->second) {
+      int vi = refdb->LabelIndex(k);
+      int pa = refdb->ParentObject(vi);
+      vp = refdb->FeatureData(featurename, pa, true);
+      if (vp)
+	break;
+    }
+    if (!vp)
+      return ShowError(msg+"sample <"+featurename+"> vector for <"
+		       +m.begin()->first+"> not found in <"+refdatabase+">");
+
+    size_t vl = vp->Length();
+    delete vp;
+    
+    const ground_truth& restr = QueryRestrictionGT();
+    vector<size_t> idxs = restr.indices(1);
+
+    WriteLog("Mapping to <"+outputfile+"> "+ToStr(idxs.size())
+	     +" features ["+restr.label()+"] in <"+db->Name()+"> from "
+	     +featurename+" in <"+refdb->Name()+">");
+
+    bin_data feat_out(outputfile, true, 1.0,
+		      bin_data::header::format_float, 4*vl, vl);
+    feat_out.resize(db->Size());
+
+    size_t n = 0;
+    for (const auto& i : idxs) {
+      const string& l = db->Label(i);
+      if (m.find(l)==m.end()) {
+	ShowError(msg+"mapping for <"+l+"> #"+ToStr(i)+" not found");
+	continue;
+      }
+
+      FloatVector *vp = NULL;
+      for (const auto& k : m[l]) {
+	int vi = refdb->LabelIndex(k);
+	int pa = refdb->ParentObject(vi);
+	vp = refdb->FeatureData(featurename, pa, true);
+	if (vp)
+	  break;
+      }
+      if (!vp) {
+	ShowError(msg+"<"+featurename+"> vector for "
+		  +ToStr(m[l])+" not found in <"+refdatabase+">");
+	continue;
+      }
+      auto *fp = (float*)*vp;
+      feat_out.set_float(i, vector<float>(fp, fp+vl)); 
+      delete vp;
+      n++;
+    }
+
+    WriteLog(ToStr(n)+" out of "+ToStr(idxs.size())+" vectors mapped");
+    
     return true;
   }
 
@@ -24377,6 +24914,7 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 			      bool disp) {
     //string msg = "ShowExamples() : ";
 
+    set<string> imgs;
     cout << "LATEX \\examplesection{" << s << "}" << endl;
     size_t c = 0;
     auto i = rr.begin();
@@ -24391,7 +24929,8 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
       float  val = rev ? j->first  : i->first;
       cout << "LATEX \\examplevalue{" << c << "}{"
 	   << db->Label(idx) << "}{" << val << "}{}" << endl;
-
+      imgs.insert(db->Label(idx));
+      
       if (disp) {
 	imagedata img = db->ImageData(idx);
 	char key = '?';
@@ -24404,6 +24943,10 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
       i++;
       j++;
     }
+    cout << "LATEX % images";
+    for (const auto& i : imgs)
+      cout << " " << i;
+    cout << endl;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -25041,7 +25584,7 @@ Analysis::AnalyseSimulateOneRun(const ground_truth& correct, int forcedimg,
 
     string detstr2 = CommaJoin(bdet);
 
-    bin_data feat_out(args[0], true,
+    bin_data feat_out(args[0], true, 1.0,
 		      bin_data::header::format_float, 0, bdet.size());
     feat_out.resize(CheckDB()->Size());
 
@@ -26165,16 +26708,34 @@ Analysis::analyse_result Analysis::AnalyseViewXY(const vector<string>&) {
     
     WriteLog("AnalyseImageFile");
 
+    bool video = false;
+    
     for (size_t i=0; i<a.size(); i++) {
       WriteLog("Starting to process entry <", a[i], ">");
+      if (i==0 && a[i]=="video") {
+	video = true;
+	continue;
+      }
       try {
-	picsom::imagefile imgf(a[i]);
-	cout << "  " << imgf.info() << endl;
-	if (verbose>1)
-	  for (int j=0; j<imgf.nframes(); j++)
-	    cout << "    frame #" << j << " : " << imgf.frame(j).info()
-		 << endl;
-
+	if (!video) {
+	  picsom::imagefile imgf(a[i]);
+	  cout << "  " << imgf.info() << endl;
+	  if (verbose>1)
+	    for (int j=0; j<imgf.nframes(); j++) {
+	      imagedata img = imgf.frame(j);
+	      cout << "    frame #" << j << " : " << img.info() << endl;
+	      if (verbose>2)
+		imagefile::display(img);
+	    }
+	} else {
+	  videofile vf(a[i]);
+	  size_t n = vf.get_num_frames();
+	  size_t w = vf.get_width();
+	  size_t h = vf.get_height();
+	  double r = vf.get_frame_rate();
+	  cout << "  " << n << "x " << w << "x" << h << " @ " << r << " fps"
+	       << endl;
+	}
       } catch (string& err) {
 	cout << "  ERROR: \"" << err << "\"" << endl;
       }
@@ -27965,8 +28526,8 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       list<string> empty;
       vector<string> evec;
       XmlDom xml;
-      CheckDB()->InsertObjects(uodl, empty, empty, empty, false, false,
-			       evec, xml, "");
+      CheckDB()->InsertObjects(uodl, "", empty, empty, empty, empty,
+			       false, false, evec, xml, "");
     }
 
     Picsom()->PossiblyShowDebugInformation("AnalyseSqlTest 1");
@@ -28175,13 +28736,12 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
     if (db && a.size()==1 && a[0]=="tables") {
       cout << "Tables:" << endl;
       list<sql_table_info> tl = db->SqlTableInfoList("");
-      for (auto i=tl.begin(); i!=tl.end(); i++) {
-	cout << "  " << i->name << " #=" << i->rows
-	     << " " << i->schema
-	     << endl;
-	for (size_t j=0; j<i->spec.size(); j++)
-	  cout << "    [" << i->spec[j].first << "]=["
-	       << i->spec[j].second << "]" << endl;
+      for (auto &i : tl) {
+	cout << "  " << i.name << " #=" << i.rows
+	     << " " << i.schema << endl;
+	for (auto &j : i.spec)
+	  cout << "    [" << j.first << "]=["
+	       << j.second << "]" << endl;
       }
 
       return true;
@@ -28226,20 +28786,18 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
   /////////////////////////////////////////////////////////////////////////////
 
   Analysis::analyse_result Analysis::AnalyseSqlTables(const vector<string>& a) {
-    // using picsom::DataBase::sql_table_info;
-
     string err = "AnalyseSqlTables() : ";
 
     set<string> tl(a.begin(), a.end());
 
     list<sql_table_info> t = GetDataBase()->SqlTableInfoList("");
 
-    for (list<sql_table_info>::const_iterator i=t.begin(); i!=t.end(); i++)
-      if (tl.empty() || tl.find(i->name)!=tl.end()) {
-	cout << ">>> " << i->name << " " << i->rows << endl;
+    for (auto &i : t)
+      if (tl.empty() || tl.find(i.name)!=tl.end()) {
+	cout << ">>> " << i.name << " " << i.rows << endl;
 	if (verbose>1) {
-	  for (auto j=i->spec.begin(); j!=i->spec.end(); j++)
-	    cout << "  " << j->first << " = " << j->second << endl;
+	  for (auto &j : i.spec)
+	    cout << "  " << j.first << " = " << j.second << endl;
 	  cout << endl;
 	}
       }
@@ -28330,7 +28888,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
                " ["+vi.FeatureTargetString()+"]");
 
       const string augm;
-      if (!vi.BinDataOpen(true, CheckDB()->Size(), false, augm))
+      if (!vi.BinDataOpen(true, CheckDB()->Size(), false, 0.0, augm))
 	return ShowError(err+"BinDataOpen() failed");
 
       for (size_t i=0; i<DataBaseSize(); i++)
@@ -28382,7 +28940,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
                " ["+vi.FeatureTargetString()+"]");
 
       const string augm;
-      if (!vi.BinDataOpen(true, CheckDB()->Size(), false, augm))
+      if (!vi.BinDataOpen(true, CheckDB()->Size(), false, 0.0, augm))
 	return ShowError(err+"BinDataOpen() failed");
 
       Index *sidx = source->FindIndex(IndexFullName(m), "", true);
@@ -28394,7 +28952,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       if (!vsidx)
 	return ShowError(err+"index <"+IndexFullName(m)+"> cast failed");
 
-      if (!vsidx->BinDataOpen(false, source->Size(), false, augm))
+      if (!vsidx->BinDataOpen(false, source->Size(), false, 0.0, augm))
 	return ShowError(err+"BinDataOpen() failed (source)");
 
       size_t nwas = 0, nimp = 0, nnot = 0, nnan = 0;
@@ -28491,7 +29049,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 	     " ["+vi.FeatureTargetString()+"]");
 
     const string augm;
-    if (!vi.BinDataOpen(true, CheckDB()->Size(), false, augm))
+    if (!vi.BinDataOpen(true, CheckDB()->Size(), false, 0.0, augm))
       return ShowError(err+"BinDataOpen() failed");
 
     vector<string> a = args;
@@ -28530,7 +29088,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 	    return ShowError(err+"label <"+v->Label()+"> not found,"
 			     " consider addlabels=true"
 			     " insertobjectsrealinfo=false");
-	  if (!CheckDB()->AddLabelAndParents(v->Label(), Target(), false))
+	  if (!CheckDB()->AddLabelAndParents(v->Label(), Target(), false, true))
 	    return ShowError(err+"adding label <"+v->Label()+"> failed");
 
 	  idx = CheckDB()->LabelIndex(v->Label());
@@ -28543,8 +29101,8 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 	  XmlDom xml;
 	  string dbname = v->LabelStr()+".jpeg";
 	  target_type tt = Target();
-	  if (!CheckDB()->InsertOriginsInfo(idx, false, "", dbname, "", "", "",
-					    "", oi, "-", tt,
+	  if (!CheckDB()->InsertOriginsInfo(idx, false, true, "", dbname,
+					    "", "", "", "", oi, "-", tt,
 					    nframes, framerate, xml))
 	    return ShowError(err+"InsertOriginsInfo() failed");
 
@@ -28552,7 +29110,8 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 	  int par = CheckDB()->LabelIndexGentle(parstr, false);
 	  if (par!=-1) {
 	    vector<size_t> idxv { (size_t)idx };
-	    if (!CheckDB()->AppendSubobjectsFile(par, idxv))
+	    XmlDom dummy;
+	    if (!CheckDB()->AppendSubobjectsFile(par, idxv, dummy))
 	      return ShowError(err+"AppendSubobjectsFile() failed");
 	  }
 
@@ -28598,7 +29157,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 	     " ["+vi.FeatureTargetString()+"]");
 
     const string augm;
-    if (!vi.BinDataOpen(true, CheckDB()->Size(), false, augm))
+    if (!vi.BinDataOpen(true, CheckDB()->Size(), false, 0.0, augm))
       return ShowError(err+"BinDataOpen() failed");
 
     WriteLog(err+"starting to read filenames from stdin");
@@ -28673,6 +29232,50 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
   /////////////////////////////////////////////////////////////////////////////
 
   Analysis::analyse_result
+  Analysis::AnalyseFeatureMean(const vector<string>&) {
+    string err = "AnalyseFeatureMean() : ";
+
+    DataBase *db = CheckDB();
+    vector<size_t> idxs = QueryRestrictionGT().indices(1);
+
+    for (size_t f=0; f<query->Nindices(); f++) {
+      WriteLog(err, "starting <"+query->IndexFullName(f)+">");
+      VectorIndex& vidx = query->IndexDataVectorIndex(f).Vectorindex();
+      vidx.BinDataOpen(false, db->Size(), false, 0.0, "");
+
+      size_t n = 0;
+      vector<double> dv;
+      for (auto& i : idxs) {
+	FloatVector *v = vidx.BinDataFloatVector(i);
+	for (size_t j=0; j<(size_t)v->Length(); j++)
+	  if (n==0)
+	    dv.push_back(v->Get(j));
+	  else
+	    dv[j] += v->Get(j);
+	    
+	delete v;
+	n++;
+      }
+      
+      vector<float> fv;
+      for (const auto &d : dv)
+	fv.push_back(d/n);
+
+      string fn = query->IndexFullName(f)+"-mean.bin";
+      bin_data b(fn, true, 1.0, bin_data::header::format_float,
+		 4*fv.size(), fv.size());
+      b.resize(1);
+      b.set_float(0, fv);
+      
+      WriteLog("Stored mean of "+ToStr(n)+" feature vectors in <"+fn+">");
+    }
+    
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
   Analysis::AnalyseExportLmdbFeatures(const vector<string>& arg) {
     string err = "AnalyseExportLmdbFeatures() : ";
 
@@ -28689,7 +29292,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
     for (size_t f=0; f<query->Nindices(); f++) {
       WriteLog(err, "starting <"+query->IndexFullName(f)+">");
       VectorIndex& vidx = query->IndexDataVectorIndex(f).Vectorindex();
-      vidx.BinDataOpen(false, db->Size(), false, "");
+      vidx.BinDataOpen(false, db->Size(), false, 0.0, "");
       vidx.LmdbDataOpen(true, db->Size(),  true, "");
       size_t n = 0;
       for (size_t i=0; i<DataBaseSize(); i++)
@@ -28710,6 +29313,8 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 		if (p!=string::npos)
 		  key.erase(p);
 	      }
+	      if (key=="" && key_name=="parent")
+		key = db->Label(db->ParentObject(i));
 	    }
 	    if (key=="")
 	      return ShowError(err+"empty key for <"+db->Label(i)+">");
@@ -28721,6 +29326,74 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       WriteLog(err, "copied "+ToStr(n)+" <"+query->IndexFullName(f)+
 	       "> vectors with '"+key_name+"' as keys");
     }
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
+  Analysis::AnalyseExportOrderedFeatures(const vector<string>&) {
+    string err = "AnalyseExportOrderedFeatures() : ";
+
+    if (filename=="")
+      return ShowError(err+"filename should be specified");
+    
+    if (query->Nindices()!=1)
+      return ShowError(err+"excatly one feature should be specified");
+	
+    DataBase *db = CheckDB();
+
+    auto idxs = db->ReadOrderedClassFile(QueryRestrictionGT().label(),
+					 -1, true);
+
+    if (idxs.size()==0)
+      return ShowError(err+"query restriction <"+QueryRestrictionGT().label()
+		       +"> was empty");
+
+    string labfile = filename;
+    size_t p = labfile.rfind('.');
+    if (p!=string::npos)
+      labfile.erase(p);
+    labfile += "-labels.txt";
+    ofstream lab(labfile);
+    
+    VectorIndex& vidx = query->vectorIndex(0);
+    vidx.BinDataOpen(false, db->Size(), false, 0.0, "");
+    FloatVector *v = vidx.BinDataFloatVector(idxs.front());
+    size_t vl = v->Length();
+    delete v;
+    if (vl==0)
+	return ShowError(err+"zero dimensionality in <"+IndexFullName(0)+">");
+
+    bin_data bin(filename, true, 1.0, bin_data::header::format_float,
+		 4*vl, vl);
+    bin.resize(idxs.size());
+
+    size_t j = 0;
+    for (auto const& i : idxs) {
+      FloatVector *v = vidx.BinDataFloatVector(i);
+      if (!v)
+	return ShowError(err+"vector #"+ToStr(i)+ " <"+db->Label(i)
+			 +"> not found in <"+IndexFullName(0)+">");
+
+      float *vp = &(*v)[0];
+      vector<float> vec(vp, vp+vl);
+      delete v;
+      if (!bin.set_float(j, vec))
+	return ShowError(err+"adding vector #"+ToStr(j)+ " in <"
+			 +filename+"> failed");
+      
+      lab << "#" << j++ << " <" << db->Label(i) << ">";
+      if (labelextras.size()) {
+	map<string,string> m = db->ReadOriginsInfo(i, false, true);
+	for (const auto& e : labelextras)
+	  lab << " " << e << "=[" << m[e] << "]";
+      }
+      lab << endl;
+    }
+    WriteLog(err, "copied "+ToStr(j)+" <"+IndexFullName(0)+
+	     "> vectors to <"+filename+"> and <"+labfile+">");
 
     return true;
   }
@@ -28747,7 +29420,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 	     " ["+vi.FeatureTargetString()+"]");
 
     const string augm;
-    if (!vi.BinDataOpen(true, CheckDB()->Size(), false, augm))
+    if (!vi.BinDataOpen(true, CheckDB()->Size(), false, 0.0, augm))
       return ShowError(err+"BinDataOpen() failed");
 
     Index *dummy1 = CheckDB()->FindIndex("dummy", "", true);
@@ -29018,6 +29691,95 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       return ShowError(err+"exactly one detection or textindex "
 		       "should be specified");
 
+    if (args.size()!=1)
+      return ShowError(err+"expected one argument: baseurl");
+
+    if (filename=="")
+      return ShowError(err+"filename should have been set");
+    
+    string fname = filename;
+
+#if defined(HAVE_JSON_JSON_H)
+    string url   = args[0];
+
+    DataBase *db = CheckDB();
+    vector<size_t> idxs = QueryRestrictionGT().indices(1);
+
+    WriteLog("Starting to export textindex <"+textindex+"> to <"+fname+">");
+
+    size_t n = 0;
+    Json::Value doc;
+    for (const auto& i : idxs) {
+      size_t t = i;
+      if (db->ObjectsTargetTypeContains(i, target_video)) {
+	t = db->VideoOrSegmentMiddleFrame(i).first;
+	if (t==(size_t)-1) {
+	  WriteLog("  skipping #"+ToStr(i)+" <"+db->Label(i)
+		   +"> because middleframe didn't exist");
+	  continue;
+	}
+      }
+      
+      textline_t tl = db->TextIndexLine(textindex, "text", t);
+      // cout << tl.str(true, true) << endl;
+
+      map<string,string> m = db->ReadOriginsInfo(i, false, true);
+      string target = m["auxid"];
+      if (target=="") {
+	size_t p = db->RootParent(i);
+	map<string,string> mp = db->ReadOriginsInfo(p, false, true);
+	target = mp["auxid"];
+      }
+      if (target=="")
+	target = "http://example.com/"+db->Label(i);
+      
+      if (db->ObjectsTargetTypeContains(i, target_videosegment)) {
+	double start = tl.start, end = tl.end;
+	if (start<0) {
+	  auto psd = db->ParentStartDuration(i, target_videofile);
+	  start = psd.second.first;
+	  end   = start+psd.second.second;
+	}
+	target += "#t="+ToStr(start)+","+ToStr(end);
+      }
+
+      Json::Value body;
+      body["type"]     = "TextualBody";
+      body["value"]    = tl.txt_val_box[0].t;
+      body["format"]   = "text/plain";
+      body["language"] = "en";
+
+      Json::Value item;
+      item["@context"] = "http://www.w3.org/ns/anno.jsonld";
+      item["id"]       = url+textindex+"/"+db->Label(i);
+      item["body"]     = body;
+      item["target"]   = target;
+      doc.append(item);
+      n++;
+    }
+
+    ofstream(fname) << Json::FastWriter().write(doc);
+    WriteLog("Exported "+ToStr(n)+" textindex <"+textindex+"> lines to <"
+	     +fname+">");
+#else
+    WriteLog("No JSON library available to write <"+fname+">");
+#endif // HAVE_JSON_JSON_H
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
+  Analysis::AnalyseExportTurtleConcepts(const vector<string>& args) {
+    string err = "AnalyseExportTurtleConcepts() : ";
+
+    string textindex = GetQuery()->TextIndex();
+    if ((detections.size()==0 && textindex=="") || detections.size()>1 ||
+	(detections.size() && textindex!=""))
+      return ShowError(err+"exactly one detection or textindex "
+		       "should be specified");
+
     if (args.size()!=2)
       return ShowError(err+"expected arguments: output_file_name baseurl");
 
@@ -29029,9 +29791,14 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 
     WriteLog("Starting to export textindex <"+textindex+"> to <"+fname+">");
 
+    ofstream out(fname);
+    out << "@prefix ebucore: <http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#> .\n";
+    out << "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
+    out << "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n";
+
+    string source = url+"/"+textindex;
+    
     size_t n = 0;
-#if defined(HAVE_JSON_JSON_H)
-    Json::Value doc;
     for (auto& i : idxs) {
       size_t t = i;
       if (db->ObjectsTargetTypeContains(i, target_video))
@@ -29049,38 +29816,144 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       }
       if (target=="")
 	target = "http://example.com/"+db->Label(i);
+
+      string textl = db->Label(i);
+      size_t p = textl.rfind(':');
+      if (p!=string::npos)
+	textl.erase(0, p+1);
+      textl = target+"/"+textindex+"/"+textl;
       
+      string parent = target;
       if (db->ObjectsTargetTypeContains(i, target_videosegment)) {
-	double start = tl.start, end =tl.end;
+	double start = tl.start, end = tl.end;
 	if (start<0) {
 	  auto psd = db->ParentStartDuration(i, target_videofile);
 	  start = psd.second.first;
 	  end   = start+psd.second.second;
 	}
 	target += "#t="+ToStr(start)+","+ToStr(end);
+
+	string startstr = SecToString(start, true);
+	string endstr   = SecToString(end,   true);
+
+	if (false)
+	  out << "<" << target << "> rdf:type ebucore:MediaFragment ;"
+	      << " ebucore:isMediaFragmentOf <" << parent << "> ;"
+	      << " ebucore:hasTextLine [ rdf:type ebucore:TextLine ;"
+	      << " ebucore:textLineStartTime \"" << startstr << "\"^^xsd:time ;"
+	      << " ebucore:textLineEndTime \""   << endstr   << "\"^^xsd:time ;"
+	      << " ebucore:textLineContent \"" << tl.txt_val_box[0].t << "\" ;"
+	      << " ebucore:textLineLanguage \"en\"^^xsd:language ]"
+	      << " .\n";
+
+	out << "<" << parent << "> ebucore:hasRelatedTextLine <" << textl << "> ."
+	    << " <" << textl << "> a ebucore:TextLine ;"
+	    << " ebucore:textLineContent \"" << tl.txt_val_box[0].t << "\"@en ;"
+	    << " ebucore:textLineEndTime \""   << endstr   << "\"^^xsd:time ;"
+	    << " ebucore:textLineLanguage \"en\"^^xsd:language ;"
+	    << " ebucore:textLineSource \"" << source << "\" ;"
+	    << " ebucore:textLineStartTime \"" << startstr << "\"^^xsd:time .\n";
+
+	n++;
       }
-
-      Json::Value body;
-      body["type"]     = "TextualBody";
-      body["value"]    = tl.txt_val[0].first;
-      body["format"]   = "text/plain";
-      body["language"] = "en";
-
-      Json::Value item;
-      item["@context"] = "http://www.w3.org/ns/anno.jsonld";
-      item["id"]       = url+textindex+"/"+db->Label(i);
-      item["body"]     = body;
-      item["target"]   = target;
-      doc.append(item);
-      n++;
     }
-    //ofstream(fname) << doc;
-    ofstream(fname) << Json::FastWriter().write(doc);
     WriteLog("Exported "+ToStr(n)+" textindex <"+textindex+"> lines to <"
 	     +fname+">");
-#else
-    WriteLog("No JSON library available to write <"+fname+">");
-#endif // HAVE_JSON_JSON_H
+
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
+  Analysis::AnalyseExportTurtleTextIndex(const vector<string>& args) {
+    string err = "AnalyseExportTurtleTextIndex() : ";
+
+    string textindex = GetQuery()->TextIndex();
+    if ((detections.size()==0 && textindex=="") || detections.size()>1 ||
+	(detections.size() && textindex!=""))
+      return ShowError(err+"exactly one detection or textindex "
+		       "should be specified");
+
+    if (args.size()!=2)
+      return ShowError(err+"expected arguments: output_file_name baseurl");
+
+    string fname = args[0];
+    string url   = args[1];
+
+    DataBase *db = CheckDB();
+    vector<size_t> idxs = QueryRestrictionGT().indices(1);
+
+    WriteLog("Starting to export textindex <"+textindex+"> to <"+fname+">");
+
+    ofstream out(fname);
+    out << "@prefix ebucore: <http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#> .\n";
+    out << "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
+    out << "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n";
+
+    string source = url+"/"+textindex;
+    
+    size_t n = 0;
+    for (auto& i : idxs) {
+      size_t t = i;
+      if (db->ObjectsTargetTypeContains(i, target_video))
+	t = db->VideoOrSegmentMiddleFrame(i).first;
+
+      textline_t tl = db->TextIndexLine(textindex, "text", t);
+      // cout << tl.str(true, true) << endl;
+
+      map<string,string> m = db->ReadOriginsInfo(i, false, true);
+      string target = m["auxid"];
+      if (target=="") {
+	size_t p = db->RootParent(i);
+	map<string,string> mp = db->ReadOriginsInfo(p, false, true);
+	target = mp["auxid"];
+      }
+      if (target=="")
+	target = "http://example.com/"+db->Label(i);
+
+      string textl = db->Label(i);
+      size_t p = textl.rfind(':');
+      if (p!=string::npos)
+	textl.erase(0, p+1);
+      textl = target+"/"+textindex+"/"+textl;
+      
+      string parent = target;
+      if (db->ObjectsTargetTypeContains(i, target_videosegment)) {
+	double start = tl.start, end = tl.end;
+	if (start<0) {
+	  auto psd = db->ParentStartDuration(i, target_videofile);
+	  start = psd.second.first;
+	  end   = start+psd.second.second;
+	}
+	target += "#t="+ToStr(start)+","+ToStr(end);
+
+	string startstr = SecToString(start, true);
+	string endstr   = SecToString(end,   true);
+
+	if (false)
+	  out << "<" << target << "> rdf:type ebucore:MediaFragment ;"
+	      << " ebucore:isMediaFragmentOf <" << parent << "> ;"
+	      << " ebucore:hasTextLine [ rdf:type ebucore:TextLine ;"
+	      << " ebucore:textLineStartTime \"" << startstr << "\"^^xsd:time ;"
+	      << " ebucore:textLineEndTime \""   << endstr   << "\"^^xsd:time ;"
+	      << " ebucore:textLineContent \"" << tl.txt_val_box[0].t << "\" ;"
+	      << " ebucore:textLineLanguage \"en\"^^xsd:language ]"
+	      << " .\n";
+
+	out << "<" << parent << "> ebucore:hasRelatedTextLine <" << textl << "> ."
+	    << " <" << textl << "> a ebucore:TextLine ;"
+	    << " ebucore:textLineContent \"" << tl.txt_val_box[0].t << "\"@en ;"
+	    << " ebucore:textLineEndTime \""   << endstr   << "\"^^xsd:time ;"
+	    << " ebucore:textLineLanguage \"en\"^^xsd:language ;"
+	    << " ebucore:textLineSource \"" << source << "\" ;"
+	    << " ebucore:textLineStartTime \"" << startstr << "\"^^xsd:time .\n";
+
+	n++;
+      }
+    }
+    WriteLog("Exported "+ToStr(n)+" textindex <"+textindex+"> lines to <"
+	     +fname+">");
 
     return true;
   }
@@ -29119,7 +29992,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       
       if (vl==0) {
 	vl = atoi(line.c_str());
-	out.open(fnameout, true, fmt, fmt_mul*vl, vl);
+	out.open(fnameout, true, 1.0, fmt, fmt_mul*vl, vl);
 	out.resize(db->Size());
 	continue;
       }
@@ -29166,7 +30039,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
     string f = "test.bin";
     Unlink(f);
 
-    bin_data b(f, true,  bin_data::header::format_float, 4*l, l);
+    bin_data b(f, true, 1.0, bin_data::header::format_float, 4*l, l);
     for (size_t i=0; i<n; i++) {
       vector<float> v(l);
       for (size_t j=0; j<l; j++)
@@ -29201,12 +30074,12 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       return ShowError(msg+"<file.bin> argument missing");
 
     vector<string> fa = SplitInCommas(a[0]);
-    while (fa.size()<5)
+    while (fa.size()<6)
       fa.push_back("0");
 
-    bin_data d(fa[0], atoi(fa[1].c_str()),
-	       bin_data::header::format_type(atoi(fa[2].c_str())),
-	       atoi(fa[3].c_str()), atoi(fa[4].c_str()));
+    bin_data d(fa[0], atoi(fa[1].c_str()), atof(fa[2].c_str()),
+	       bin_data::header::format_type(atoi(fa[3].c_str())),
+	       atoi(fa[4].c_str()), atoi(fa[5].c_str()));
 
     cout << fa[0] << " : " << d.str() << endl;
 
@@ -29941,6 +30814,33 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
   /////////////////////////////////////////////////////////////////////////////
 
   Analysis::analyse_result
+  Analysis::AnalyseDenseCapTest(const vector<string>& argv) {
+    string err = "AnalyseDenseCapTest() : ";
+
+    if (!argv.size())
+      return ShowError(err, "You must give at least one label/index/"
+                       "filename as argument");
+
+    DataBase* db = CheckDB();
+    ground_truth gt(db->Size());
+
+    for (auto a : argv)
+      gt = gt.TernaryOR(db->GroundTruthExpression(a));
+
+    vector<size_t> idxs = gt.indices(1);
+
+    map<string,string> spec;
+    map<size_t,textline_t> res = db->GenerateSentencesDenseCap(idxs, spec);
+    for (auto i : res) {
+      cout << i.second.txt_display_all(true) << endl;
+    }
+    
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
   Analysis::AnalyseFeatureTest(const vector<string>& argv) {
     string err = "AnalyseFeatureTest() : ";
 
@@ -29999,7 +30899,7 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
 	string type = "string::filename*";
 	string opath;
 	if (FileExists(arg))
-	  opath = arg;
+	  opath = FullPath(arg); // was arg
 	else
 	  opath = db->ObjectPathEvenExtract(iidx);
 	fnamelist.push_back(opath);
@@ -30394,6 +31294,57 @@ bool Analysis::PlotAddInner(GnuPlot& gp, const analyse_result& r,
       
     }
 
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
+  Analysis::AnalyseNumPyTest(const vector<string>& argv) {
+    string msg = "AnalyseNumPyTest() : ";
+
+    if (argv.size()<2)
+      return ShowError(msg+"two *.npy file name arguments missing");
+    
+    if (false) {
+      ifstream is(argv[0]);
+      size_t o = 0;
+      auto m = ReadNumPyHeader(is, o);
+      cout << "o=" << o << endl;
+      for (auto &i : m)
+	cout << i.first << "=" << i.second << endl;
+
+    } else {
+      {
+	ifstream is(argv[0]);
+	size_t zz;
+	ReadNumPyHeader(is, zz, true);
+      }
+      ifstream is(argv[0]);
+      size_t o = 0, fs = 0;
+      vector<size_t> d;
+      if (!ReadNumPyHeader(is, o, fs, d))
+	return ShowError(msg+"failed reading <"+argv[0]+">");
+      cout << fs << " :";
+      for (auto &i : d)
+	cout << " " << i;
+      cout << endl;
+
+      vector<size_t> shape { 1, 79, 224, 224, 3 };
+      size_t n = 1, l = shape.back();
+      for (size_t i=0; i<shape.size()-1; i++)
+	n *= shape[i];
+      list<vector<float> > m;
+      
+      for (size_t i=0; i<n; i++) {
+	m.push_back(vector<float>(l));
+      }
+
+      ofstream os(argv[1]);
+      if (!WriteNumPyData(os, shape, m))
+	return ShowError(msg+"failed writing <"+argv[1]+">");
+    }
+    
     return true;
   }
 
@@ -31398,6 +32349,11 @@ bool Analysis::ExpFitAndFill(DoubleVector& cc, int tot, int corr) {
     //   return true;
     // }
 
+    if (key=="shotdetector") {
+      shotdetector = val;
+      return true;
+    }
+
     if (key=="thresholds") {
       thresholds = val;
       return true;
@@ -31508,8 +32464,8 @@ bool Analysis::ExpFitAndFill(DoubleVector& cc, int tot, int corr) {
       return true;
     }
 
-    if (key=="featextbatchsize") {
-      featextbatchsize = intval;
+    if (key=="batchsize" || key=="featextbatchsize") {
+      batchsize = intval;
       return true;
     }
 
@@ -31701,6 +32657,16 @@ bool Analysis::ExpFitAndFill(DoubleVector& cc, int tot, int corr) {
 
     if (key=="use_textindex") {
       use_textindex = IsAffirmative(val);
+      return true;
+    }
+
+    if (key=="textindex_out") {
+      textindex_out = val;
+      return true;
+    }
+
+    if (key=="washspec") {
+      washspec = val;
       return true;
     }
 
@@ -32691,7 +33657,7 @@ script_exp_t Analysis::ScriptExpand(const list<string>& scr,
     m.push_back(make_pair(string("${user}"), Picsom()->UserName()));
     m.push_back(make_pair(string("${uid}"),  ToStr(getuid())));
     m.push_back(make_pair(string("${home}"), Picsom()->UserHomeDir()));
-    m.push_back(make_pair(string("${cwd}"),  PicSOM::Cwd()));
+    m.push_back(make_pair(string("${cwd}"),  Cwd()));
     m.push_back(make_pair(string("${host}"), PicSOM::HostName()));
     m.push_back(make_pair(string("${date}"), string(buf)));
     m.push_back(make_pair(string("${scriptpath}"), string("*default*")));
@@ -33280,26 +34246,40 @@ list<string> Analysis::ScriptSolveScriptPath(const script_exp_t& scr) const {
       if (argv.size()!=11)
 	return ShowError(msg+"argument count "+ToStr(argv.size())+"!=11\n"
 			 "EXAMPLE: **object** 0000 image 0000.png"
-			 " foo.tar[1] page image/png >256 640x480 - md5sum -");
+			 " foo.tar[1] page image/png >256 640x480 auxid md5sum -");
       // obs? anybody knows what argv[8] and argv[10] are for???
 
       target_type tt = SolveTargetTypes(argv[1], true);
-      if (!db->AddLabelAndParents(argv[0], tt, false))
+      bool angry = true;  // was false until 20191102
+      if (!db->AddLabelAndParents(argv[0], tt, false, angry))
 	return ShowError(msg+"AddLabelAndParents() failed");
 
       size_t idx = db->LabelIndex(argv[0]);
       map<string,string> oi;
-      oi["colors"] = argv[6]; 
+      oi["colors"]     = argv[6]; 
       oi["dimensions"] = argv[7];
-      oi["checksum"] = argv[9];
+      oi["auxid"]      = argv[8];  // dunno what this was...
+      oi["checksum"]   = argv[9];
       int nframes = 0;
       float framerate = 0.0;
       XmlDom xml;
-      if (!db->InsertOriginsInfo(idx, false,
-				 "", argv[2], argv[5], argv[3], argv[4],
+      string label = db->Label(idx);
+      string fname = db->SolveObjectDirectory(label)+"/"+argv[2];
+
+      if (!db->InsertOriginsInfo(idx, false, true,
+				 fname, argv[2], argv[5], argv[3], argv[4],
 				 "", oi, "-", tt, nframes, framerate, xml))
 	return ShowError(msg+"InsertOriginsInfo() failed");
 
+      if (db->ObjectsTargetTypeContains(idx, target_video)) {
+	upload_object_data info;
+	info.url = fname;
+	info.ctype = argv[5];
+	if (!db->InsertVideoSubObjects(idx, tt, info, nframes, framerate,
+				       false, xml))
+	  return ShowError(msg+"InsertVideoSubObjects() failed");
+      }
+      
       return true;
     }
 
@@ -33395,46 +34375,20 @@ list<string> Analysis::ScriptSolveScriptPath(const script_exp_t& scr) const {
       a.erase(a.begin());
       a.erase(a.begin());
       string str = JoinWithString(a, " ");
-      AddTextLineData(argv[1], db->LabelIndex(argv[0]), str);
-      return true;
+      return AddTextLineData(argv[1], db->LabelIndex(argv[0]), str);
     }
 
-    if (false && op=="textentry") { // **textentry**
-      // obs! this _should_ call DataBase::StoreSentences() 
-
-      bool use_subdir = true;
-      if (argv.size()<2)
-	return ShowError(msg+ToStr(argv.size())+"<2");
-      size_t oidx = db->LabelIndex(argv[0]);
-      const string& label = db->Label(oidx);
-      string type = argv[1];
-      vector<string> argvx = argv;
-      argvx.erase(argvx.begin());
-      argvx.erase(argvx.begin());
-      string line = JoinWithString(argvx, " ")+"\n";
-      // obs! DataBase::LabelSubDir() is not what is needed here...
-      string subd = use_subdir ? db->LabelSubDir(label) : "";
-      // dunno why this is needed... (see the comment above...)
-      if (use_subdir && subd=="")
-	subd = label+".d";
-      string fn = db->SolveObjectPath(label, subd, "", true)+"-"+type+".txt";
-      if (!Picsom()->MakeDirectory(fn, true))
-	return ShowError(msg+"Failed to create directory for <"+fn+">");
-
-      string act = "Stored";
-      if (FileExists(fn)) {
-	string tmp = FileToString(fn);
-	if (tmp.size()&&tmp[tmp.size()-1]=='\n')
-	  tmp.erase(tmp.size()-1);
-	line = tmp+" # "+line;
-	act = "Appended";
+    if (op=="boxdata") { // **boxdata**
+      boxdata_t box(db, argv);
+      if (int(box.idx)==-1)
+	WriteLog(msg+"**boxdata** skipping inexistent <"+argv[0]+">");
+      else {
+	bool ok = db->BoxDataInput(box);
+	if (ok)
+	  WriteLog(msg+"added box "+box.str());
+	else
+	  return ShowError(msg+"failed to add box "+box.str());
       }
-      if (!StringToFile(line, fn))
-	return ShowError(msg+"Failed to write in <"+fn+">");
-
-      WriteLog(act+" <"+type+"> type sentence in <"+
-	       db->ShortFileName(fn)+">");
-
       return true;
     }
 
@@ -33463,8 +34417,9 @@ list<string> Analysis::ScriptSolveScriptPath(const script_exp_t& scr) const {
       } else
 	for (size_t i=2; i<argv.size(); i++)
 	  s.push_back(db->LabelIndex(argv[i]));
-      
-      return db->AppendSubobjectsFile(idx, s);
+
+      XmlDom dummy;
+      return db->AppendSubobjectsFile(idx, s, dummy);
     }
 
     if (op=="class" || op=="class ordered") { // **class**
@@ -33585,7 +34540,7 @@ list<string> Analysis::ScriptSolveScriptPath(const script_exp_t& scr) const {
       t.index = name;
       t.field = "text"; // obs!
     }
-    t.txt_val.push_back({txt, val});
+    t.add(txt, val);
 
     return true;
   }
@@ -33886,7 +34841,7 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
       uid.use    = "container-regular";
     }
     
-    list<string> featlist, detectlist, segmentlist;
+    list<string> featlist, detectlist, segmentlist, captlist;
     if (extractfeatures)
       featlist = query->IndexFullNames();
 
@@ -33897,8 +34852,12 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
       segmentlist.insert(segmentlist.begin(),
 			 segmentations.begin(), segmentations.end()); 
 
-    bool ok = db->InsertObjects(imagelist, featlist,
-				detectlist, segmentlist,
+    if (false /*docaptions*/)
+      captlist.insert(captlist.begin(),
+		      captionings.begin(), captionings.end()); 
+
+    bool ok = db->InsertObjects(imagelist, "", featlist,
+				detectlist, segmentlist, captlist,
 				updatediv, zipped, odlist, xml, segout);
 
     if (!ok)
@@ -34105,7 +35064,7 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
       uid.nframes    = nfr;
       uid.framerate  = frr;
   
-      list<string> featlist, detectlist, segmentlist;
+      list<string> featlist, detectlist, segmentlist, captlist;
       if (extractfeatures)
 	for (size_t f=0; f<Nfeatures(); f++)
 	  featlist.push_back(query->IndexFullName(f));
@@ -34116,9 +35075,13 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 	segmentlist.insert(segmentlist.begin(),
 			   segmentations.begin(), segmentations.end()); 
 
+      if (false /*docaptions*/)
+	captlist.insert(captlist.begin(),
+			captionings.begin(), captionings.end()); 
+
       WriteLog("Inserting object file <", file, ">");
-      ok = db->InsertObjects(imagelist, featlist, detectlist, segmentlist,
-			     updatediv, zipped, odlist, xml, "");
+      ok = db->InsertObjects(imagelist, "", featlist, detectlist, segmentlist,
+			     captlist, updatediv, zipped, odlist, xml, "");
     }
 
     if (delete_original)
@@ -34181,14 +35144,26 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 	else
 	  i++;
 
-      for (size_t i=0; i<idxs.size(); i++) {
-	string a = "#"+ToStr(idxs[i]);
+      // obs! could also this use SplitTasksAndAnalyse() ???
+      
+      size_t nbatch = 1;
+      for (int i=0; i<batchsize; i++)
+	nbatch *= 10;
+      
+      size_t j = 0, nt = (idxs.size()+nbatch-1)/nbatch;
+      for (size_t i=0; i<nt; i++) {
+	string a;
+	for (size_t k=0; k<nbatch && j<idxs.size(); k++, j++)
+	  a += " #"+ToStr(idxs[j]);
+	
 	list<string> sx = s;
 	sx.push_back("args="+a);
-	script_list_e ae = make_pair("insertsubobjects-"+a,
-				     make_pair(sx, vector<string>()));
+	script_list_e ae = { "insertsubobjects-"+ToStr(i), { sx, {} } };
 	sl.push_back(ae);
       }
+
+      WriteLog("Starting slaved subobject insertion for "+ToStr(idxs.size())
+	       +" objects in "+ToStr(sl.size())+" tasks");
 
       list<analyse_result> ar = Analyse(sl, true, false);
 
@@ -34203,8 +35178,7 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
     XmlDom resoih = xml_result.Root().Element("objectinfohashlist");
     XmlDom resoci = xml_result.Root().Element("objectchildinfolist");
 
-    bool do_pipe = Picsom()->IsSlave()&&
-      Picsom()->SlavePipe().find("objectinfo")!=string::npos;
+    bool do_pipe = Picsom()->IsSlavePiping("objectinfo");
     bool use_transaction = !do_pipe;
 
     if (use_transaction && !db->SqlBeginTransaction())
@@ -34251,18 +35225,22 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 
       target_type tt = is_video ? target_video : target_imageset;
       bool upp = true; // update also parent....
-      if (!db->InsertVideoSubObjects(idxs[i], tt, info, nframes, fps, upp, resoih))
+      if (!db->InsertVideoSubObjects(idxs[i], tt, info, nframes, fps,
+				     upp, resoih))
 	return ShowError(msg+"InsertVideoSubObjects() failed");
 
-      if (do_pipe) {
-	XmlDom oci = resoci.Element("objectchildinfo");
-	oci.Prop("parent", "#"+ToStr(idxs[i]));
-	oci.Prop("child", ToStr(info.labels));
-
-	return true;
-
-      } else if (!db->AppendSubobjectsFile(idxs[i], info.indices))
+      if (!db->AppendSubobjectsFile(idxs[i], info.indices, resoci))
 	return ShowError(msg+"AppendSubobjectsFile() failed");
+
+      // if (do_pipe) {
+      // 	XmlDom oci = resoci.Element("objectchildinfo");
+      // 	oci.Prop("parent", "#"+ToStr(idxs[i]));
+      // 	oci.Prop("child", ToStr(info.labels));
+      //
+      // 	return true;
+      //
+      // } else if (!db->AppendSubobjectsFile(idxs[i], info.indices))
+      // 	return ShowError(msg+"AppendSubobjectsFile() failed");
     }
 
     if (use_transaction && !db->SqlEndTransaction())
@@ -34276,17 +35254,17 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
   Analysis::analyse_result
   Analysis::AnalyseCreateTars(const vector<string>&) {
     string msg = "AnalyseCreateTars() : ";
-    WriteLog(msg+"starting with featextbatchsize="+ToStr(featextbatchsize));
+    WriteLog(msg+"starting with batchsize="+ToStr(batchsize));
 
     DataBase *db = CheckDB();
 
-    if (featextbatchsize<1)
-      return ShowError(msg+"featextbatchsize<1");
+    if (batchsize<1)
+      return ShowError(msg+"batchsize<1");
 
-    if ((size_t)featextbatchsize>db->LabelLength())
-      return ShowError(msg+"featextbatchsize>labellength");
+    if ((size_t)batchsize>db->LabelLength())
+      return ShowError(msg+"batchsize>labellength");
 
-    size_t tl = db->LabelLength()-featextbatchsize;
+    size_t tl = db->LabelLength()-batchsize;
     size_t tlim = (size_t)pow(10.0, tl);
 
     string op = db->ExpandPath("objects"), opx = op;
@@ -34497,8 +35475,7 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 	       ToStr(Picsom()->GpuPolicy())+" gpudevice="+
 	       ToStr(Picsom()->GpuDeviceId()));
 
-      if (!HasXmlResult())
-	InitializeXmlResult(true);
+      EnsureXmlResult();
       XmlDom resdet = xml_result.Root().Element("detectionvectorlist");
 
       PicSOM::detection_stat_t& dstat = detection_stat;
@@ -34686,8 +35663,8 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 	textline_t tl = db->ObjectTextLineRetrieve(idx, "", spec, angry);
 	// cout << "#" << idx << " <" << *dd << "> " << tl.str() << endl;
 
-	for (size_t j=0; j<tl.txt_val.size() && j<max_n_per_image; j++)
-	  candidates.insert(tl.txt_val[j].first);
+	for (size_t j=0; j<tl.txt_val_box.size() && j<max_n_per_image; j++)
+	  candidates.insert(tl.txt_val_box[j].t);
       }
 
       for (auto j=candidates.begin(); j!=candidates.end(); j++)
@@ -34701,13 +35678,29 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  list<Analysis::analyse_result>
-  Analysis::SplitSlavesAndAnalyse(const vector<size_t>& idxs,
-				  const list<string>& scr,
-				  const string& suff) {
+  pair<size_t,size_t> Analysis::SolvePerJobAndNjobs(size_t tot, int febs) {
     size_t per_job = 1;
-    for (int i=0; i<featextbatchsize; i++)
+    for (int i=0; i<febs; i++)
       per_job *= 10;
+
+    size_t njobs = (tot+per_job-1)/per_job;
+
+    return {per_job, njobs};
+  }
+  
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<Analysis::analyse_result>
+  Analysis::SplitTasksAndAnalyse(const vector<size_t>& idxs,
+				 const list<string>& scr,
+				 const vector<string>& argv,
+				 const string& suff) {
+    string msg = "Analysis::SplitTasksAndAnalyse() :";
+
+    // size_t per_job = 1;
+    // for (int i=0; i<batchsize; i++)
+    //   per_job *= 10;
 
     script_list_t sl;
 
@@ -34718,21 +35711,106 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
       else
 	i++;
 
-    size_t njobs = (idxs.size()+per_job-1)/per_job, i = 0;
+    // size_t njobs = (idxs.size()+per_job-1)/per_job, i = 0;
+    auto pjnj = SolvePerJobAndNjobs(idxs.size(), batchsize);
+    size_t per_job = pjnj.first, njobs = pjnj.second, i = 0;
+    
     for (size_t j=0; j<njobs; j++) {
-      string a;
+      string a = ToStr(argv);
       size_t k = 0;
-      while (i<idxs.size() && k<per_job)
-	a += string(k++?" ":"")+"#"+ToStr(idxs[i++]);
-
+      while (i<idxs.size() && k++<per_job)
+	a += string(a==""?"":" ")+"#"+ToStr(idxs[i++]);
+      
       list<string> sx = s;
       sx.push_back("args="+a);
-      script_list_e ae = make_pair(suff+"-"+a,
-				   make_pair(sx, vector<string>()));
+      script_list_e ae { suff+"-"+a, { sx, {} } };
       sl.push_back(ae);
     }
 
+    WriteLog(msg+" "+ToStr(idxs.size())+" <"+suff+"> jobs split to "+
+	     ToStr(njobs)+" tasks of size "+ToStr(per_job)+
+	     " to be executed next");
+    
     return Analyse(sl, true, false);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  Analysis::analyse_result
+  Analysis::AnalyseCaption(const vector<string>& args) {
+    string msg = "Analysis::AnalyseCaption() : ";
+
+    WriteLog(msg+"starting");
+
+    if (captionings.empty())
+      return ShowError(msg+"captionings should be specified");
+
+    if (Target()!=target_image && Target()!=target_video)
+      return ShowError(msg+"target should be image|video");
+    
+    DataBase *db = CheckDB();
+
+    db->Interpret("videoinsert", "file+midframes");
+    
+    string shotdet;
+    if (shotdetector!="")
+      shotdet = shotdetector+"/ff";
+    
+    list<upload_object_data> objs;
+
+    for (size_t i=0; i<args.size(); i++) {
+      const string& fa = args[i];
+      string f = fa;
+      
+      if (!FileExists(f)) {
+	f = Picsom()->TempDirPersonal("api")+"/"+f;
+	if (!FileExists(f)) {
+	  WriteLog(msg+"neither <"+fa+"> nor <"+f+"> exist");
+	  f = fa;
+	}
+      }
+      string mime = FileExtensionToMIMEtype(f), seg;
+      bool is_video = mime.find("video/")==0;
+      if (is_video && shotdet=="" && i<args.size()-1) {
+	seg = args[++i];
+	if (seg=="-")
+	  seg = "";
+      }
+
+      vector<string> sseg = SplitInCommas(seg);
+      vector<double> dseg;
+      for (const auto& s : sseg)
+	dseg.push_back(atof(s.c_str()));
+      
+      upload_object_data d;
+      d.path   = d.url = f;
+      d.use    = "regular";
+      d.ctype  = mime;
+      d.sbound = dseg;
+      d.sbname = is_video&&shotdet=="" ? "sb/t" : "";
+      objs.push_back(d);
+    }
+
+    const string& model = captionings[0];
+    auto dcf = db->DeepCaptionFeatures(model);
+    list<string> ff(dcf.first.first.begin(), dcf.first.first.end());
+    ff.insert(ff.end(), dcf.second.first.begin(), dcf.second.first.end());
+    list<string> features(ff), captions(captionings.begin(), captionings.end());
+
+    EnsureXmlResult();
+    XmlDom xml = xml_result.Root();
+
+    Picsom()->PossiblyShowDebugInformation("Calling InsertObjects() in "
+					   "AnalyseCaption()");
+
+    if (!db->InsertObjects(objs, shotdet, features, {}, {}, captions,
+			   false, false, {}, xml, ""))
+      return ShowError(msg+"insert failed");
+
+    Picsom()->PossiblyShowDebugInformation("Returned from InsertObjects() in "
+					   "AnalyseCaption()");
+
+    return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -34755,29 +35833,47 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
       else
 	idxs.push_back(db->LabelIndex(args[i]));
 
-    if (idxs.empty())
+    bool by_restriction = false;
+    if (idxs.empty()) {
       idxs = QueryRestrictionGT().indices(1);
+      by_restriction = true;
+    }
     if (idxs.empty())
       return ShowError(msg+"no objects found by target and queryrestriction");
 
     if (Picsom()->HasSlaves() && idxs.size()>1) {
-      list<analyse_result> ar = SplitSlavesAndAnalyse(idxs, script, 
-						      "captioning");
+      vector<string> txt_idxs = db->CaptioningsToTextIndices(captionings);
+      vector<size_t> idxs_mis = by_restriction ?
+	db->SolveMissingTexts(idxs, txt_idxs) : idxs;
+
+      vector<string> aa;
+      list<analyse_result> ar = SplitTasksAndAnalyse(idxs_mis, script, aa,
+						     "captioning");
 
       WriteLog("Slaved captioning resulted in "+
 	       ToStr(slave_captions_stored)+" captions for "+
-	       ToStr(idxs.size())+" objects being sored");
+	       ToStr(idxs_mis.size())+" objects being stored");
 
       return true;
     }
 
-    if (!HasXmlResult())
-      InitializeXmlResult(true);
-    XmlDom rescap = xml_result.Root().Element("captionlist");
+    auto pjnj = SolvePerJobAndNjobs(idxs.size(), batchsize);
+    if (pjnj.second<2)  {
+      EnsureXmlResult();
+      XmlDom rescap = xml_result.Root().Element("captionlist");
 
-    if (!db->DoAllCaptionings(force, idxs, captionings, use_textindex, rescap))
-      return ShowError(msg+"failed");
+      if (!db->DoAllCaptionings(force, idxs, captionings,
+				use_textindex, rescap))
+	return ShowError(msg+"DoAllCaptionings() failed");
 
+    } else {
+      vector<string> aa;
+      list<analyse_result> ar = SplitTasksAndAnalyse(idxs, script, aa,
+						     "captioning");
+      if (ar.empty())
+	return ShowError(msg+"SplitTasksAndAnalyse() failed");
+    }
+    
     WriteLog(msg+"ending");
 
     return true;
@@ -34971,9 +36067,9 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
       for (auto qq=detections.begin(); qq!=detections.end(); qq++) {
 	string spec = *qq; // no "gene-"+ here
 	textline_t tl = db->ObjectTextLineRetrieve(idx, "", spec, true);
-	for (size_t m=0; m<tl.txt_val.size() && m<cand_max; m++) {
-	  string q = *qq+"@"+ToStr(m), txt = tl.txt_val[m].first;
-	  double val = tl.txt_val[m].second;
+	for (size_t m=0; m<tl.txt_val_box.size() && m<cand_max; m++) {
+	  string q = *qq+"@"+ToStr(m), txt = tl.txt_val_box[m].t;
+	  double val = tl.txt_val_box[m].v;
 
 	  vector<string> s = SplitInSpaces(txt);
 	  split_line.push_back(make_pair(q, s));
@@ -35353,36 +36449,95 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 
   /////////////////////////////////////////////////////////////////////////////
 
+  string Analysis::POStagWithCoreNLP(const string& tin, const string& name) {
+    string msg = "Analysis::POStagWithCoreNLP(...,"+name+") : ";
+    //WriteLog(msg+"starting");
+
+    Connection *c = GetNLPpipe(name);
+    if (!c) {
+      vector<string> prop { "annotators=tokenize,ssplit,pos,lemma,depparse" };
+      c = BuildNLPpipe(name, prop);
+    }
+    if (!c)
+      return ShowErrorS(msg+"BuildNLPpipe() failed");
+
+    string tx = tin;
+    Replace(tx, '.', "");
+    Replace(tx, '!', "");
+    Replace(tx, '?', "");
+    Replace(tx, '"', "");
+    vector<string> tt = SplitInSpaces(tx);
+    for (auto& i : tt)
+      if (i!="I")
+	i = LowerCase(i);
+    string ta = JoinWithString(tt, " ");
+    
+    auto rr = NLPtagPOS(name, {ta});
+    if (rr.size()!=1)
+      return ShowErrorS(msg+"rr.size()!=1");
+
+    static set<string> keep { "an", "her", "him" };
+    
+    string s;
+    for (const auto& ww : rr.front()) {
+      string w = ww.text, p = ww.pos, l = ww.lemma;
+      if (l=="." || l=="," || l==":" || l==";" || l=="!" || l=="?")
+	continue;
+      string wl = w=="I"?w:LowerCase(w), ll = l=="I"?l:LowerCase(l);
+      if (wl==ll)
+	p = "";
+      if (keep.find(wl)!=keep.end()) {
+	l = wl;
+	p = "";
+      }
+      s += (s==""?"":" ")+l+(p==""?"":" ")+p;
+    }
+
+    return s;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string Analysis::WashSentence(const string& t, const string& s) {
+    string msg = "Analysis::WashSentence(...,"+s+") : ";
+    //WriteLog(msg+"starting");
+
+    if (s.find("ws:")==0)
+      return WashString(t, s.substr(3));
+
+    if (s.find("core:")==0)
+      return POStagWithCoreNLP(t, s.substr(5));
+    
+    ShowError(msg+"spec <"+s+"> not understood");
+
+    return t;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
   Analysis::analyse_result
   Analysis::AnalyseTextWash(const vector<string>& args) {
     string msg = "Analysis::AnalyseTextWash() : ";
 
     WriteLog(msg+"starting");
 
-    if (args.size()!=1)
-      return ShowError(msg+"one argument <*textindex> or <string> needed"); 
+    if (args.size()!=0)
+      return ShowError(msg+"no arguments <*textindex> nor <string> needed"); 
 
-    string spec = "";
-    
-    bool is_textindex = false;
-    string out = args[0];
-    if (out[0]=='*') {
-      is_textindex = true;
-      out.erase(0, 1);
-    }
-
-    DataBase *db  = CheckDB();
-
-    if (is_textindex && !db->HasTextIndex(out))
-      return ShowError(msg+"textindex <"+out+"> unknown");
+    if (washspec=="")
+      return ShowError(msg+"washspec should be set"); 
 
     string ti = GetQuery()->TextIndex();
     if (ti=="")
       return ShowError(msg+"textindex should be specified");
     
-    const ground_truth& qgt = QueryRestrictionGT();
-    vector<size_t> idxs = qgt.indices(1);
-    for (auto i : idxs) {
+    DataBase *db  = CheckDB();
+
+    if (textindex_out!="" && !db->HasTextIndex(textindex_out))
+      return ShowError(msg+"textindex <"+textindex_out+"> unknown");
+
+    vector<size_t> idxs = QueryRestrictionGT().indices(1);
+    for (const auto& i : idxs) {
       auto rt = db->TextIndexAllLines(ti, i);
       if (rt.size()==0)
 	continue;
@@ -35391,13 +36546,13 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
       textline_t text;
       bool done = false;
       for (auto& j : wt) {
-	j.index = out;
-	cout   << "   " << j.str_common(true, true, true) << endl;
+	j.index = textindex_out;
+	cout   << "   " << j.str_common_x(true, true, true, true, true) << endl;
 	if (j.field=="text" && !done) {
-	  for (auto& l : j.txt_val)
-	    l.first = WashString(l.first, spec);
+	  for (auto& l : j.txt_val_box)
+	    l.t = WashSentence(l.t, washspec);
 
-	  cout << "=> " << j.str_common(true, true, true) << endl;
+	  cout << "=> " << j.str_common_x(true, true, true, true, true) << endl;
 	  text = j;
 	  done = true;
 	}
@@ -35406,12 +36561,12 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
       if (!done)
 	return ShowError(msg+"done=false");
 
-      if (is_textindex) {
+      if (textindex_out!="") {
 	if (!WriteOutTextLineData(text))
 	  return ShowError(msg+"WriteOutTextLineData() failed");
 	
       } else
-	cout << "**textentry** " << db->Label(i) << " " << out << " " 
+	cout << "**textentry** " << db->Label(i) << " DUMMY " 
 	     << text.txt_encode() << endl;
     }
 
@@ -35753,7 +36908,7 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 	  textline_t t = db->TextIndexLine(ti, "text", i);
 	  if (db->DebugText())
 	    WriteLog(msg+"TextIndexLine() finished");
-	  *out << db->Label(i) << " " << t.str_common(false, false, true) 
+	  *out << db->Label(i) << " " << t.str_common_x(true, false, true, false, true) 
 	       << endl;
 	}
 
@@ -35767,6 +36922,11 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 	  size_t pi = i;
 	  if (segmentspec[0]=='*')
 	    pi = db->VideoOrSegmentMiddleFrame(i).first;
+
+	  if (pi==(size_t)-1) {
+	    WriteLog(msg+"middleframe of #"+ToStr(i)+" <"+db->Label(i)+"> inexistent");
+	    continue;
+	  }
 	  
 	  auto psd = db->ParentStartDuration(i, target_videofile);
 	  //  obs! this should use db->TextIndexLine(ti, "text", pi)
@@ -35810,7 +36970,7 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
 	  string fl = db->Label(i);
 	  while (fl.length()<fl_len)
 	    fl += " ";
-	  *out << ts << " " << fl << " " << tl.str_common(false, false, true) 
+	  *out << ts << " " << fl << " " << tl.str_common_x(true, false, true, false, true) 
 	       << endl;
 	}
       }
@@ -36504,7 +37664,8 @@ bool Analysis::InsertDirectory(const string& dir, XmlDom& xml) {
     bool write_ok = false;
     if (outf.find(".bin")==outf.size()-4) {
       try {
-	bin_data bin(outf, true, bin_data::header::format_float, 32*dl, dl);
+	bin_data bin(outf, true, 1.0, 
+		     bin_data::header::format_float, 32*dl, dl);
 	for (size_t i=0; i<(size_t)km.Nitems(); i++) {
 	  const FloatVector& sv = *km.Get(i);
 	  vector<float> dv((float*)sv, (float*)sv+sv.Length());
@@ -37823,7 +38984,7 @@ bool Analysis::CreateSOM(Query& /*my_query*/) {
     DataBase* db = CheckDB();
 
     const string augm;
-    if (!svmp->BinDataOpen(false, db->Size(), false, augm))
+    if (!svmp->BinDataOpen(false, db->Size(), false, 0.0, augm))
       return ShowError(msg+"BinDataOpen() failed");
 
     Picsom()->PossiblyShowDebugInformation("Before PredictSVM");
@@ -39271,21 +40432,21 @@ Analysis::DivStats(const vector<string>&) {
 
     const vector<size_t>& lf = db->LabelFormat();
     size_t dirw = 0, dirl = 0, objw = 1;
-    if (featextbatchsize==-100) {
+    if (batchsize==-100) {
       size_t ll = lf.size()>1 ? lf.size()-2 : 0;
       dirw = db->ObjectDirectoryWidth(ll, true);
       for (size_t i=0; i+1<lf.size(); i++)
 	dirl += lf[i];
     } else {
       dirl = db->LabelLength();
-      if (featextbatchsize>=0)
-	dirl -= featextbatchsize;
+      if (batchsize>=0)
+	dirl -= batchsize;
 
       dirw = 1;
       for (size_t i=0; i<dirl; i++)
 	dirw *= 10;
 
-      for (int i=0; i>featextbatchsize; i--)
+      for (int i=0; i>batchsize; i--)
 	objw *= 10;
     }
 
@@ -39293,7 +40454,7 @@ Analysis::DivStats(const vector<string>&) {
     WriteLog(msg+"restriction: label="+restr.label()+
 	     " positives="+ToStr(restr.positives())+
 	     " free_slaves="+ToStr(free_slaves)+
-	     " featextbatchsize="+ToStr(featextbatchsize)+
+	     " batchsize="+ToStr(batchsize)+
 	     " dirl="+ToStr(dirl)+" dirw="+ToStr(dirw)+" objw="+ToStr(objw)+
 	     " checking "+(check_first_feature_only?"only the first":"all")+
 	     " features");
@@ -39521,7 +40682,7 @@ Analysis::DivStats(const vector<string>&) {
 		   " feature vectors");
 
 	  // NOTE: here we assume that all objects in dat_missing have
-	  // the same directory. Do we really if we have featextbatchsize?
+	  // the same directory. Do we really if we have batchsize?
 	  const string& lab = ts.Label(dat_missing.front());
 	  vector<size_t> v = db->ObjectDirectoryComponents(lab);
 	  string dir = db->LeafDirectory(v)+"/features";
@@ -40558,8 +41719,7 @@ string Analysis::MatlabFileName(int feat, int lev,
 
   bool Analysis::CopyXmlResultTo(Analysis *a) const {
     if (xml_result.Root()) {
-      if (!a->HasXmlResult())
-	a->InitializeXmlResult(true);
+      a->EnsureXmlResult();
       XmlDom e = xml_result.Root().FirstElementChild();
       while (e) {
 	xmlAddChild(a->xml_result.Root().node, xmlCopyNode(e.node, 1));
@@ -40984,6 +42144,8 @@ string Analysis::MatlabFileName(int feat, int lev,
   Analysis::AnalyseUpdateObjectInfo(const vector<string>& argv) {
     string msg = "Analysis::AnalyseUpdateObjectInfo() : ";
 
+    bool force = false;    
+    
     DataBase *db = CheckDB();
     ground_truth gt(db->Size());
     for (auto a=argv.begin(); a!=argv.end(); a++) {
@@ -40995,20 +42157,29 @@ string Analysis::MatlabFileName(int feat, int lev,
     vector<size_t> vidx = gt.indices(1);
 
     if (Picsom()->HasSlaves() && vidx.size()>1) {
-      list<analyse_result> ar = SplitSlavesAndAnalyse(vidx, script, 
-						      "updateobjectinfo");
+      vector<string> aa;
+      list<analyse_result> ar = SplitTasksAndAnalyse(vidx, script, aa,
+						     "updateobjectinfo");
       WriteLog("Updated "+ToStr(vidx.size())+" objectinfos in slaves");
       return true;
     }
 
-    for (auto vi=vidx.begin(); vi!=vidx.end(); vi++) {
-      size_t idx = *vi;
-
+    // since 20190526
+    XmlDom oihl;
+    if (vidx.size()) {
+      EnsureXmlResult();
+      oihl = xml_result.Root().Element("objectinfohashlist");
+    }
+    
+    for (auto const& idx : vidx) {
       if (!db->ObjectsTargetTypeContains(idx, Target()))
 	continue;
       
       // object_info *oi = db->FindObject(idx);
       map<string,string> m = db->ReadOriginsInfo(idx, false, true);
+      if (force)
+	m["dimensions"] ="0x0";
+      
       // for (auto i : m)
       // 	cout << i.first << "=" << i.second << endl;
 
@@ -41019,11 +42190,11 @@ string Analysis::MatlabFileName(int feat, int lev,
       int nframes = 0;
       float framerate = 0;
 
-      if (!HasXmlResult())
-	InitializeXmlResult(true);
-      XmlDom oihl = xml_result.Root().Element("objectinfohashlist");
+      // was until 20190526
+      // EnsureXmlResult();
+      // XmlDom oihl = xml_result.Root().Element("objectinfohashlist");
 
-      if (!db->InsertOriginsInfo(idx, true, fname, m["filename"], m["format"], 
+      if (!db->InsertOriginsInfo(idx, true, true, fname, m["filename"], m["format"], 
 				 m["url"], m["page"], datain, m, m["date"], 
 				 tt, nframes, framerate, oihl))
 	ShowError(msg+"InsertOriginsInfo() failed");
@@ -41040,11 +42211,9 @@ string Analysis::MatlabFileName(int feat, int lev,
 
     DataBase *db = CheckDB();
     ground_truth gt(db->Size());
-    for (auto a=argv.begin(); a!=argv.end(); a++) {
-      ground_truth gta = db->GroundTruthExpression(*a, target_video,
-						   -1, false);
-      gt = gt.TernaryOR(gta);
-    }
+    for (const auto& a : argv)
+      gt = gt.TernaryOR(db->GroundTruthExpression(a, target_video,
+						  -1, false));
 
     if (!db->SqlExec("PRAGMA synchronous=OFF;", true))
       return ShowError(msg+"'PRAGMA synchronous=OFF' failed");
@@ -41052,9 +42221,8 @@ string Analysis::MatlabFileName(int feat, int lev,
     if (!db->SqlExec("PRAGMA journal_mode=OFF;", true))
       return ShowError(msg+"'PRAGMA journal_mode=OFF' failed");
 
-    vector<size_t> vidx = gt.indices(1);
-    for (auto vi=vidx.begin(); vi!=vidx.end(); vi++) {
-      size_t idx = *vi;
+    const vector<size_t> vidx = gt.indices(1);
+    for (const auto& idx : vidx) {
       const string& label = db->Label(idx);
       WriteLog(msg+"STARTING "+label);
 

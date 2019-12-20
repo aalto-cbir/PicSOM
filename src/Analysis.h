@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Analysis.h,v 2.508 2018/10/30 09:26:53 jormal Exp $
+// -*- C++ -*-  $Id: Analysis.h,v 2.526 2019/10/09 14:50:22 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -40,7 +40,7 @@ namespace picsom {
   using simple::DataSet;
 
   static const string Analysis_h_vcid =
-    "@(#)$Id: Analysis.h,v 2.508 2018/10/30 09:26:53 jormal Exp $";
+    "@(#)$Id: Analysis.h,v 2.526 2019/10/09 14:50:22 jormal Exp $";
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -920,7 +920,7 @@ namespace picsom {
     bool AllowManySlaveThreads(const script_list_t&) const;
     
     ///
-    bool ProcessSlaveXmlResult(const XmlDom&, const PicSOM::slave_info_t&);
+    bool ProcessSlaveXmlResult(const XmlDom&, PicSOM::slave_info_t&);
 
     ///
     bool ProcessSlaveXmlResultFeatureVectorList(const XmlDom&, bool,
@@ -1058,17 +1058,29 @@ namespace picsom {
     /// dummy analysis for testing
     analyse_result AnalyseDummy(const vector<string>&);
 
+    /// dummy analysis for testing
+    analyse_result AnalyseEcho(const vector<string>&);
+
     /// dummy analysis for sleeping
     analyse_result AnalyseSleep(const vector<string>&);
 
     /// just dumps the execution environment
     analyse_result AnalyseEnv(const vector<string>&);
 
+    /// just passes version data in XML
+    analyse_result AnalyseVersions(const vector<string>&);
+
     ///
     analyse_result AnalyseCaffeConvertImageset(const vector<string>&);
 
     //
     analyse_result AnalyseTranslateTest(const vector<string>&);
+
+    //
+    analyse_result AnalyseSpeechRecognitionTest(const vector<string>&);
+
+    //
+    analyse_result AnalyseCoreNLPTest(const vector<string>&);
 
     ///
     analyse_result AnalyseTfIdfTest(const vector<string>&);
@@ -1086,8 +1098,11 @@ namespace picsom {
     analyse_result AnalyseSparqlTest(const vector<string>&);
     
     ///
-    analyse_result AnalyseRdfTest(const vector<string>&);
+    analyse_result AnalyseLinkedDataTest(const vector<string>&);
     
+    ///
+    analyse_result AnalyseRdfTest(const vector<string>&);
+
     ///
     analyse_result AnalyseOpenCvTest(const vector<string>&);
     
@@ -1219,14 +1234,23 @@ namespace picsom {
     analyse_result AnalyseShotBoundaryFromElan(const vector<string>&);
 
     ///
+    analyse_result AnalyseShotBoundaryFromFfmpeg(const vector<string>&);
+
+    ///
     analyse_result AnalyseShotBoundaryTrecvid(const vector<string>&);
 
     ///
     analyse_result AnalyseShotBoundaryParams(const vector<string>&);
 
     ///
+    analyse_result AnalyseTotalDuration(const vector<string>&);
+
+    ///
     analyse_result AnalyseFillZeroFeatureData(const vector<string>&);
 
+    ///
+    analyse_result AnalyseFeatureMean(const vector<string>&);
+    
     ///
     analyse_result AnalyseFeatureData(const vector<string>&);
 
@@ -1255,6 +1279,9 @@ namespace picsom {
     ///
     analyse_result AnalyseNearest(const vector<string>&);
 
+    ///
+    analyse_result AnalyseFeatureMapping(const vector<string>&);
+    
     ///
     analyse_result AnalyseValue(const vector<string>&);
 
@@ -1917,21 +1944,21 @@ namespace picsom {
 					   const vector<string>&);
 					   
     ///
-    void SplitSecondsTime(const double secs, int& hour, int& min, int& sec, 
-                          int& msec);
+    // void SplitSecondsTime(const double secs, int& hour, int& min, int& sec, 
+    //                       int& msec);
     
     ///
-    float TimeStringToSeconds(const string& tstr) {
-      int min,sec,subsec;
-      sscanf(tstr.c_str(),"%dm%d.%ds",&min,&sec,&subsec);
-      return min*60+sec+(float)subsec/1000.0;
-    }
+    // float TimeStringToSeconds(const string& tstr) {
+    //   int min,sec,subsec;
+    //   sscanf(tstr.c_str(),"%dm%d.%ds",&min,&sec,&subsec);
+    //   return min*60+sec+(float)subsec/1000.0;
+    // }
 
-    ///
-    string SecondsToMPEG7MediaTimePoint(const double secs);
+    // ///
+    // string SecondsToMPEG7MediaTimePoint(const double secs);
 
-    ///
-    string SecondsToMPEG7MediaDuration(const double secs);
+    // ///
+    // string SecondsToMPEG7MediaDuration(const double secs);
 
     ///
     analyse_result AnalyseSearchBest(const string&, const vector<string>&);
@@ -2012,9 +2039,6 @@ namespace picsom {
     /// Creates an annotated video
     analyse_result AnalyseVideoTimeline(const vector<string>&);
   
-    ///
-    analyse_result AnalyseSubtitlesOld(const vector<string>&);
-
     ///
     analyse_result AnalyseSubtitles(const vector<string>&);
 
@@ -2224,6 +2248,9 @@ namespace picsom {
     analyse_result AnalyseMaskedDetection(const vector<string>&);
 
     ///
+    analyse_result AnalyseDenseCapTest(const vector<string>&);
+
+    ///
     analyse_result AnalyseFeatureTest(const vector<string>&);
 
     ///
@@ -2254,10 +2281,19 @@ namespace picsom {
     analyse_result AnalyseExportWadm(const vector<string>&);
     
     ///
+    analyse_result AnalyseExportTurtleConcepts(const vector<string>&);
+    
+    ///
+    analyse_result AnalyseExportTurtleTextIndex(const vector<string>&);
+    
+    ///
     analyse_result AnalyseImportBinData(const vector<string>&);
 
     ///
     analyse_result AnalyseExportLmdbFeatures(const vector<string>&);
+    
+    ///
+    analyse_result AnalyseExportOrderedFeatures(const vector<string>&);
     
     ///
     bool libsvmdump;
@@ -2265,6 +2301,9 @@ namespace picsom {
 
     ///
     analyse_result AnalyseTest(const vector<string>&);
+
+    ///
+    analyse_result AnalyseNumPyTest(const vector<string>&);
 
     ///
     analyse_result AnalyseMathTest(const vector<string>&);
@@ -2301,11 +2340,19 @@ namespace picsom {
     ///
     analyse_result AnalysePDF(const vector<string>&);
 
-    list<analyse_result> SplitSlavesAndAnalyse(const vector<size_t>&,
-					       const list<string>&,
-					       const string&);
+    ///
+    static pair<size_t,size_t> SolvePerJobAndNjobs(size_t, int);
+    
+    ///
+    list<analyse_result> SplitTasksAndAnalyse(const vector<size_t>&,
+					      const list<string>&,
+					      const vector<string>&,
+					      const string&);
     ///
     analyse_result AnalyseCaptioning(const vector<string>&);
+
+    ///
+    analyse_result AnalyseCaption(const vector<string>&);
 
     ///
     analyse_result AnalyseSentenceCandidates(const vector<string>&);
@@ -2352,6 +2399,12 @@ namespace picsom {
     ///
     analyse_result AnalyseTextIndexUpdateLabels(const vector<string>&);
 
+    ///
+    string POStagWithCoreNLP(const string&, const string&);
+    
+    ///
+    string WashSentence(const string&, const string&);
+    
     ///
     analyse_result AnalyseTextWash(const vector<string>&);
 
@@ -2660,8 +2713,13 @@ namespace picsom {
     /// Initializtion of xml_result.
     bool InitializeXmlResult(bool warn);
 
+    /// Ensures xml_result exists.
+    bool EnsureXmlResult() {
+      return HasXmlResult() || InitializeXmlResult(true);
+    }
+    
     /// Access to xml_result.
-    XmlDom XmlResult() { return xml_result; }
+    XmlDom& XmlResult() { return xml_result; }
 
     ///
     bool HasXmlResult() const { return xml_result.DocOK(); }
@@ -3019,6 +3077,30 @@ namespace picsom {
     vector<string> ExpandDetectionsWithClasses(const vector<string>&,
 					       const string&);
 
+    ///
+    Connection *BuildNLPpipe(const string&, const vector<string>&);
+
+    ///
+    Connection *GetNLPpipe(const string& n) const {
+      return nlp_pipes.find(n)==nlp_pipes.end() ? NULL : nlp_pipes.at(n);
+    }      
+
+    /// Performs one operation with picsom-stanford-nlp text index.
+    pair<bool,list<string> > NLPOperation(const string&, const list<string>&,
+					  bool = true);
+
+    ///
+    class nlptagged_word {
+    public:
+      string str() const {
+	return "["+text+"]=["+pos+"]=["+lemma+"]";
+      }
+      string text, pos, lemma;
+    }; // class nlptagged_word
+    
+    ///
+    list<vector<nlptagged_word> > NLPtagPOS(const string&, const list<string>&);
+    
   protected:
     /// Link to the outside universe.
     PicSOM *picsom;
@@ -3133,8 +3215,8 @@ namespace picsom {
     /// Force it.
     bool recalculatefeatures;
 
-    /// Number of right-most label digits in each feature extraction batch.
-    int featextbatchsize;
+    /// Number of right-most label digits in each slave/task batch.
+    int batchsize;
 
     ///
     bool dodetections;
@@ -3639,6 +3721,9 @@ namespace picsom {
     vector<string> segmentations;
 
     ///
+    string shotdetector;
+    
+    ///
     string callback;
 
     ///
@@ -3704,6 +3789,15 @@ namespace picsom {
     /// If set to false, then lucene textindex is not updated with captions.
     bool use_textindex;
 
+    /// Used in AnalyseTextWash().
+    string textindex_out;
+    
+    /// Used in AnalyseTextWash().
+    string washspec;
+    
+    ///
+    map<string,Connection*> nlp_pipes;
+    
   };  // class Analysis
 
 
