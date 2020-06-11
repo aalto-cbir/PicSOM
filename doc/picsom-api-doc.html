@@ -1,0 +1,105 @@
+<html>
+  <head>
+<title>PicSOM REST API 0.9 documentation</title>
+</head>
+<body>
+  <h1>PicSOM REST API 0.9 documentation</h1>
+
+  The PicSOM REST API version 0.9 is based on sending a processing request as an
+  XML file to the server with an HTTP POST call.  The images or videos to be
+  processed can be uploaded to the server together with the request XML in
+  the POST call or they can be specified by URLs.
+
+  <h2>Example of a request XML</h2>
+
+  <pre>
+    <font color="red">&lt;?xml version="1.0"?&gt;</font>
+    <font color="red">&lt;picsom-request&gt;</font>
+      <font color="red">&lt;analyse</font>&gt;caption<font color="red">&lt;/analyse&gt;</font>
+      <font color="red">&lt;database&gt;</font>testdb<font color="red">&lt;/database&gt;</font>
+      <font color="red">&lt;captionings&gt;</font>a3-lite<font color="red">&lt;/captionings&gt;</font>
+      <font color="red">&lt;target&gt;</font>video<font color="red">&lt;/target&gt;</font>
+      <font color="red">&lt;shotdetector&gt;</font>ffmpeg<font color="red">&lt;/shotdetector&gt;</font>
+      <font color="red">&lt;outformat&gt;</font>picsom-xmlresult<font color="red">&lt;/outformat&gt;</font>
+      <font color="red">&lt;args&gt;</font>v.mp4<font color="red">&lt;/args&gt;</font>
+    <font color="red">&lt;/picsom-request&gt;</font>
+  </pre>
+
+  Notes about parameters that can be changed: <br/>
+  <ul>
+    <li/> <font color="red"><tt>database</tt></font>, above <tt>testdb</tt>, must exist in the server
+    <li/> <font color="red"><tt>captionings</tt></font>, above <tt>a3-lite</tt>, can be changed to <tt>a3-lite-alt</tt> or any other available model
+    <li/> <font color="red"><tt>target</tt></font>, above <tt>video</tt>, can also be <tt>image</tt>
+    <li/> <font color="red"><tt>shotdetector</tt></font>, above <tt>ffmpeg</tt>, is not needed for images or pre-segmented videos
+    <li/> <font color="red"><tt>outformat</tt></font>, above <tt>picsom-xmlresult</tt> (default), can be also <tt>memad-rdf</tt>
+    <li/> <font color="red"><tt>args</tt></font>, above <tt>v.mp4</tt>, specifies the objects to be processed, can be either names of the uploaded files or URLs
+    <li/> for pre-segmented videos <font color="red"><tt>args</tt></font> are pairs of file names and comma-separated segment boundaries in seconds in the form:
+    <pre> file1.mp4 0.5,1.7,... file2.mp4 2.5,6.7,... ... </pre>
+  </ul>
+
+  <h2>Example of an API call from Bash command line</h2>
+
+  Let's assume we have the above XML file stored as <font color="red"><tt>request.xml</tt></font>
+  and we have the video file <font color="red"><tt>v.mp4</tt></font> in the current director. We can then
+  call
+  
+  <pre>curl -F "request=@request.xml;type=text/xml" -F "file=@v.mp4" -o result.xml ${PICSOM_URL}/picsom-api/0.9</pre>
+
+  <font color="red"><tt>${PICSOM_URL}</tt></font> specifies the PicSOM HTTP server instance used.
+  The XML-formed result is stored in <font color="red"><tt>result.xml</tt></font>
+  
+  <h2>Example of result handing from Bash command line</h2>
+
+  The output from the API call is a lengthy XML file that can be
+  stored in a file, like in <font color="red"><tt>result.xml</tt></font>
+  in the example above, and queried with command line tools such as <font color="red"><tt>xmlstarlet</tt></font>:
+
+  <pre>xmlstarlet sel -t -v //picsom:caption result.xml</pre>
+  
+  <h2>Example of an API call and result handling from Python</h2>
+
+  The following piece of python3 shows how the request can be formed and the API called in
+  localhost HTTP port 5600 when the video file is locally available to the server
+  and the shot bounderies are known:
+  
+  <pre>
+    import xml.dom.minidom
+    import requests
+
+    videofile = '/tmp/v.mp4'
+    shotbds   = ','.join(map(str, [3.3, 5.9, 8.4]))
+    
+    doc = xml.dom.minidom.Document()
+    request = doc.createElement('picsom-request')
+    doc.appendChild(request)
+    analyse = doc.createElement('analyse')
+    analyse.appendChild(doc.createTextNode('caption'))
+    request.appendChild(analyse)
+    database = doc.createElement('database')
+    database.appendChild(doc.createTextNode('testdb'))
+    request.appendChild(database)
+    captionings = doc.createElement('captionings')
+    captionings.appendChild(doc.createTextNode('a3-lite'))
+    request.appendChild(captionings)
+    target = doc.createElement('target')
+    target.appendChild(doc.createTextNode('video'))
+    request.appendChild(target)
+    outformat = doc.createElement('outformat')
+    outformat.appendChild(doc.createTextNode('picsom-xmlresult'))
+    request.appendChild(outformat)
+    args = doc.createElement('args')
+    args.appendChild(doc.createTextNode(videofile+' '+shotbds))
+    request.appendChild(args)
+    xmlstr = doc.toprettyxml(indent = '   ')
+    r = requests.post('http://localhost:5600/picsom-api/0.9', data=xmlstr)
+    xmlresult = xml.dom.minidom.parseString(r.text)
+    captionlists = xmlresult.getElementsByTagName('picsom:captionlist')
+    if len(captionlists):
+        captions = captionlists[0].getElementsByTagName('picsom:caption')
+        for c in captions:
+            if len(c.childNodes):
+                print(c.childNodes[0].data)
+  </pre>
+
+</body>
+</html>
