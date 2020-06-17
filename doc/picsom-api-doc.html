@@ -48,7 +48,7 @@
   <font color="red"><tt>${PICSOM_URL}</tt></font> specifies the PicSOM HTTP server instance used.
   The XML-formed result is stored in <font color="red"><tt>result.xml</tt></font>
   
-  <h2>Example of result handing from Bash command line</h2>
+  <h2>Example of XML result handling from Bash command line</h2>
 
   The output from the API call is a lengthy XML file that can be
   stored in a file, like in <font color="red"><tt>result.xml</tt></font>
@@ -56,7 +56,35 @@
 
   <pre>xmlstarlet sel -t -v //picsom:caption result.xml</pre>
   
-  <h2>Example of an API call and result handling from Python</h2>
+  <h2>Example of RDF result output</h2>
+
+  The output from the API call with
+  <font color="red">&lt;outformat&gt;</font>memad-rdf<font color="red">&lt;/outformat&gt;</font>
+  may look like:
+  <pre>
+     @prefix rdf: &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#&gt; .
+     @prefix dcterms: &lt;http://purl.org/dc/terms/&gt; .
+     @prefix oa: &lt;https://www.w3.org/ns/oa#&gt; .
+     @prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt; .
+
+     &lt;http://data.memad.eu/annotation/ff:mov_bbb:t0/testdb-a3-lite&gt;
+         dcterms:created "2020-06-17T20:44:02"^^xsd:datetime ;
+         dcterms:creator &lt;http://data.memad.eu/organization/Aalto&gt; ;
+         dcterms:motivatedBy oa:describing ;
+         a oa:Annotation ;
+         oa:hasBody "a rabbit is walking in a field by a pink bird"@en ;
+         oa:hasTarget &lt;http://data.memad.eu/mov_bbb#t=0,3.8&gt; .
+
+     &lt;http://data.memad.eu/annotation/ff:mov_bbb:t1/testdb-a3-lite&gt;
+         dcterms:created "2020-06-17T20:44:02"^^xsd:datetime ;
+         dcterms:creator &lt;http://data.memad.eu/organization/Aalto&gt; ;
+         dcterms:motivatedBy oa:describing ;
+         a oa:Annotation ;
+         oa:hasBody "a white cat is sitting on a white sheet"@en ;
+         oa:hasTarget &lt;http://data.memad.eu/mov_bbb#t=3.8,10.04&gt; .
+  </pre>
+
+  <h2>Example of an API call and XML result handling from Python</h2>
 
   The following piece of python3 shows how the request can be formed and the API called in
   localhost HTTP port 5600 when the video file is locally available to the server
