@@ -1,0 +1,396 @@
+<!-- $Id: d2i-m_rest_api.html,v 1.3 2012/12/28 21:25:03 jorma Exp $ -->
+<html>
+  <head>
+    <title>D2I Content Analysis: REST API for Photographic Content</title>
+  </head>
+  <body>
+    <h1>D2I Content Analysis: REST API for Photographic Content</h1>
+
+    <h2>Introduction</h2>
+
+    This web page contains an excerpt of the specification for the
+    Content Analysis (CA) REST interfaces defined in the Data to
+    Intelligence Program <a href="http://www.datatointelligence.fi/">
+    http://www.datatointelligence.fi/ </a>.
+    <p/>
+    The purpose of the documentation is to provide the APIs needed to
+    implement basic use cases required for content analysis ecosystem:
+    uploading content; executing content analysis on the service
+    back-ends; and retrieving content - or content metadata - based on
+    search terms provided by a client (or user). In the scope of this
+    documentation content is limited to photographs (image-based
+    content).
+
+    <h2>REST resources</h2>
+
+    <h3>3.2.1 Add Task</h3>
+
+    <tt>http://picsom.ics.aalto.fi:5600/rest/ca/addTask?parameter=value&amp;...</tt><p/>
+
+    The request is to be sent in the body of POST method. The Content-Type header
+    MUST be set to <tt>text/xml</tt>. The character set MUST be UTF-8. For example
+    <br/><tt>Content-Type: text/xml; charset=UTF-8</tt>.
+
+    <p/>
+
+    <table border="1">
+      <thead style="font-weight:bold">
+	<tr>
+	  <td>Parameter Name</td>
+	  <td>Required</td>
+	  <td>Default Value</td>
+	  <td>Values</td>
+	  <td>Type</td>
+	</tr>
+      </thead>
+      <tbody>
+	<tr>
+	  <td>backend_id</td>
+	  <td>yes</td>
+	  <td>-</td>
+	  <td>For calls to PicSOM, backend_id=2.</td>
+	  <td>string</td>
+	</tr>
+	<tr>
+	  <td>task_id</td>
+	  <td>yes</td>
+	  <td>-</td>
+	  <td>-</td>
+	  <td>string</td>
+	</tr>
+	<tr>
+	  <td>confidence_threshold</td>
+	  <td>no</td>
+	  <td>-</td>
+	  <td>Only visual objects with a confidence value higher than the threshold
+	    should be used to detect similarities.</td>
+	  <td>double</td>
+	</tr>
+	<tr>
+	  <td>user_id</td>
+	  <td>no</td>
+	  <td>-</td>
+	  <td>-</td>
+	  <td>string</td>
+	</tr>
+	<tr>
+	  <td>HTTP BODY {workload}</td>
+	  <td>yes</td>
+	  <td>-</td>
+	  <td>Only the workload data should be in the body.</td>
+	  <td>text/xml</td>
+	</tr>
+      </tbody>
+    </table>
+
+<br/>
+Example Method Call:
+<pre>
+POST /rest/ca/addTask?task_id=1&amp;backend_id=2
+Content-Type: text/xml; charset=UTF-8
+[HTTP BODY STARTS]
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;taskDetails&gt;
+  &lt;taskId&gt;1&lt;/taskId&gt;
+  &lt;taskType&gt;ANALYSIS&lt;/taskType&gt;
+  &lt;backendId&gt;2&lt;/backendId&gt;
+  &lt;userId&gt;1&lt;/userId&gt;
+  &lt;userConfidence&gt;1&lt;/userConfidence&gt;
+  &lt;callbackUri&gt;
+    http://mf.example.org/rest/ca/taskFinished?task_id=1&amp;amp;backend_id=2
+  &lt;/callbackUri&gt;
+  &lt;photoList&gt;
+    &lt;photo&gt;
+      &lt;UID&gt;1&lt;/UID&gt;
+      &lt;serviceId&gt;0&lt;/serviceId&gt;
+      &lt;userId&gt;1&lt;/userId&gt;
+      &lt;url&gt;http://mf.example.org/rest/ca/r?uid=1&amp;amp;service_id=0&lt;/url&gt;
+      &lt;credits&gt;Creative Commons&lt;/credits&gt;
+      &lt;name&gt;Photo&lt;/name&gt;
+      &lt;description&gt;cute photo&lt;/description&gt;
+      &lt;private&gt;0&lt;/private&gt;
+      &lt;objectList&gt;
+        &lt;object&gt;
+          &lt;objectId&gt;123&lt;/objectId&gt;
+          &lt;objectType&gt;KEYWORD&lt;/objectType&gt;
+          &lt;stat&gt;CANDIDATE&lt;/stat&gt;
+          &lt;backendId&gt;2&lt;/backendId&gt;
+          &lt;value&gt;cute&lt;/value&gt;
+          &lt;confidence&gt;0.5&lt;/confidence&gt;
+        &lt;/object&gt;
+      &lt;/objectList&gt;
+    &lt;/photo&gt;
+  &lt;/photoList&gt;
+&lt;/taskDetails&gt;
+[HTTP BODY ENDS]
+</pre>
+Example Result:
+<pre>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;response method="addTask" service="ca"&gt;
+  &lt;stat&gt;ok&lt;/stat&gt;
+&lt;/response&gt;
+</pre>
+
+
+
+
+    <h3>3.2.2 Query Task Status</h3>
+
+    <tt>http://picsom.ics.aalto.fi:5600/rest/ca/queryTaskStatus?parameter=value&amp;...</tt><p/>
+
+    <table border="1">
+      <thead style="font-weight:bold">
+	<tr>
+	  <td>Parameter Name</td>
+	  <td>Required</td>
+	  <td>Default Value</td>
+	  <td>Values</td>
+	  <td>Type</td>
+	</tr>
+      </thead>
+      <tbody>
+	<tr>
+	  <td>task_id</td>
+	  <td>yes</td>
+	  <td>-</td>
+	  <td>-</td>
+	  <td>string</td>
+	</tr>
+	<tr>
+	  <td>data_groups</td>
+	  <td>no</td>
+	  <td>basic</td>
+	  <td></td>
+	  <td>comma-separated strings</td>
+	</tr>
+      </tbody>
+    </table>
+
+<br/>
+Example Method Call:
+<pre>
+GET /rest/ca/queryTaskStatus?task_id=1&amp;data_groups=all
+</pre>
+Example Result:
+<pre>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;response method="queryTaskStatus" service="ca"&gt;
+  &lt;stat&gt;ok&lt;/stat&gt;
+  &lt;task&gt;
+    &lt;taskId&gt;1&lt;/taskId&gt;
+    &lt;taskType&gt;ANALYSIS&lt;/taskType&gt;
+    &lt;backendId&gt;2&lt;/backendId&gt;
+    &lt;stat&gt;COMPLETED&lt;/stat&gt;
+    &lt;message&gt;Analysis completed successfully.&lt;/message&gt;
+    &lt;photoList&gt;
+      &lt;photo&gt;
+        &lt;UID&gt;1&lt;/UID&gt;
+        &lt;serviceId&gt;0&lt;/serviceId&gt;
+        &lt;userId&gt;1&lt;/userId&gt;
+        &lt;url&gt;http://mf.example.org/rest/ca/r?uid=1&amp;amp;service_id=0&lt;/url&gt;
+        &lt;stat&gt;COMPLETED&lt;/stat&gt;
+        &lt;message&gt;Completed successfully.&lt;/message&gt;
+        &lt;objectList&gt;
+          &lt;object&gt;
+            &lt;objectId&gt;123&lt;/objectId&gt;
+            &lt;objectType&gt;KEYWORD&lt;/objectType&gt;
+            &lt;stat&gt;CANDIDATE&lt;/stat&gt;
+            &lt;backendId&gt;2&lt;/backendId&gt;
+            &lt;value&gt;cute&lt;/value&gt;
+            &lt;confidence&gt;0.5&lt;/confidence&gt;
+          &lt;/object&gt;
+        &lt;/objectList&gt;
+      &lt;/photo&gt;
+    &lt;/photoList&gt;
+  &lt;/task&gt;
+&lt;/response&gt;
+</pre>
+
+
+
+    <h3>3.2.3 Search Similar by Content</h3>
+
+    <tt>http://picsom.ics.aalto.fi:5600/rest/ca/searchSimilarByContent?parameter=value&amp;...</tt><p/>
+
+    <table border="1">
+      <thead style="font-weight:bold">
+	<tr>
+	  <td>Parameter Name</td>
+	  <td>Required</td>
+	  <td>Default Value</td>
+	  <td>Values</td>
+	  <td>Type</td>
+	</tr>
+      </thead>
+      <tbody>
+	<tr>
+	  <td>url</td>
+	  <td>yes</td>
+	  <td>-</td>
+	  <td>-</td>
+	  <td>URI</td>
+	</tr>
+	<tr>
+	  <td>confidence_threshold</td>
+	  <td>no</td>
+	  <td>-</td>
+	  <td>Only visual objects with a confidence value higher than 
+	    the threshold should be used to detect similarities. 
+	  </td>
+	  <td>double</td>
+	</tr>
+	<tr>
+	  <td>data_groups</td>
+	  <td>no</td>
+	  <td>basic</td>
+	  <td></td>
+	  <td>comma-separated strings</td>
+	</tr>
+	<tr>
+	  <td>max_items</td>
+	  <td>no</td>
+	  <td>10</td>
+	  <td>0 to 500</td>
+	  <td>integer</td>
+	</tr>
+	<tr>
+	  <td>service_id</td>
+	  <td>no</td>
+	  <td>-</td>
+	  <td>-</td>
+	  <td>string</td>
+	</tr>
+	<tr>
+	  <td>user_id</td>
+	  <td>no</td>
+	  <td>-</td>
+	  <td>-</td>
+	  <td>string</td>
+	</tr>
+      </tbody>
+    </table>
+
+<br/>
+Example Method Call:
+<pre>
+POST /rest/ca/searchSimilarByContent?url=http%3A%2F%2Fexample.org%2Fphoto.jpg&amp;data_groups=all
+</pre>
+Example Result:
+<pre>
+&lt;response method="searchSimilarByContent" service="ca"&gt;
+  &lt;stat&gt;ok&lt;/stat&gt;
+  &lt;photoList&gt;
+    &lt;photo&gt;
+      &lt;UID&gt;1&lt;/UID&gt;
+      &lt;serviceId&gt;0&lt;/serviceId&gt;
+      &lt;userId&gt;1&lt;/userId&gt;
+      &lt;objectList&gt;
+        &lt;object&gt;
+          &lt;objectId&gt;123&lt;/objectId&gt;
+          &lt;objectType&gt;KEYWORD&lt;/objectType&gt;
+          &lt;stat&gt;CANDIDATE&lt;/stat&gt;
+          &lt;backendId&gt;2&lt;/backendId&gt;
+          &lt;value&gt;cute&lt;/value&gt;
+          &lt;confidence&gt;0.5&lt;/confidence&gt;
+        &lt;/object&gt;
+      &lt;/objectList&gt;
+    &lt;/photo&gt;
+  &lt;/photoList&gt;
+&lt;/response&gt;
+</pre>
+
+
+
+    <h3>2.2.2 Task Finished</h3>
+
+    <tt>http://mf.example.org/rest/ca/taskFinished?parameter=value&amp;...</tt><p/>
+
+    <table border="1">
+      <thead style="font-weight:bold">
+	<tr>
+	  <td>Parameter Name</td>
+	  <td>Required</td>
+	  <td>Default Value</td>
+	  <td>Values</td>
+	  <td>Type</td>
+	</tr>
+      </thead>
+      <tbody>
+	<tr>
+	  <td>backend_id</td>
+	  <td>yes</td>
+	  <td>-</td>
+	  <td>For calls to PicSOM, backend_id=2.</td>
+	  <td>string</td>
+	</tr>
+	<tr>
+	  <td>task_id</td>
+	  <td>yes</td>
+	  <td>-</td>
+	  <td>-</td>
+	  <td>string</td>
+	</tr>
+	<tr>
+	  <td>stat</td>
+	  <td>no</td>
+	  <td>-</td>
+	  <td>If stat (error code or status message) is missing, the analysis 
+	    is assumed to be finished successfully.</td>
+	  <td>string</td>
+	</tr>
+	<tr>
+	  <td>HTTP BODY {task}</td>
+	  <td>yes</td>
+	  <td>-</td>
+	  <td>Only the result data should be in the body.</td>
+	  <td>text/xml</td>
+	</tr>
+      </tbody>
+    </table>
+
+<br/>
+Example Method Call:
+<pre>
+POST /rest/ca/taskFinished?task_id=1&amp;backend_id=2
+Content-Type: text/xml; charset=UTF-8
+[HTTP BODY STARTS]
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;task&gt;
+  &lt;taskId&gt;1&lt;/taskId&gt;
+  &lt;taskType&gt;ANALYSIS&lt;/taskType&gt;
+  &lt;backendId&gt;2&lt;/backendId&gt;
+  &lt;stat&gt;COMPLETED&lt;/stat&gt;
+  &lt;message&gt;Analysis completed successfully.&lt;/message&gt;
+  &lt;photoList&gt;
+    &lt;photo&gt;
+      &lt;UID&gt;1&lt;/UID&gt;
+      &lt;serviceId&gt;0&lt;/serviceId&gt;
+      &lt;userId&gt;1&lt;/userId&gt;
+      &lt;url&gt;http://mf.example.org/rest/ca/r?uid=1&amp;amp;service_id=0&lt;/url&gt;
+      &lt;stat&gt;COMPLETED&lt;/stat&gt;
+      &lt;message&gt;Completed successfully.&lt;/message&gt;
+      &lt;objectList&gt;
+        &lt;object&gt;
+          &lt;objectId&gt;123&lt;/objectId&gt;
+          &lt;objectType&gt;KEYWORD&lt;/objectType&gt;
+          &lt;stat&gt;CANDIDATE&lt;/stat&gt;
+          &lt;backendId&gt;2&lt;/backendId&gt;
+          &lt;value&gt;cute&lt;/value&gt;
+          &lt;confidence&gt;0.5&lt;/confidence&gt;
+        &lt;/object&gt;
+      &lt;/objectList&gt;
+    &lt;/photo&gt;
+  &lt;/photoList&gt;
+&lt;/task&gt;
+[HTTP BODY ENDS]
+</pre>
+Example Result:
+<pre>
+&lt;response method="taskFinished" service="ca"&gt;
+  &lt;stat&gt;ok&lt;/stat&gt;
+&lt;/response&gt;
+</pre>
+
+  </body>
+</html>

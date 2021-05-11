@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Util.C,v 2.80 2019/11/06 10:05:19 jormal Exp $
+// -*- C++ -*-  $Id: Util.C,v 2.91 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -16,6 +16,14 @@
 #ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
 #endif // HAVE_DLFCN_H
+
+#ifdef HAVE_RAPTOR2_RAPTOR2_H
+#include <raptor2/raptor2.h>
+#endif // HAVE_RAPTOR2_RAPTOR2_H
+
+#ifdef HAVE_RASQAL_H
+#include <rasqal.h>
+#endif // HAVE_RASQAL_H
 
 #ifdef __linux__
 #include <execinfo.h>
@@ -39,14 +47,39 @@
 
 namespace picsom {
   static const string Util_C_vcid =
-  "@(#)$Id: Util.C,v 2.80 2019/11/06 10:05:19 jormal Exp $";
+  "@(#)$Id: Util.C,v 2.91 2021/05/11 14:46:57 jormal Exp $";
 
   static bool do_abort = false;
   static int locate_file_debug = 0;
   
   bool trap_after_error      = false;
   bool backtrace_before_trap = false;
+  string _picsom_util_temp_dir;
+  
+  /////////////////////////////////////////////////////////////////////////////
 
+  string get_temp_file_name(const string& s) {
+    if (_picsom_util_temp_dir=="") {
+      char *envdir = getenv("TMPDIR");
+      if (envdir)
+	_picsom_util_temp_dir = string(envdir);
+      if (_picsom_util_temp_dir=="")
+	_picsom_util_temp_dir = "/tmp";
+    }
+    string tmp = _picsom_util_temp_dir;
+    while (tmp.size() && tmp[tmp.size()-1]=='/')
+      tmp.erase(tmp.size()-1);
+    tmp += "/"+s+"XXXXXX";
+    int fd = mkstemp((char*)tmp.c_str());
+    if (fd<0) {
+      ShowError("get_temp_file_name() : mkstemp() failed");
+      return "";
+    }
+    close(fd);
+    Unlink(tmp);
+    return tmp;
+  }
+  
   /////////////////////////////////////////////////////////////////////////////
 
   string RegExp::error(int code) const {
@@ -928,7 +961,7 @@ namespace picsom {
   /////////////////////////////////////////////////////////////////////////////
 
   pair<string,string> SplitKeyEqualValueNew(const string& s)
-    throw(logic_error) {
+    /*throw(logic_error)*/ {
     const string msg = "equal sign not found in ["+s+"] ";
     size_t p = 0, nested = 0;
     if (s[0]=='(' && s[s.length()-1]==')') {
@@ -1300,7 +1333,9 @@ namespace picsom {
     string x;
     for (auto &i : s)
       x += string(x.size()?", ":"")+ToStr(i);
-
+    if (s.size()==1)
+      x += ",";
+    
     if (debug)
       cout << "Writing numpy data ("+x+") " << m.size() << "x"
 	   << m.begin()->size() << endl;
@@ -1368,6 +1403,16 @@ namespace picsom {
     }
 
     return r;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  size_t utf8length(const string& sin) {
+    size_t len = 0;
+    auto s = sin.c_str();
+    while (*s)
+      len += (*s++ & 0xc0) != 0x80;
+    return len;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -1897,6 +1942,231 @@ namespace picsom {
     s.erase(p+1);
     
     return s;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<vector<pair<string,string> > >
+  SparqlQuery(const string& f, const string& q, bool debug) {
+    static bool jena_tested = false, jena_exists = false;
+    if (!jena_tested) {
+      if (!system("sparql --help 2>&1 | "
+		  "grep -q 'Explain and log query execution'"))
+	jena_exists = true;
+      jena_tested = true;
+    }
+    if (jena_exists)
+      return SparqlQueryJena(f, q, debug);
+
+    return SparqlQueryRasqal(f, q, debug);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<vector<pair<string,string> > >
+  SparqlQueryJena(const string& f, const string& q, bool /*debug*/) {
+    string msg = "SparqlQueryJena() : ";
+    list<vector<pair<string,string> > > empty, r;
+    // cout << "Running SparqlQueryJena()" << endl;
+    string tf = get_temp_file_name("jena-sparql-");
+    if (tf=="") {
+      ShowError(msg+"get_temp_file_name() failed");
+      return r;
+    }
+    string qf = tf+".sq", of = tf+".ttl";
+    if (!StringToFile(q, qf)) {
+      ShowError(msg+"StringToFile() failed");
+      return r;
+    }
+    string cmd = "sparql --data="+f+" --query="+qf+" --results=tsv 1>"+of+" 2>/dev/null";
+    if (system(cmd.c_str())) {
+      ShowError(msg+"["+cmd+"] failed");
+      return r;
+    }
+
+    vector<string> var;
+    ifstream is(of);
+    while (true) {
+      string s;
+      getline(is, s);
+      if (!is.good())
+	break;
+      // cout << s << endl;
+      vector<string> v = SplitInSomething("\t", false, s);
+      if (v.size()==0) {
+	ShowError(msg+"zero number of fields");
+	return empty;
+      }
+      if (var.size()==0) {
+	var = v;
+	for (auto &i : var)
+	  i.erase(0, 1); // '?'
+	continue;
+      }
+      if (v.size()!=var.size()) {
+	ShowError(msg+"differing number of fields");
+	return empty;
+      }
+      vector<pair<string,string> > h;
+      auto key = var.begin(), val = v.begin();
+      for (; key!=var.end(); key++, val++)
+	h.push_back({*key, *val});
+      r.push_back(h);
+    }
+    Unlink(qf);
+    Unlink(of);
+
+    return r;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  list<vector<pair<string,string> > >
+  SparqlQueryRasqal(const string& f, const string& q, bool debug) {
+    list<vector<pair<string,string> > > empty, r;
+
+#ifdef HAVE_RASQAL_H
+    rasqal_world *win = NULL, *w = win;
+    if (!w)
+      w = rasqal_new_world();
+    if (!w || rasqal_world_open(w)) {
+      ShowError("rasqal_world_open() failed");
+      return empty;
+    }
+
+    raptor_world* raptor_world_ptr = rasqal_world_get_raptor(w);
+    const char *ql_name = "sparql";
+
+    unsigned char *query_string = (unsigned char *)q.c_str();
+    unsigned char *source_uri_string = raptor_uri_filename_to_uri_string(f.c_str());
+    raptor_uri *source_uri = raptor_new_uri(raptor_world_ptr, source_uri_string);
+    raptor_free_memory(source_uri_string);
+  
+    rasqal_data_graph *dg =
+      rasqal_new_data_graph_from_uri(w, source_uri, NULL,
+				     RASQAL_DATA_GRAPH_BACKGROUND,
+				     NULL, NULL, NULL);
+    raptor_free_uri(source_uri);
+ 
+    rasqal_query *rq = rasqal_new_query(w, ql_name, NULL);
+    if (!rq) {
+      ShowError("rasqal_new_query() failed");
+      return empty;
+    }
+    
+    if (rasqal_query_prepare(rq, query_string, NULL)) {
+      rasqal_free_query(rq);
+      ShowError("rasqal_query_prepare() failed");
+      return empty;
+    }
+
+    if (rasqal_query_add_data_graph(rq, dg)) {
+      ShowError("rasqal_query_add_data_graph() failed");
+      return empty;
+    }
+    
+    rasqal_query_results *results = rasqal_query_execute(rq);
+    if (!results) {
+      ShowError("rasqal_query_execute() failed");
+      return empty;
+    }
+    
+    while (!rasqal_query_results_finished(results)) {
+      if (debug)
+	cout << "RASQAL ";
+      // map<string,string> h;
+      vector<pair<string,string> > v;
+      for (int i=0; i<rasqal_query_results_get_bindings_count(results); i++) {
+	const unsigned char *name = rasqal_query_results_get_binding_name(results, i);
+	rasqal_literal *value = rasqal_query_results_get_binding_value(results, i);
+	const unsigned char *p = rasqal_literal_as_string(value);
+	if (debug)
+	  cout << " " << name << "=[" << p << "]";
+	// h[(char*)name] = (char*)p;
+	v.push_back({(char*)name, (char*)p});
+      }
+      if (debug)
+	cout << endl;
+      r.push_back(v);
+      rasqal_query_results_next(results);
+    }
+	
+    rasqal_free_query_results(results);
+    rasqal_free_query(rq);
+    if (!win)
+      rasqal_free_world(w);
+#else
+    ShowError("SparqlQueryRasqal() : HAVE_RASQAL_H not defined");
+    debug = debug || f.empty() || q.empty();
+#endif // HAVE_RASQAL_H
+
+    return r;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string RdfToString(const list<pair<string,string> >& pref,
+		     const list<vector<string> >& trip,
+		     const string& form) {
+#ifdef HAVE_RAPTOR2_RAPTOR2_H
+    bool debug = false;
+    
+    raptor_world* w = raptor_new_world();
+    raptor_serializer *ser = raptor_new_serializer(w, form.c_str());
+
+    vector<raptor_uri*> urivec;
+    for (const auto& i : pref) {
+      raptor_uri *uri = raptor_new_uri(w, (unsigned char*)i.second.c_str());
+      raptor_serializer_set_namespace(ser, uri, (unsigned char*)i.first.c_str());
+      urivec.push_back(uri);
+    }
+
+    raptor_uri *dt = raptor_new_uri(w, (unsigned char*)"http://www.w3.org/2001/XMLSchema#datetime");
+    raptor_uri* base_uri = raptor_new_uri(w, (unsigned char*)"");
+    char *outbuf = NULL;
+    size_t outbuf_size = 0;
+
+    raptor_iostream* iostream =
+      raptor_new_iostream_to_string(w, (void**)&outbuf,
+				    &outbuf_size, malloc);
+    raptor_serializer_start_to_iostream(ser, base_uri, iostream);
+
+    for (const auto& i : trip) {
+      raptor_term *s = raptor_new_term_from_uri_string(w, (unsigned char*)i[0].c_str());
+      raptor_term *p = raptor_new_term_from_uri_string(w, (unsigned char*)i[1].c_str());
+      raptor_term *o = NULL;
+      if (i[3]=="")
+	o = raptor_new_term_from_uri_string(w, (unsigned char*)i[2].c_str());
+      else if (i[3][0]=='@')
+	o = raptor_new_term_from_literal(w, (unsigned char*)i[2].c_str(), NULL,
+					 (unsigned char*)i[3].substr(1).c_str());
+      else if (i[3]=="datetime")
+	o = raptor_new_term_from_literal(w, (unsigned char*)i[2].c_str(), dt, NULL);
+      raptor_statement *t = raptor_new_statement_from_nodes(w, s, p, o, NULL);
+      if (debug)
+	raptor_statement_print(t, stdout);
+      raptor_serializer_serialize_statement(ser, t);
+      raptor_free_statement(t);
+    }
+
+    raptor_serializer_serialize_end(ser);
+
+    raptor_free_uri(base_uri);
+    raptor_free_uri(dt);
+    for (auto& i : urivec)
+      raptor_free_uri(i);
+    raptor_free_serializer(ser);
+    raptor_free_iostream(iostream);
+    
+    string outstr(outbuf, outbuf_size);
+    delete outbuf; // ???
+    raptor_free_world(w);
+
+    return outstr;
+    
+#else
+    return pref.size()+trip.size()+form.size()?"":"";
+#endif // HAVE_RAPTOR2_RAPTOR2_H
   }
 
   /////////////////////////////////////////////////////////////////////////////

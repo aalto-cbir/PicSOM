@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Valued.h,v 2.41 2011/03/23 08:38:37 jorma Exp $
+// -*- C++ -*-  $Id: Valued.h,v 2.42 2020/01/01 18:46:54 jormal Exp $
 // 
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 TKK, FINLAND
 // 
@@ -19,7 +19,7 @@
 using namespace std;
 
 static const string Valued_h_vcid =
-  "@(#)$Id: Valued.h,v 2.41 2011/03/23 08:38:37 jorma Exp $";
+  "@(#)$Id: Valued.h,v 2.42 2020/01/01 18:46:54 jormal Exp $";
 
 namespace picsom {
   using simple::FloatVector;
@@ -46,6 +46,9 @@ namespace picsom {
     /// poison
     Valued() { abort(); }
 
+    /// added 2020-01-01 and is a bit suspicious...
+    Valued& operator=(const Valued&) = default;
+    
     ///
     double Value() const { return value; }
 
@@ -177,6 +180,9 @@ namespace picsom {
     /// 
     virtual ~Object() {}
 
+    /// added 2020-01-01 and is a bit suspicious...
+    Object& operator=(const Object&) = default;
+    
     ///
     string DumpStr() const;
 

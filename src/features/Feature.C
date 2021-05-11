@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Feature.C,v 1.261 2019/04/10 12:29:28 jormal Exp $
+// -*- C++ -*-  $Id: Feature.C,v 1.265 2020/03/30 08:56:30 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -65,6 +65,9 @@ namespace picsom {
   ///
   string Feature::static_tempdir;
 
+  ///
+  bool Feature::keeptmp = false;
+  
   //===========================================================================
 
   Feature::Feature() {
@@ -91,7 +94,6 @@ namespace picsom {
     treat_within_frame  = treat_undef;
     used_pixeltype = pixel_undef;
     pixel_multiply = 1.0;
-    keeptmp = false;
     next_of_methods = NULL;
     allocated_segmentfile = segmentfile_ptr = NULL;
     videofile_ptr = NULL;
@@ -198,7 +200,7 @@ namespace picsom {
 		    verb.second==5 ? " (label)" :
 		    verb.second==6 ? " (keypoint)" :
 		    verb.second==7 ? " (pixel)" : " (full)";
-                cout << msg << (verb.first?"Adding to":"Setting")
+                cout << TimeStamp() << msg << (verb.first?"Adding to":"Setting")
                      << (astr[1]=='D' ? " Segmentation" :
                          astr[1]=='m' ? " imagefile" : "")
                      << " debug level " << verb.second << extra << endl;
@@ -222,13 +224,13 @@ namespace picsom {
               if (astr[2] && isdigit(astr[2])) {
                 int l = atoi(astr.substr(2).c_str());
                 if (l>0) 
-                  cout << msg << "Setting debug level to " << l << endl;
+                  cout << TimeStamp() << msg << "Setting debug level to " << l << endl;
                 if (astr[1]=='d')
                   Verbose(l);
                 else {} // Segmentation::Verbose(l);
               } else {
                 int l = strspn(astr.substr(1).c_str(),"d");
-                cout << msg << "Setting debug level to " << l << endl;
+                cout << TimeStamp() << msg << "Setting debug level to " << l << endl;
                 if (astr[1]=='d')
                   AddVerbose(l);
                 else {} // Segmentation::AddVerbose(l);
@@ -573,7 +575,7 @@ namespace picsom {
 
         else { // fname != NULL
           if (MethodVerbose() && !cmd_shown) {
-            cout << msg << "Feature extraction command:";
+            cout << TimeStamp() << msg << "Feature extraction command:";
             for (size_t i=0; i<argv.size(); i++)
               cout << " " << argv[i];
             cout << endl;
@@ -635,7 +637,7 @@ namespace picsom {
             if ((!can_reuse || force_no_reuse) &&
                 (can_reuse || !force_reuse) && !fptr->IsBatchOperator()) {
               if (MethodVerbose())
-                cout << msg << "Destroying method data" << endl;
+                cout << TimeStamp() << msg << "Destroying method data" << endl;
               delete fptr;
               fptr = NULL;
             }
@@ -655,7 +657,7 @@ namespace picsom {
       delete fptr;
 
       if (MethodVerbose() && result)
-        cout << msg << "Returning in-core results: "
+        cout << TimeStamp() << msg << "Returning in-core results: "
              << ResultSummaryStr(*result) << endl;
 
       return retval;
@@ -760,15 +762,15 @@ namespace picsom {
 
     string all_files_or_incore = all_files;
     if (all_files_or_incore=="" && incorep) {
-      if (incorep->first.first=="picsom::imagedata*")
+      if (incorep->type=="picsom::imagedata*")
 	all_files_or_incore = "/dev/null/incore/imagedata/"
-	  +incorep->first.second;
-      else if (incorep->first.first=="string::filename*") {
+	  +incorep->ident;
+      else if (incorep->type=="string::filename*") {
 	string *p = NULL;
-	sscanf(incorep->first.second.c_str(), "%p", &p);
+	sscanf(incorep->ident.c_str(), "%p", &p);
 	all_files_or_incore = all_files = *p;
       } else
-	throw string("incore data type <")+incorep->first.first+">";
+	throw string("incore data type <")+incorep->type+">";
     }
 
     string segmfile = segmfile_in;
@@ -1043,10 +1045,10 @@ namespace picsom {
 
     incore_imagedata_ptr = NULL;
     if (FileVerbose())
-      cout << msg << "INCORE imagedata removed" << endl;
+      cout << TimeStamp() << msg << "INCORE imagedata removed" << endl;
 
     if (FileVerbose())
-      cout << msg << "starting..." << endl;
+      cout << TimeStamp() << msg << "starting..." << endl;
 
     // this is the place where mats moved it 11 Nov 2004 ...
     SetAndProcessOptions(opt, false);
@@ -1150,7 +1152,7 @@ namespace picsom {
 
     if (BetweenFrameTreatment()==treat_pixelconcat) {
       if (FileVerbose())
-	cout << msg << "BetweenFrameTreatment()==treat_pixelconcat" << endl;
+	cout << TimeStamp() << msg << "BetweenFrameTreatment()==treat_pixelconcat" << endl;
       EnsureImage();
       // image->ReadAllFramesAtOnce(true); // default is always false
     }
@@ -1174,7 +1176,7 @@ namespace picsom {
     }
 
     if (FileVerbose())
-      cout << msg << "ending..." << endl;
+      cout << TimeStamp() << msg << "ending..." << endl;
   
     return this;
   }
@@ -5563,11 +5565,11 @@ bool Feature::PerformScaling(int f) {
 
     int fd = mkstemp(tmp);
     if (fd==-1)
-      return make_pair(false, name);
+      return { false, name };
 
     close(fd);
 
-    return make_pair(true, string(tmp));
+    return { true, string(tmp) };
   }
 
   //===========================================================================

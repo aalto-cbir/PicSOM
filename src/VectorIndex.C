@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: VectorIndex.C,v 2.110 2019/04/17 08:03:43 jormal Exp $
+// -*- C++ -*-  $Id: VectorIndex.C,v 2.111 2020/10/21 08:22:08 jormal Exp $
 // 
 // Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -13,7 +13,7 @@
 
 namespace picsom {
   static const string VectorIndex_C_vcid =
-    "@(#)$Id: VectorIndex.C,v 2.110 2019/04/17 08:03:43 jormal Exp $";
+    "@(#)$Id: VectorIndex.C,v 2.111 2020/10/21 08:22:08 jormal Exp $";
 
   bool VectorIndex::bin_data_full_test = false;
   bool VectorIndex::fast_bin_check     = false;
@@ -625,7 +625,7 @@ namespace picsom {
 
     try {
       _bin_data_m[key].open(fname, rw, v, bin_data::header::format_float,
-			    0, VectorLength());
+			    0, VectorLengthForced());
 
       if (prodquant!="")
 	_bin_data_m[key].prodquant(prodquant);

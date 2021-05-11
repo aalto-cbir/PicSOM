@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Connection.h,v 2.134 2019/11/06 10:49:53 jormal Exp $
+// -*- C++ -*-  $Id: Connection.h,v 2.139 2020/06/17 15:14:22 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -26,6 +26,7 @@
 
 #ifdef HAVE_OPENSSL_SSL_H
 #include <openssl/ssl.h>
+#include <openssl/err.h>
 #endif // HAVE_OPENSSL_SSL_H
 
 #ifdef HAVE_MPI_H
@@ -53,7 +54,7 @@ extern HIST_ENTRY **history_list ();
 #define PICSOM_POLL_TIMEOUT   (60*1000)
 
 static const string Connection_h_vcid =
-  "@(#)$Id: Connection.h,v 2.134 2019/11/06 10:49:53 jormal Exp $";
+  "@(#)$Id: Connection.h,v 2.139 2020/06/17 15:14:22 jormal Exp $";
 
 namespace picsom {
   typedef list<pair<string,string> > http_headers_t;
@@ -503,6 +504,9 @@ namespace picsom {
     bool HttpServerDoc(const string&);
 
     ///
+    string HttpServerProcessHtml(const string&);
+    
+    ///
     bool HttpServerDataBaseHtml(const DataBase*, const string&);
 
     ///
@@ -832,15 +836,18 @@ namespace picsom {
     bool WriteOutXml(xmlDocPtr doc, const string& = "");
 
     /// A XML dumping subroutine common for other routines. Delete after use!
-    static char *XML2StringM(xmlDocPtr doc, bool pretty = false) {
-      return strdup(XML2String(doc, pretty).c_str());
-    }
+    // static char *XML2StringM(xmlDocPtr doc, bool pretty = false) {
+    //   return strdup(XML2String(doc, pretty).c_str());
+    // }
 
     /// A XML dumping subroutine common for other routines.
     static string XML2String(xmlDocPtr doc, bool pretty = false);
 
     /// A XML dumping subroutine with JSON output...
-    static string XML2JsonString(xmlDocPtr, bool = false);
+    string XML2JsonString(xmlDocPtr, bool = false);
+    
+    /// A XML dumping subroutine with MeMAD rdf output...
+    string XML2MeMADrdfString(const XmlDom&, bool = false);
     
     /// A XML dumping subroutine common for other routines.
     static void ConditionallyDumpXML(ostream& os, bool out, xmlDocPtr doc,
@@ -1312,6 +1319,9 @@ namespace picsom {
 
     ///
     bool can_possibly_be_selected;
+
+    ///
+    string outformat;
 
 #ifdef USE_MRML
     // used by both Analysis and PicSOM Server MRML implementations!!

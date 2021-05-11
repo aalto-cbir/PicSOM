@@ -8,7 +8,7 @@
    IPLD, which is a class that calculates the mel-ipld feature
    using an external command
 
-   \author Mats Sjöberg <mats.sjoberg@hut.fi>
+   \author Mats Sjoberg <mats.sjoberg@hut.fi>
    $Revision: 1.11 $
    $Date: 2009/09/08 08:31:04 $
    \bug May be some out there hiding.

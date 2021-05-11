@@ -14,7 +14,7 @@
    OCVFeature, which is a base class for feature calculations that use
    OpenCV to perform the feature extraction.
   
-   \author Mats Sjöberg <mats.sjoberg@aalto.fi>
+   \author Mats Sjoberg <mats.sjoberg@aalto.fi>
    $Revision: 1.5 $
    $Date: 2013/02/25 13:50:22 $
    \bug May be some out there hiding.

@@ -1,3 +1,26 @@
+2021-05-11  jormal  <jormal@cs-271>
+
+	* imagedata.h 1.115, imagefile.h 1.58, imagescaling.h 1.11:
+	Commented out deprecated dynamic exception specifications.
+
+2020-04-27  jormal  <jormal@cs-271>
+
+	* imagefile-opencv.C 1.41:
+	Summary: Added #includes for CV_VERSION_MAJOR>=4.
+
+2020-03-30  jormal  <jormal@cs-271>
+
+	* videofile.C 1.54, videofile.h 1.31:
+	Rearranged searching of bin/progs.
+
+2020-02-25  jormal  <jormal@cs-271>
+
+	* imagedata.h 1.114: Changed some index routines to public:.
+
+2020-01-27  jormal  <jormal@cs-271>
+
+	* videofile.C 1.53: Added protection against display_aspect_ratio==N/A.
+
 2019-11-18  jormal  <jormal@cs-271>
 
 	* videofile.C 1.52: Improved error message.

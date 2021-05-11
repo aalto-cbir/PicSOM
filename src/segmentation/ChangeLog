@@ -1,3 +1,13 @@
+2021-05-11  jormal  <jormal@cs-271>
+
+	* segmentfile.C 1.182, segmentfile.h 1.123:
+	Commented out deprecated dynamic exception specifications.
+
+2020-01-01  jormal  <jormal@cs-271>
+
+	* segmentfile.h 1.122:
+	Summary: Added explicitly-defined default copy constructor/assignment.
+
 2019-04-24  jormal  <jormal@cs-271>
 
 	* DisplayResults.C 1.51: An old change mad already 2017-11-29.

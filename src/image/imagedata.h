@@ -1,4 +1,4 @@
-// -*- C++ -*-    $Id: imagedata.h,v 1.113 2018/10/11 20:38:37 jormal Exp $
+// -*- C++ -*-    $Id: imagedata.h,v 1.115 2021/05/11 14:47:41 jormal Exp $
 
 /**
    \file imagedata.h
@@ -9,8 +9,8 @@
    independent storage for pixel based images.
    
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.113 $
-   $Date: 2018/10/11 20:38:37 $
+   $Revision: 1.115 $
+   $Date: 2021/05/11 14:47:41 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -75,7 +75,7 @@ namespace picsom {
     /// Version control identifier of the imagedata.h file.
     static const string& version() {
       static const string v =
-	"$Id: imagedata.h,v 1.113 2018/10/11 20:38:37 jormal Exp $";
+	"$Id: imagedata.h,v 1.115 2021/05/11 14:47:41 jormal Exp $";
       return v;
     }
 
@@ -119,7 +119,7 @@ namespace picsom {
 	\throw  std::string if \e t is not a valid enum value.
 	\return const std::string& like "undef", "float", "uchar" or "uint16".
     */
-    static const string& datatypename(pixeldatatype t) throw(string) {
+    static const string& datatypename(pixeldatatype t) /*throw(string)*/ {
       static map<pixeldatatype,string> pixeldatatype_map;
       if (pixeldatatype_map.empty()) {
 	pixeldatatype_map[pixeldata_undef]  = "undef";
@@ -144,7 +144,7 @@ namespace picsom {
 	\throw  std::string if \e n is not any of allowed values.
 	\return Corresponding datatype.
     */
-    static pixeldatatype intdatatype(int n) throw(string) {
+    static pixeldatatype intdatatype(int n) /*throw(string)*/ {
       switch (n) {
       case  8: return pixeldata_uchar;
       case 16: return pixeldata_uint16;
@@ -204,7 +204,7 @@ namespace picsom {
     */
     imagedata(size_t w, size_t h, size_t c = 3,
 	      pixeldatatype t = pixeldata_float) 
-      throw(string) : _type(t), _count(c), _width(w), _height(h) {
+      /*throw(string)*/ : _type(t), _count(c), _width(w), _height(h) {
 
 	if (!is_defined(t))
 	  throw msg("imagedata("+tos(w)+", "+tos(h)+", "+tos(c)+", "+tos(t)
@@ -222,7 +222,7 @@ namespace picsom {
 	\throw std::string if non-positive or senseless arguments.
 	\post  Internal data container is allocated.
     */
-    imagedata(size_t w, size_t h, size_t c , const type_info& t) throw(string) {
+    imagedata(size_t w, size_t h, size_t c , const type_info& t) /*throw(string)*/ {
       *this = imagedata(w, h, c, datatype(t));
     }
 
@@ -248,7 +248,7 @@ namespace picsom {
 	\throw  std::string may be thrown by datatypename(pixeldatatype).
 	\return Datatype stringified like "undef", "float", "uchar" or "int16".
     */
-    const string& datatypename() const throw(string) {
+    const string& datatypename() const /*throw(string)*/ {
       return datatypename(_type); }
 
     /** Returns true if used datatype is defined.
@@ -597,7 +597,7 @@ namespace picsom {
 	\return  const void* for any kind of read-only access.
 	\warning This may cause trouble if not used with caution...
     */
-    const void *raw(size_t n) const throw(string) {
+    const void *raw(size_t n) const /*throw(string)*/ {
       switch (_type) {
       case pixeldata_float:  return raw_float(n);
       case pixeldata_double: return raw_double(n);
@@ -768,7 +768,7 @@ namespace picsom {
 	\param t the new pixel data type
 	\return the old pixel data type
     */
-    pixeldatatype convert(pixeldatatype t) throw(string) {
+    pixeldatatype convert(pixeldatatype t) /*throw(string)*/ {
       if (!is_defined(t))
 	throw msg("convert() : strange destination type");
 
@@ -995,7 +995,7 @@ namespace picsom {
 	\return a subimage with otherwise similar properties.
     */
     imagedata subimage(size_t ulx, size_t uly,
-		       size_t lrx, size_t lry) const throw(string) {
+		       size_t lrx, size_t lry) const /*throw(string)*/ {
       if (!coordinates_ok(ulx, uly) || !coordinates_ok(lrx, lry) ||
 	  lrx<ulx || lry<uly) {
 	stringstream txt;
@@ -1015,7 +1015,7 @@ namespace picsom {
     /** Changes the scale of the image data.
 	\param si information for the scaling
     */
-    void rescale(const scalinginfo& si, size_t interp = 0) throw(string) {
+    void rescale(const scalinginfo& si, size_t interp = 0) /*throw(string)*/ {
       /// this should work for other types too...
       /// perhaps through canonization...
       
@@ -1037,7 +1037,8 @@ namespace picsom {
 	break;
 
       default:
-	throw msg("rescale() : unsupported pixeldata type");
+	throw msg("rescale() : unsupported pixeldata type ["+
+		  datatypename(_type)+"]");
       }
     }
 
@@ -1045,7 +1046,7 @@ namespace picsom {
 	\param si information for the rotation
     */
     void rotate(const scalinginfo& si, int interp = 0,
-		int bbox = 0) throw(string) {
+		int bbox = 0) /*throw(string)*/ {
       /// this should work for other types too...
       /// perhaps through canonization...
       
@@ -1073,7 +1074,7 @@ namespace picsom {
     
     /** Reverses the image pixel values.
      */
-    void invert() throw(string) {
+    void invert() /*throw(string)*/ {
       size_t i = 0, n = _width*_height*_count;
       switch (_type) {
       case pixeldata_float:
@@ -1099,7 +1100,7 @@ namespace picsom {
     /** Calculates histogram.
      */
     vector<size_t> histogram(int x0=-1, int y0=-1,
-			  int x1=-1, int y1=-1) const throw(string) {
+			  int x1=-1, int y1=-1) const /*throw(string)*/ {
       if (_type!=pixeldata_uchar || _count!=1)
 	throw msg("histogram() : only implemented for 1 x uchar images");
 
@@ -1119,7 +1120,7 @@ namespace picsom {
       return ret;
     }
 
-    map<int,size_t> histogram_uint16() throw(string) {
+    map<int,size_t> histogram_uint16() /*throw(string)*/ {
       if (_type!=pixeldata_uint16 || _count!=1)
 	throw msg("histogram_uint16() : "
 		  "only implemented for 1 x uint16 images");
@@ -1209,7 +1210,7 @@ namespace picsom {
 	\return complex image with _type==pixeldata_scmplx.
     */
     static imagedata make_cmplx(const imagedata& x, const imagedata& y)
-      throw(string) {
+      /*throw(string)*/ {
       if ((!x.is_floating_real()&&!x.is_integral()) ||
 	  (!y.is_floating_real()&&!y.is_integral()))
 	throw msg("make_cmplx() failed with types");
@@ -1235,7 +1236,7 @@ namespace picsom {
 	\param  m multiplier.
 	\return multiplied image.
     */
-    imagedata multiply(double m) const throw(string) {
+    imagedata multiply(double m) const /*throw(string)*/ {
       if (m==1.0)
 	return *this;
 
@@ -1264,7 +1265,7 @@ namespace picsom {
     */
     imagedata convolve(const vector<float>& h, const vector<float>& v,
 		       double m = 1.0, bool zeropad=false,
-		       bool circular=false) const throw(string) {
+		       bool circular=false) const /*throw(string)*/ {
       if (h.empty() && v.empty())
 	return m==1.0 ? *this : multiply(m);
 
@@ -1290,7 +1291,7 @@ namespace picsom {
     imagedata convolve_horizontal(const vector<float>& h,
 				  double m = 1.0,bool zeropad=false,
 				  bool circular=false)
-      const throw(string) {
+      const /*throw(string)*/ {
       if(zeropad && circular)
 	throw std::string("imagedata::convolve_horizontal(): zeropad && circular");
 
@@ -1378,7 +1379,7 @@ namespace picsom {
     imagedata convolve_vertical(const vector<float>& v,
 				double m = 1.0,bool zeropad=false,
 				bool circular=false) 
-      const throw(string) {
+      const /*throw(string)*/ {
 
       if(zeropad && circular)
 	throw std::string("imagedata::convolve_vertical(): zeropad && circular");
@@ -1463,7 +1464,7 @@ namespace picsom {
 	\return vector image with _type==pixeldata_scmplx.
     */
     imagedata vector_gradient(const vector<float>& h, const vector<float>& v,
-			      double m = 1.0) const throw(string) {
+			      double m = 1.0) const /*throw(string)*/ {
       imagedata x = convolve(h, v, m);
       imagedata y = convolve(v, h, m);
 
@@ -1480,7 +1481,7 @@ namespace picsom {
 	\return magnitude image with _type==pixeldata_float.
     */
     imagedata absolute_gradient(const vector<float>& h, const vector<float>& v,
-				double m = 1.0) const throw(string) {
+				double m = 1.0) const /*throw(string)*/ {
       imagedata x = convolve(h, v, m);
       imagedata y = convolve(v, h, m);
 
@@ -1505,7 +1506,7 @@ namespace picsom {
 	\return magnitude image with _type==pixeldata_float.
     */
     imagedata euclidean_gradient(const vector<float>& h,const vector<float>& v,
-				 double m = 1.0) const throw(string) {
+				 double m = 1.0) const /*throw(string)*/ {
       imagedata x = convolve(h, v, m);
       imagedata y = convolve(v, h, m);
 
@@ -1538,7 +1539,7 @@ namespace picsom {
 
     imagedata gaussian_filter(float dev,int w=-1,float m=1.0,
 			      bool zeropad=true, bool circular=false)
-      const throw (string) {
+      const /*throw(string)*/ {
 
       if(zeropad && circular)
 	throw std::string("imagedata::gaussianfilter(): zeropad && circular");
@@ -1573,7 +1574,7 @@ namespace picsom {
     */
     imagedata to_polar(const vector<float>& rho, const vector<float>& phi,
 		       float x0, float y0)
-      const throw(string) {
+      const /*throw(string)*/ {
 
       imagedata ret(rho.size(), phi.size(), count(), _type);
       for (unsigned int p=0; p<phi.size(); p++) {
@@ -1601,7 +1602,7 @@ namespace picsom {
 	\return image in polar coordinates (radius,angle).
     */
     imagedata to_polar(int lrho, int lphi, float x0, float y0)
-      const throw(string) {
+      const /*throw(string)*/ {
       
       vector<float> rho, phi;
       polar_transform_vectors(lrho, lphi, rho, phi);
@@ -1644,7 +1645,7 @@ namespace picsom {
     imagedata from_polar(int w, int h,
 			 const vector<float>& rho, const vector<float>& phi,
 			 float x0, float y0)
-      const throw(string) {
+      const /*throw(string)*/ {
 
       if (phi.size()!=height() || rho.size()!=width())
 	throw "from_polar() data size problem";
@@ -1864,7 +1865,7 @@ namespace picsom {
 	\return image in polar coordinates (radius,angle).
     */
     imagedata from_polar(int w, int h, int lrho, int lphi, float x0, float y0)
-      const throw(string) {
+      const /*throw(string)*/ {
 
       vector<float> rho, phi;
       polar_transform_vectors(lrho, lphi, rho, phi);
@@ -1943,7 +1944,7 @@ namespace picsom {
 	\return array of column-wise sums.
     */
 
-    valarray<float> vertical_sum() const throw(string) {
+    valarray<float> vertical_sum() const /*throw(string)*/ {
       if (_type!=pixeldata_float)
 	throw msg("vertical_sum() not float");
       if (_count!=1)
@@ -2406,13 +2407,13 @@ namespace picsom {
     // ------------------------------------------------------------------------
 
     void line(int x0, int y0, int x1, int y1, size_t w,
-	      const string& c) throw(string) {
+	      const string& c) /*throw(string)*/ {
       imagecolor<unsigned char> v(c);
       line(x0, y0, x1, y1, w, v);
     }
 
     void line(int x0, int y0, int x1, int y1, size_t w,
-	      const vector<unsigned char>& v) throw(string) {
+	      const vector<unsigned char>& v) /*throw(string)*/ {
       float dx = x1-x0, dy = y1-y0;
       float l = dx*dx+dy*dy;
       if (l>0) {
@@ -2444,7 +2445,7 @@ namespace picsom {
     // ------------------------------------------------------------------------
 
     void polygon(const vector<int>& p, size_t w,
-		 const string& c) throw(string) {
+		 const string& c) /*throw(string)*/ {
       for (size_t a=0; a<p.size()/2; a++) {
 	size_t b = (a+1)%(p.size()/2);
 	line(p[2*a], p[2*a+1], p[2*b], p[2*b+1], w, c);
@@ -2454,13 +2455,13 @@ namespace picsom {
     // ------------------------------------------------------------------------
 
     void circle(int x0, int y0, float r1, float r0,
-		const string& c) throw(string) {
+		const string& c) /*throw(string)*/ {
       imagecolor<unsigned char> v(c);
       circle(x0, y0, r1, r0, v);
     }
 
     void circle(int x0, int y0, float r1, float r0,
-		const vector<unsigned char>& v) throw(string) {
+		const vector<unsigned char>& v) /*throw(string)*/ {
       for (int x=int(x0-r1); x<=x0+r1; x++)
 	for (int y=int(y0-r1); y<=y0+r1; y++) {
 	  float d = (x-x0)*(x-x0)+(y-y0)*(y-y0);
@@ -2470,6 +2471,35 @@ namespace picsom {
     }
 
     // ------------------------------------------------------------------------
+
+    /** Converts the given coordinates to a one-dimensional index using width w.
+	\param x,y coordinates
+	\param w width
+	\return one-dimensional index
+    */
+    int to_index_w_width(int x, int y, int w) const { return y*w+x; }
+
+    /** Converts the given coordinates to a one-dimensional index.
+	\param x,y the coordinates to convert
+	\returns a one-dimensional index
+    */
+    int to_index(int x, int y) const { return to_index_w_width(x, y, _width); }
+
+    /** Converts the given coordinates to an index with pixel count accounted.
+	\param x,y the coordinates to convert
+	\returns a one-dimensional index
+    */
+    int to_index_w_count(int x, int y) const {
+      return _count*to_index_w_width(x, y, _width);
+    }
+
+    /** Converts the given coordinates to an index with pixel count accounted.
+	\param x,y,c the coordinates and channel to convert
+	\returns a one-dimensional index
+    */
+    int to_index(int x, int y, int c) const {
+      return to_index_w_count(x, y)+c;
+    }
 
   protected:
     /** A simple utility function to convert integer to string.
@@ -2578,7 +2608,7 @@ namespace picsom {
 	\throw  std::string if not of defined type
 	\return the size of the current internal data storage vector
     */
-    unsigned int vector_size() const throw(string) {
+    unsigned int vector_size() const /*throw(string)*/ {
       switch (_type) {
       case pixeldata_float:   return _vec_float .size();
       case pixeldata_double:  return _vec_double.size();
@@ -2597,7 +2627,7 @@ namespace picsom {
 	\param n the size of the vector
 	\throw  std::string if not of defined type
     */
-    void alloc_vector(pixeldatatype t, int n) throw(string) {
+    void alloc_vector(pixeldatatype t, int n) /*throw(string)*/ {
       switch (t) {
       case pixeldata_float:
 	_vec_float = vector<float>(n, 0.0); break;
@@ -2622,7 +2652,7 @@ namespace picsom {
 	\param n the size of the vector
 	\throw  std::string if not of defined type
     */
-    void resize_vector(int n) throw(string) {
+    void resize_vector(int n) /*throw(string)*/ {
       switch (_type) {
       case pixeldata_float:
 	_vec_float.resize(n); break;
@@ -2645,7 +2675,7 @@ namespace picsom {
     /** Clears the internal vector.
 	\throw  std::string if not of defined type
     */
-    void clear_vector() throw(string) {
+    void clear_vector() /*throw(string)*/ {
       switch (_type) {
       case pixeldata_float:   _vec_float .clear(); break;
       case pixeldata_double:  _vec_double.clear(); break;
@@ -2684,35 +2714,6 @@ namespace picsom {
       return head;
     }
     
-    /** Converts the given coordinates to a one-dimensional index using width w.
-	\param x,y coordinates
-	\param w width
-	\return one-dimensional index
-    */
-    int to_index_w_width(int x, int y, int w) const { return y*w+x; }
-
-    /** Converts the given coordinates to a one-dimensional index.
-	\param x,y the coordinates to convert
-	\returns a one-dimensional index
-    */
-    int to_index(int x, int y) const { return to_index_w_width(x, y, _width); }
-
-    /** Converts the given coordinates to an index with pixel count accounted.
-	\param x,y the coordinates to convert
-	\returns a one-dimensional index
-    */
-    int to_index_w_count(int x, int y) const {
-      return _count*to_index_w_width(x, y, _width);
-    }
-
-    /** Converts the given coordinates to an index with pixel count accounted.
-	\param x,y,c the coordinates and channel to convert
-	\returns a one-dimensional index
-    */
-    int to_index(int x, int y, int c) const {
-      return to_index_w_count(x, y)+c;
-    }
-
     /// A canonical datatype through which some transformations are performed.
     typedef double _canontype;
 
@@ -2730,7 +2731,7 @@ namespace picsom {
 	\throw  std::string if datatype is invalid.
 	\return Value converted to a double in [0,1]. 
     */
-    double canonize_double(int i) const throw(string) {
+    double canonize_double(int i) const /*throw(string)*/ {
       const double dc = 17.0*15, ds = dc*(dc+2), dl = ds*(ds+2);
       switch (_type) {
       case pixeldata_float:   return _vec_float[i];
@@ -2761,7 +2762,7 @@ namespace picsom {
 	\param  i index to vector<>. Validity not checked.
 	\throw  std::string if datatype is invalid.
     */
-    void decanonize_double(double v, pixeldatatype t, int i) throw(string) {
+    void decanonize_double(double v, pixeldatatype t, int i) /*throw(string)*/ {
       const double mc = 17.0*15, ms = mc*(mc+2), ml = ms*(ms+2);
       switch (t) {
       case pixeldata_float:  _vec_float[i] = v; break;
@@ -2783,7 +2784,7 @@ namespace picsom {
 	\param  i index to vector<>. Validity not checked.
 	\throw  std::string if datatype is invalid.
     */
-    void decanonize_uint16(uint16_t v, pixeldatatype t, int i) throw(string) {
+    void decanonize_uint16(uint16_t v, pixeldatatype t, int i) /*throw(string)*/ {
       // const double mc = 17.0*15, ms = mc*(mc+2);
       // const double one_per_ms = 1.0/ms;
 
@@ -2813,7 +2814,7 @@ namespace picsom {
     */
 
     void decanonize_uchar(unsigned char v, pixeldatatype t,
-			  int i) throw(string) {
+			  int i) /*throw(string)*/ {
       switch (t) {
       case pixeldata_float:  _vec_float[i]  = v/255.0; break;
       case pixeldata_double: _vec_double[i] = v/255.0; break;
@@ -2854,7 +2855,7 @@ namespace picsom {
     /** documentation missing ??
      */
     template <typename T> 
-    void _rescale(const scalinginfo& si, size_t interp) throw(string) {
+    void _rescale(const scalinginfo& si, size_t interp) /*throw(string)*/ {
       /// call this only when you are sure that type T matches _type
       /// and interp is valid
       
@@ -2875,7 +2876,7 @@ namespace picsom {
     /** documentation missing ??
      */
     template <typename T> 
-    void _rescale_0(const scalinginfo& si) throw(string) {
+    void _rescale_0(const scalinginfo& si) /*throw(string)*/ {
       /// call this only when you are sure that type T matches _type
       bool debug = false;
 
@@ -2922,7 +2923,7 @@ namespace picsom {
     /** documentation missing ??
      */
     template <typename T> 
-    void _rescale_1(const scalinginfo& si) throw(string) {
+    void _rescale_1(const scalinginfo& si) /*throw(string)*/ {
       /// call this only when you are sure that type T matches _type
       
       bool debug = false;
@@ -2989,7 +2990,7 @@ namespace picsom {
         and is generally larger than the input image.
      */
     template <typename T> 
-    void _rotate(const scalinginfo& si, int interp, int bbox) throw(string) {
+    void _rotate(const scalinginfo& si, int interp, int bbox) /*throw(string)*/ {
       /// call this only when you are sure that type T matches _type
       /// and interp & bbox are valid
       
@@ -3008,7 +3009,7 @@ namespace picsom {
         Pixels in areas outside the original image are set to zero.
      */
     template <typename T> 
-    void _rotate_0(const scalinginfo& si, int bbox) throw(string) {
+    void _rotate_0(const scalinginfo& si, int bbox) /*throw(string)*/ {
       /// call this only when you are sure that type T matches _type
       /// and bbox is valid
 

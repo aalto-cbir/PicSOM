@@ -1,4 +1,4 @@
-// -*- C++ -*-    $Id: imagescaling.h,v 1.10 2012/08/31 07:40:34 jorma Exp $
+// -*- C++ -*-    $Id: imagescaling.h,v 1.11 2021/05/11 14:47:41 jormal Exp $
 
 /*!\file imagescaling.h
 
@@ -10,8 +10,8 @@
   images.
 
   \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-  $Revision: 1.10 $
-  $Date: 2012/08/31 07:40:34 $
+  $Revision: 1.11 $
+  $Date: 2021/05/11 14:47:41 $
   \bug The naming as imagescaling.h vs. class picsom::scalinginfo is confusing.
   \warning Be warned against all odds!
   \todo The documentation is missing, not to name the implementation ...
@@ -56,13 +56,13 @@ namespace picsom {
       
     //! not yet documented...
     void rotate_dst_xy(float src_x, float src_y,
-		       float& dst_x, float& dst_y) const throw(string) {
+		       float& dst_x, float& dst_y) const /*throw(string)*/ {
       dst_x = src_x * cos(_rotate_theta) - src_y * sin(_rotate_theta);
       dst_y = src_x * sin(_rotate_theta) + src_y * cos(_rotate_theta);
     }
 
     void rotate_dst_xy_c(float src_x, float src_y,
-			 float& dst_x, float& dst_y) const throw(string) {
+			 float& dst_x, float& dst_y) const /*throw(string)*/ {
       rotate_dst_xy(src_x-_rotate_center_x, src_y-_rotate_center_y,
 		    dst_x, dst_y);
       dst_x += _rotate_center_x;
@@ -70,20 +70,20 @@ namespace picsom {
     }
     
     void rotate_src_xy(float& src_x, float& src_y,
-		       float dst_x, float dst_y) const throw(string) {
+		       float dst_x, float dst_y) const /*throw(string)*/ {
       src_x = dst_x * cos(-_rotate_theta) - dst_y * sin(-_rotate_theta);
       src_y = dst_x * sin(-_rotate_theta) + dst_y * cos(-_rotate_theta);
     }
     
     void rotate_src_xy_c(float& src_x, float& src_y,
-			 float dst_x, float dst_y) const throw(string) {
+			 float dst_x, float dst_y) const /*throw(string)*/ {
       rotate_src_xy(src_x, src_y,
 		    dst_x-_rotate_center_x, dst_y-_rotate_center_y);
       src_x += _rotate_center_x;
       src_y += _rotate_center_y;
     }
 
-    void get_rotate_center(float& x, float& y) const throw(string) {
+    void get_rotate_center(float& x, float& y) const /*throw(string)*/ {
       x = _rotate_center_x;
       y = _rotate_center_y;
     }
@@ -98,50 +98,50 @@ namespace picsom {
     }
 
     //! not yet documented...
-    void ensure_is_set(const char *txt) const throw(string) {
+    void ensure_is_set(const char *txt) const /*throw(string)*/ {
       if (!is_set())
 	throw string("scalinginfo::")+txt+"() called when !is_set()";
     }
 
     //! not yet documented...
-    int dst_width() const throw(string) {
+    int dst_width() const /*throw(string)*/ {
       ensure_is_set("dst_width");
       return _d_width;
     }
 
     //! not yet documented...
-    int dst_height() const throw(string) {
+    int dst_height() const /*throw(string)*/ {
       ensure_is_set("dst_height");
       return _d_height;
     }
 
     //! not yet documented...
-    int dst_size() const throw(string) {
+    int dst_size() const /*throw(string)*/ {
       ensure_is_set("dst_size");
       return _d_width*_d_height;
     }
 
     //! not yet documented...
-    int src_x(int x) const throw(string) {
+    int src_x(int x) const /*throw(string)*/ {
       ensure_is_set("src_x");
       return _src_x(x);
     }
 
     //! not yet documented...
-    int src_y(int y) const throw(string) {
+    int src_y(int y) const /*throw(string)*/ {
       ensure_is_set("src_y");
       return _src_y(y);
     }
 
     //! not yet documented...
-    void forwards(int& x, int& y) const throw(string) {
+    void forwards(int& x, int& y) const /*throw(string)*/ {
       ensure_is_set("forwards");
       x = _dst_x(x);
       y = _dst_y(y);
     }
 
     //! not yet documented...
-    void backwards(int& x, int& y) const throw(string) {
+    void backwards(int& x, int& y) const /*throw(string)*/ {
       ensure_is_set("backwards");
       x = _src_x(x);
       y = _src_y(y);
@@ -150,13 +150,13 @@ namespace picsom {
     typedef vector<pair<int,float> > range_t;
 
     //! not yet documented...
-    range_t src_x_range(int x) const throw(string) {
+    range_t src_x_range(int x) const /*throw(string)*/ {
       ensure_is_set("src_x_range");
       return _src_x_range(x);
     }
 
     //! not yet documented...
-    range_t src_y_range(int y) const throw(string) {
+    range_t src_y_range(int y) const /*throw(string)*/ {
       ensure_is_set("src_y_range");
       return _src_y_range(y);
     }

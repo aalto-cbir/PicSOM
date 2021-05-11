@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.40 2019/06/18 10:09:10 jormal Exp $
+// -*- C++ -*-  $Id: imagefile-opencv.C,v 1.41 2020/04/27 11:03:58 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -26,6 +26,11 @@
 #include <gif_lib.h>
 #endif // HAVE_GIF_LIB_H
 
+#if CV_VERSION_MAJOR>=4
+#include <opencv2/imgproc/types_c.h>
+#include <opencv2/videoio/legacy/constants_c.h>
+#endif
+
 namespace picsom {
   int    imagefile::_debug_impl     = 0;
   bool   imagefile::_keep_tmp_files = false;
@@ -48,7 +53,7 @@ namespace picsom {
 
   const string& imagefile::impl_version() {
     static string v =
-      "$Id: imagefile-opencv.C,v 1.40 2019/06/18 10:09:10 jormal Exp $";
+      "$Id: imagefile-opencv.C,v 1.41 2020/04/27 11:03:58 jormal Exp $";
     return v;
   }
 

@@ -1,11 +1,10 @@
+// -*- C++ -*-  $Id: Matrix.C,v 1.12 2020/04/03 12:29:32 jormal Exp $
 // 
 // Copyright 1994-2009 Jorma Laaksonen <jorma@cis.hut.fi>
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
-// Helsinki University of Technology
-// P.O.BOX 5400, FI-02015 HUT, FINLAND
+// Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
+// Aalto University School of Science
+// PO Box 15400, FI-00076 Aalto, FINLAND
 // 
-
-// @(#)$Id: Matrix.C,v 1.11 2013/02/09 17:56:34 jorma Exp $
 
 #ifndef _MATRIX_C_
 #define _MATRIX_C_
@@ -362,22 +361,23 @@ MatrixOf<Type> MatrixOf<Type>::EigenVectors(VectorOf<Type> *v, int) const {
 
 extern "C" {
 #ifdef HAS_LINPACK
-  int ilaenv_(int&, char*, char*, int&, int&, int&, int&, int, int);
-  void ssyevx_(char*, char*, char*, int&, float*, int&, float&,
-	       float&, int&, int&, float&, int&, float*, float*,
-	       int&, float*, int&, int*, int*, int&, int, int, int);
-  void sgetrf_(int&, int&, float*, int&, int*, int&);
-  void sgetri_(int&, float*, int&, int*, float*, int&, int&);
+  int ilaenv_(int*, char*, char*, int*, int*, int*, int*);
+  void ssyevx_(char*, char*, char*, int*, float*, int*, float*,
+   	       float*, int*, int*, float*, int*, float*, float*,
+   	       int*, float*, int*, int*, int*, int*);
+  void sgetrf_(int*, int*, float*, int*, int*, int*);
+  void sgetri_(int*, float*, int*, int*, float*, int*, int*);
+  
 #else
-  int ilaenv_(int&, char*, char*, int&, int&, int&, int&, int, int) {
+  int ilaenv_(int*, char*, char*, int*, int*, int*, int*) {
     Simple::ShowError("ilaenv not implemented."); return 0; }
-  void ssyevx_(char*, char*, char*, int&, float*, int&, float&,
-	       float&, int&, int&, float&, int&, float*, float*,
-	       int&, float*, int&, int*, int*, int&, int, int, int) {
+  void ssyevx_(char*, char*, char*, int*, float*, int*, float*,
+	       float*, int*, int*, float*, int*, float*, float*,
+	       int*, float*, int*, int*, int*, int*) {
     Simple::ShowError("ssyevx not implemented."); }
-  void sgetrf_(int&, int&, float*, int&, int*, int&) {
+  void sgetrf_(int*, int*, float*, int*, int*, int*) {
     Simple::ShowError("sgetrf not implemented."); }
-  void sgetri_(int&, float*, int&, int*, float*, int&, int&) {
+  void sgetri_(int*, float*, int*, int*, float*, int*, int*) {
     Simple::ShowError("sgetri not implemented."); }
 #endif // HAS_LINPACK
 }
@@ -417,8 +417,7 @@ FloatMatrix FloatMatrix::EigenVectors(FloatVector* val, int n) const {
   char ssytrd[100] = "SSYTRD", empty[100] = "";
 
   int one = 1, zero = 0, col = Columns();
-  int nb = ilaenv_(one, ssytrd, empty, zero, zero, zero, zero,
-		   strlen(ssytrd), strlen(empty));
+  int nb = ilaenv_(&one, ssytrd, empty, &zero, &zero, &zero, &zero);
   int lwork = nb+3>8 ? (nb+3)*col : 8*col;
   
   int first = col-n+1, m = 0, info = 0;
@@ -430,11 +429,10 @@ FloatMatrix FloatMatrix::EigenVectors(FloatVector* val, int n) const {
 
   char V[] = "V", I[] = "I", U[] = "U";
 
-  ssyevx_(V, I, U, col, (float*)(void*)a, col,
-	  fzero, fzero, first, col, fzero, m, 
-	  v, (float*)(void*)z, col, (float*)(void*)work, lwork,
-	  iwork, ifail, info,
-	  strlen(V), strlen(I), strlen(U));
+  ssyevx_(V, I, U, &col, (float*)(void*)a, &col,
+	  &fzero, &fzero, &first, &col, &fzero, &m, 
+	  v, (float*)(void*)z, &col, (float*)(void*)work, &lwork,
+	  iwork, ifail, &info);
 
   if (info<0)
     cerr << "Matrix::EigenVectors() ssyevx argument failure" << endl;
@@ -875,7 +873,7 @@ MatrixOf<Type> MatrixOf<Type>::Inverse(float *determinant) const {
     Type *a = Concatenate();
     int col = Columns(), *ipiv = new int[Columns()], info = -1;
 
-    sgetrf_(col, col, (float*)(void*)a, col, ipiv, info);
+    sgetrf_(&col, &col, (float*)(void*)a, &col, ipiv, &info);
     if (info) {
       ShowError("Matrix::Inverse() sgetrf_() failed.");
       return MatrixOf();
@@ -884,7 +882,7 @@ MatrixOf<Type> MatrixOf<Type>::Inverse(float *determinant) const {
     int lwork = col*col;
     float *work = new float[lwork];
 
-    sgetri_(col, (float*)(void*)a, col, ipiv, work, lwork, info);
+    sgetri_(&col, (float*)(void*)a, &col, ipiv, work, &lwork, &info);
     if (info) {
       ShowError("Matrix::Inverse() sgetri_() failed.");
       return MatrixOf();

@@ -1,3 +1,16 @@
+2020-04-03  jormal  <jormal@cs-271>
+
+	* Matrix.C 1.12:
+	Summary: Changed references to pointers in linpack/lapack/blas declarations.
+
+2020-02-01  jormal  <jormal@cs-271>
+
+	* OptVar.h 1.5: Iincreased buffer size to avoid compiler warning.
+
+2020-01-01  jormal  <jormal@cs-271>
+
+	* DataSet.C 1.5: Summary: Corrected bug in Dump().
+
 2018-12-16  jormal  <jormal@cs-271>
 
 	* TreeSOM.C 1.36, Classifier.C 1.12, OptVar.h 1.4:

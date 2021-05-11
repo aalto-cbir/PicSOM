@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: SVM.h,v 2.61 2016/06/23 09:57:14 jorma Exp $
+// -*- C++ -*-  $Id: SVM.h,v 2.62 2020/01/01 18:46:15 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -71,6 +71,9 @@ namespace picsom {
         kernel_func = other.kernel_func;
         use_exp = other.use_exp;
       }
+      
+      /// added 2020-01-01 and is a bit suspicious...
+      kernel_t& operator=(const kernel_t&) = default;
 
       /// enum for specifying SVM kernel implemented in PicSOM 
       typedef enum { 
@@ -343,6 +346,9 @@ namespace picsom {
       Parameter(const Parameter&);
 
       ~Parameter();
+
+      /// added 2020-01-01 and is a bit suspicious...
+      Parameter& operator=(const Parameter&) = default;
 
       void SetLibrary(SVM::library_t l) { svm_library = l; }
 

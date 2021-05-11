@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: External.C,v 1.44 2019/02/11 06:38:55 jormal Exp $
+// -*- C++ -*-  $Id: External.C,v 1.46 2020/03/06 13:18:46 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -39,44 +39,45 @@ namespace picsom {
  
 //=============================================================================
 
-bool External::ProcessOptionsAndRemove(list<string>& l) {
-  static const string msg = "External::ProcessOptionsAndRemove() ";
+  bool External::ProcessOptionsAndRemove(list<string>& l) {
+    static const string msg = "External::ProcessOptionsAndRemove() ";
   
-  if (FileVerbose())
-    cout << msg << "name=" << Name() << endl;
-  
-  for (list<string>::iterator i = l.begin(); i!=l.end();) {
     if (FileVerbose())
-      cout << "  <" << *i << ">" << endl;
+      cout << TimeStamp() << msg << "name=" << Name() << endl;
+  
+    for (list<string>::iterator i = l.begin(); i!=l.end();) {
+      if (FileVerbose())
+	cout << TimeStamp() << "  <" << *i << ">" << endl;
     
-    string key, value;
-    SplitOptionString(*i, key, value); 
+      string key, value;
+      SplitOptionString(*i, key, value); 
     
-    if (key=="coresize") {
-      rlimit_core = atoi(value.c_str());
-      i = l.erase(i);
-      continue;
-    }
+      if (key=="coresize") {
+	rlimit_core = atoi(value.c_str());
+	i = l.erase(i);
+	continue;
+      }
 
-    if (key=="cputime") {
-      rlimit_cpu = atoi(value.c_str());
-      i = l.erase(i);
-      continue;
-    }
+      if (key=="cputime") {
+	rlimit_cpu = atoi(value.c_str());
+	i = l.erase(i);
+	continue;
+      }
 
-    if (key=="memsize") {
-      rlimit_as = atoi(value.c_str());
-      i = l.erase(i);
-      continue;
-    }
+      if (key=="memsize") {
+	rlimit_as = atoi(value.c_str());
+	i = l.erase(i);
+	continue;
+      }
 
-    i++;
+      i++;
+    }
+    bool ok = Feature::ProcessOptionsAndRemove(l);
+    return ok;
   }
-  bool ok = Feature::ProcessOptionsAndRemove(l);
-  return ok;
-}
 
   //===========================================================================
+
   vector<string> External::UsedDataLabelsBasic() const {
     vector<pair<int,string> > labs;
     vector<pair<int,string> >::iterator i;
@@ -87,9 +88,9 @@ bool External::ProcessOptionsAndRemove(list<string>& l) {
       labs.push_back(make_pair(0,""));
     
     if (LabelVerbose()) {
-      cout << "External::UsedDataLabelsBasic() : " << endl;
+      cout << TimeStamp() << "External::UsedDataLabelsBasic() : " << endl;
       for (i=labs.begin(); i<labs.end(); i++)
-        cout << "  " << i->first << " : \"" << i->second << "\"" << endl;
+        cout << TimeStamp() << "  " << i->first << " : \"" << i->second << "\"" << endl;
     }
     
     if (!UseBackground()) {
@@ -115,55 +116,55 @@ bool External::ProcessOptionsAndRemove(list<string>& l) {
 
 //=============================================================================
 
-bool External::CalculateOneFrame(int f) {
-  char msg[100];
-  sprintf(msg, "External::CalculateOneFrame(%d)", f);
+  bool External::CalculateOneFrame(int f) {
+    char msg[100];
+    sprintf(msg, "External::CalculateOneFrame(%d)", f);
   
-  if (FrameVerbose())
-    cout << msg << " : starting" << endl;
+    if (FrameVerbose())
+      cout << TimeStamp() << msg << " : starting" << endl;
   
-  bool ok = true;
+    bool ok = true;
   
-  int n = DataElementCount();
-  for (int i=0; ok && i<n; i++)
-    if (!CalculateOneLabel(f, i))
-      ok = false;
+    int n = DataElementCount();
+    for (int i=0; ok && i<n; i++)
+      if (!CalculateOneLabel(f, i))
+	ok = false;
   
-  if (FrameVerbose())
-    cout << msg << " : ending" << endl;
+    if (FrameVerbose())
+      cout << TimeStamp() << msg << " : ending" << endl;
   
-  return ok;
-}  
+    return ok;
+  }  
 
 ///////////////////////////////////////////////////////////////////////////////
 
-string External::SolveArchitecture() const {
-  struct utsname uts;
-  if (uname(&uts) == -1) {
-    cerr << "External::SolveArchitecture() : uname() call failed" << endl;
-    return ""; 
-  }
+  string External::SolveArchitecture() const {
+    struct utsname uts;
+    if (uname(&uts) == -1) {
+      cerr << TimeStamp() << "External::SolveArchitecture() : uname() call failed" << endl;
+      return ""; 
+    }
 
-  string sysname = uts.sysname, machine = uts.machine;
+    string sysname = uts.sysname, machine = uts.machine;
 
-  if (sysname=="IRIX64")
-    return "irix";
+    if (sysname=="IRIX64")
+      return "irix";
 
-  if (sysname=="OSF1")
-    return "alpha";
+    if (sysname=="OSF1")
+      return "alpha";
 
-  if (sysname=="Darwin")
-    return "darwin";
+    if (sysname=="Darwin")
+      return "darwin";
   
-  if (sysname=="Linux") {
-    if (machine=="x86_64")
-      return "linux64";
-    else
-      return "linux";
+    if (sysname=="Linux") {
+      if (machine=="x86_64")
+	return "linux64";
+      else
+	return "linux";
+    }
+    // fallback:
+    return uts.sysname;
   }
-  // fallback:
-  return uts.sysname;
-}
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -181,37 +182,38 @@ string External::SolveArchitecture() const {
     return "/share/imagedb/picsom/linux/bin/"+n;
   }
 
-//=============================================================================
+  //===========================================================================
 
-string External::RemoteShell() const {
-  bool use_ssh = true;
-  string arch = SolveArchitecture();
+  string External::RemoteShell() const {
+    bool use_ssh = true;
+    string arch = SolveArchitecture();
 
-  if (arch == "irix")
-    return use_ssh ? "/bin/ssh" : "/usr/bsd/rsh";
-  if (arch == "linux" || arch == "linux64")
-    return use_ssh ? "/usr/bin/ssh" : "/usr/bin/rsh";
-  if (arch == "alpha")
-    return use_ssh ? "/bin/ssh" : "/bin/rsh";
+    if (arch == "irix")
+      return use_ssh ? "/bin/ssh" : "/usr/bsd/rsh";
+    if (arch == "linux" || arch == "linux64")
+      return use_ssh ? "/usr/bin/ssh" : "/usr/bin/rsh";
+    if (arch == "alpha")
+      return use_ssh ? "/bin/ssh" : "/bin/rsh";
 
-  // fallback
-  return "/usr/bin/rsh";
-}
+    // fallback
+    return "/usr/bin/rsh";
+  }
 
-//=============================================================================
+  //===========================================================================
 
-bool External::EnsureFileList(vector<string> files) const {
-  for (vector<string>::const_iterator f=files.begin(); f!=files.end(); f++) 
-    if (!WaitForFile(*f))
-      return false;
-  return true;
-}
+  bool External::EnsureFileList(vector<string> files) const {
+    for (vector<string>::const_iterator f=files.begin(); f!=files.end(); f++) 
+      if (!WaitForFile(*f))
+	return false;
+    return true;
+  }
 
-//=============================================================================
+  //===========================================================================
 
   string External::ReadBytes(int out, fd_set *fdsp, const string& name) {
-    string ret;
+    string msg = "External::ReadBytes() : ";
 
+    string ret;
     struct stat statbuf;
     int statres = fstat(out, &statbuf);
 
@@ -229,8 +231,8 @@ bool External::EnsureFileList(vector<string> files) const {
     }
 
     if (PixelVerbose()) 
-      cout << name << " read " << ret.size() << " bytes: \"" << ret << "\""
-           << endl;
+      cout << TimeStamp() << msg << name << " read " << ret.size()
+	   << " bytes: \"" << ret << "\"" << endl;
 
     return ret;
   }
@@ -249,7 +251,7 @@ bool External::EnsureFileList(vector<string> files) const {
     bool needs = NeedsConversion();
 
     if (FrameVerbose())
-      cout << "External::PreProcess(" << f << ") needs conversion = "
+      cout << TimeStamp() << "External::PreProcess(" << f << ") needs conversion = "
 	   << (needs?"true":"false") << endl;
 
     if (needs) {
@@ -257,7 +259,7 @@ bool External::EnsureFileList(vector<string> files) const {
       string tmpbase = tmpfn.second;
 
       if (!tmpfn.first) {
-        cerr << "ERROR: failed to create temporary file <"+tmpbase+">" 
+        cerr << TimeStamp() << "ERROR: failed to create temporary file <"+tmpbase+">" 
              << endl;
         return false;
       }
@@ -290,7 +292,7 @@ bool External::EnsureFileList(vector<string> files) const {
       ((External*)this)->Unlink(tmpbase);
       
       if (FrameVerbose())
-        cout << "External::PreProcess() : "
+        cout << TimeStamp() << "External::PreProcess() : "
              << "converted <" << ObjectDataFileName() << "> frame "
 	     << f << " (" << w0 << "x" << h0 << ") to <" << imagepath
 	     << "> (" << w1 << "x" << h1 << ") CurrentFullDataFileName()="
@@ -329,7 +331,7 @@ bool External::EnsureFileList(vector<string> files) const {
 
     vector<string> remo = RemoteExecution();
     if (!remo.empty() && FrameVerbose()) {
-      cout << msg+"remote execution:";
+      cout << TimeStamp() << msg+"remote execution:";
       for (vector<string>::const_iterator i=remo.begin(); i!=remo.end(); i++)
         cout << " " << *i;
       cout << endl;
@@ -338,7 +340,7 @@ bool External::EnsureFileList(vector<string> files) const {
     int in[2], out[2], err[2];
 
     if (pipe(in) || pipe(out) || pipe(err)) {
-      cerr << msg+"ERROR failed with pipe()." << endl;
+      cerr << TimeStamp() << msg+"ERROR failed with pipe()." << endl;
       return false;
     }
 
@@ -347,20 +349,21 @@ bool External::EnsureFileList(vector<string> files) const {
     pid_t child = fork();
 
     if (child && FrameVerbose())
-      cout << msg+"fork() returned " << child << endl;
+      cout << TimeStamp() << msg+"fork() returned child pid " << child
+	   << " this parent pid is " << getpid() << endl;
 
     if (!remo.empty()) {
       SetEnsurePre();
       SetEnsurePost();
       if (!EnsureFilesPre()) {
-        cerr << msg+"ERROR some remote files were not updated." << endl;
+        cerr << TimeStamp() << msg+"ERROR some remote files were not updated." << endl;
         return false;
       }
     }
 
     if (!child) {
       RunExecChain(in[0], out[1], err[1], execchain, remo);
-      cerr << msg+"returned from RunExecChain() though should not" << endl;
+      cerr << TimeStamp() << msg+"returned from RunExecChain() though should not" << endl;
       abort();
     }
 
@@ -370,11 +373,11 @@ bool External::EnsureFileList(vector<string> files) const {
     if (instr!="") {
       int nw = write(in[1], instr.c_str(), instr.size());
       if (nw<1) {
-        cout << msg+"ERROR in write()" << endl;
+        cout << TimeStamp() << msg+"ERROR in write()" << endl;
         ok = false;
       }
       else if (FrameVerbose())
-        cout << msg+"wrote " << nw << " bytes in stream" << endl;
+        cout << TimeStamp() << msg+"wrote " << nw << " bytes in stream" << endl;
     }
 
     struct timeval no_delay = { 0, 0 }, short_delay = { 0, 50000 };
@@ -406,15 +409,15 @@ bool External::EnsureFileList(vector<string> files) const {
       
         if (FD_ISSET(out[0], &efds) || FD_ISSET(err[0], &efds)) {
           if (FrameVerbose())
-            cout << msg+"ERROR occurred in child: [" << strerror(errno) << "]";
+            cout << TimeStamp() << msg+"ERROR occurred in child: [" << strerror(errno) << "]";
           break;
         }
 
       } else if (FrameVerbose()) {
         if (retval < 0)
-          cout << msg+"select(): error.";
+          cout << TimeStamp() << msg+"select(): error.";
         else if (show_waiting && retval == 0)
-          cout << msg+"select(): waiting...";
+          cout << TimeStamp() << msg+"select(): waiting...";
       }
 
       if (exited)
@@ -442,7 +445,8 @@ bool External::EnsureFileList(vector<string> files) const {
     close(err[1]);
 
     if (!EnsureFilesPost()) {
-      cerr << msg+"ERROR some remote files were not updated." << endl;
+      cerr << TimeStamp()
+	   << msg+"ERROR some remote files were not updated." << endl;
       return false;
     }
   
@@ -450,7 +454,8 @@ bool External::EnsureFileList(vector<string> files) const {
       if (SaveOutput())
 	StoreOutput(out_str);
       if (FrameVerbose() || !ok)
-        cout << msg+"read " << out_str.size() << " bytes of output: [" 
+        cout << TimeStamp()
+	     << msg+"read " << out_str.size() << " bytes of output: [" 
 	     << out_str << "]" << endl;
     }
 
@@ -458,7 +463,8 @@ bool External::EnsureFileList(vector<string> files) const {
       if (SaveError())
 	StoreError(err_str);
       if (FrameVerbose() || !ok)
-        cout << msg+"read " << err_str.size() << " bytes of error output: ["
+        cout << TimeStamp()
+	     << msg+"read " << err_str.size() << " bytes of error output: ["
              << err_str << "]" << endl;
     }
 
@@ -470,12 +476,12 @@ bool External::EnsureFileList(vector<string> files) const {
   void External::ShowChildStatus(const string& msg,
                                  pid_t pid, int status) const {
     if (pid && WIFEXITED(status) && FrameVerbose())
-      cout << msg+"waitpid() on child " << pid
+      cout << TimeStamp() << msg+"waitpid() on child " << pid
            << " returned " << status << ", exit code was "
            << WEXITSTATUS(status) << endl;
 
     if (pid && WIFSIGNALED(status))
-      cerr << msg+"waitpid() on child " << pid
+      cerr << TimeStamp() << msg+"waitpid() on child " << pid
            << " ended due child terminated by signal "
            << WTERMSIG(status) << endl;
   }
@@ -488,15 +494,15 @@ bool External::EnsureFileList(vector<string> files) const {
     string msg = "External::RunExecChain() : ";
 
     if (execchain.empty()) {
-      cerr << msg+"Error: No exec params!!" << endl;
+      cerr << TimeStamp() << msg+"Error: No exec chain is empty!!" << endl;
       return;
     }
     if (FrameVerbose())
-      cout << msg+"child running " << getpid() << endl;
+      cout << TimeStamp() << msg+"child running " << getpid() << endl;
 
     if (execchain.size()==1) {
       RunExecProcess(in, out, err, *execchain.begin(), remote);
-      cerr << msg+"Error: RunExecProcess() returned A" << endl;
+      cerr << TimeStamp() << msg+"Error: RunExecProcess() returned A" << endl;
       return;
     }
 
@@ -505,11 +511,11 @@ bool External::EnsureFileList(vector<string> files) const {
       pid_t child = fork();
 
       if (child && FrameVerbose())
-        cout << msg+"fork() returned " << child << endl;
+        cout << TimeStamp() << msg+"fork() returned " << child << endl;
 
       if (!child) {
         RunExecProcess(in, out, err, *i, remote);
-        cerr << msg+"Error: RunExecProcess() returned B" << endl;
+        cerr << TimeStamp() << msg+"Error: RunExecProcess() returned B" << endl;
         return;
       }
 
@@ -540,11 +546,11 @@ bool External::EnsureFileList(vector<string> files) const {
     vector<string> argv = execspec.argv;
 
     if (argv.empty()) {
-      cerr << msg+"Error: No exec params!!" << endl;
+      cerr << TimeStamp() << msg+"Error: argv is empty!!" << endl;
       return;
     }
     if (FrameVerbose())
-      cout << msg+"child running " << getpid() << endl;
+      cout << TimeStamp() << msg+"child running " << getpid() << endl;
 
     string allarg;
 
@@ -570,7 +576,7 @@ bool External::EnsureFileList(vector<string> files) const {
         string kv = i->first+"="+i->second;
         allarg += kv+" ";
         if (FrameVerbose())
-          cout << msg+"execenv: " << kv << endl;
+          cout << TimeStamp() << msg+"execenv: " << kv << endl;
       }
     }
 
@@ -580,19 +586,19 @@ bool External::EnsureFileList(vector<string> files) const {
     for (size_t i=0; i<argv.size(); i++) {
       a[i] = (charptr)argv[i].c_str();
       if (FrameVerbose()) {
-        cout << msg+"execparam[" << i << "]: [" << a[i] << "]" << endl;
+        cout << TimeStamp() << msg+"execparam[" << i << "]: [" << a[i] << "]" << endl;
         allarg += string(allarg.empty()?"":" ")+argv[i];
       }
     }
     if (FrameVerbose())
-      cout << msg+"execline: "+allarg << endl;
+      cout << TimeStamp() << msg+"execline: "+allarg << endl;
     
     if (execspec.wd!="") {
       int r = chdir(execspec.wd.c_str());
       if (r)
-	 cerr << msg+"Error: No exec params!!" << endl;
+	 cerr << TimeStamp() << msg+"Error: chdir to <"+execspec.wd+"> failed" << endl;
       else if (FrameVerbose())
-	cout << msg+"Changed to working directory <"+execspec.wd+">"
+	cout << TimeStamp() << msg+"Changed to working directory <"+execspec.wd+">"
 	     << endl;
     }
 
@@ -603,104 +609,105 @@ bool External::EnsureFileList(vector<string> files) const {
     execv(a[0], a);
   } 
 
-//=============================================================================
+  //===========================================================================
 
-bool External::SetChildLimits() {
-  //  rlim_t mega = 1024L*1024L;
-  // maximum core size in bytes
-  //  rlim_t rlimit_core = coresize, rlimit_cpu = 3600, rlimit_as = 2*1024*mega*/;
-  rlimit r, m;
+  bool External::SetChildLimits() {
+    //  rlim_t mega = 1024L*1024L;
+    // maximum core size in bytes
+    //  rlim_t rlimit_core = coresize, rlimit_cpu = 3600, rlimit_as = 2*1024*mega*/;
+    rlimit r, m;
   
-  char tmp[300];
-  string msg = string("External::SetChildLimits: Restricted child process to ");
+    char tmp[300];
+    string msg = string("External::SetChildLimits: Restricted child process to ");
 
-  errno = 0;
+    errno = 0;
 
-  if (rlimit_core != RLIM_INFINITY) {
-    r.rlim_cur = r.rlim_max = rlimit_core;
-    if (setrlimit(RLIMIT_CORE, &r)) {
-      int err = errno;
-      getrlimit(RLIMIT_CORE, &m);
-      sprintf(tmp, "%s %ld > %ld", strerror(err), r.rlim_cur, m.rlim_max);
-      cerr << "External::SetChildLimits() failed with RLIMIT_CORE " << tmp << endl;
-      return false;
+    if (rlimit_core != RLIM_INFINITY) {
+      r.rlim_cur = r.rlim_max = rlimit_core;
+      if (setrlimit(RLIMIT_CORE, &r)) {
+	int err = errno;
+	getrlimit(RLIMIT_CORE, &m);
+	sprintf(tmp, "%s %ld > %ld", strerror(err), r.rlim_cur, m.rlim_max);
+	cerr << TimeStamp() << "External::SetChildLimits() failed with RLIMIT_CORE " << tmp << endl;
+	return false;
+      }
+      if (FrameVerbose()) {
+	sprintf(tmp,"core=%lu bytes",rlimit_core);
+	cout << TimeStamp() << msg << tmp << endl;
+      }
     }
-    if (FrameVerbose()) {
-      sprintf(tmp,"core=%lu bytes",rlimit_core);
-      cout << msg << tmp << endl;
-    }
-  }
 
-  if (rlimit_cpu != RLIM_INFINITY) {
-    r.rlim_cur = r.rlim_max = rlimit_cpu;
-    if (setrlimit(RLIMIT_CPU, &r)) {
-      int err = errno;
-      getrlimit(RLIMIT_CPU, &m);
-      sprintf(tmp, "%s %ld > %ld", strerror(err), r.rlim_cur, m.rlim_max);
-      cerr << "External::SetChildLimits() failed with RLIMIT_CPU " << tmp << endl;
-      return false;
+    if (rlimit_cpu != RLIM_INFINITY) {
+      r.rlim_cur = r.rlim_max = rlimit_cpu;
+      if (setrlimit(RLIMIT_CPU, &r)) {
+	int err = errno;
+	getrlimit(RLIMIT_CPU, &m);
+	sprintf(tmp, "%s %ld > %ld", strerror(err), r.rlim_cur, m.rlim_max);
+	cerr << TimeStamp() << "External::SetChildLimits() failed with RLIMIT_CPU " << tmp << endl;
+	return false;
+      }
+      if (FrameVerbose()) {
+	sprintf(tmp,"cpu=%lu s",rlimit_cpu);
+	cout << TimeStamp() << msg << tmp << endl;
+      }
     }
-    if (FrameVerbose()) {
-      sprintf(tmp,"cpu=%lu s",rlimit_cpu);
-      cout << msg << tmp << endl;
-    }
-  }
 
   
-  if (rlimit_as != RLIM_INFINITY) {
-    r.rlim_cur = r.rlim_max = rlimit_as;
-    if (setrlimit(RLIMIT_AS, &r)) {
-      int err = errno;
-      getrlimit(RLIMIT_AS, &m);
-      sprintf(tmp, "%s %ld > %ld", strerror(err), r.rlim_cur, m.rlim_max);
-      cerr << "External::SetChildLimits() failed with RLIMIT_AS " <<  tmp << endl;
-      return false;
+    if (rlimit_as != RLIM_INFINITY) {
+      r.rlim_cur = r.rlim_max = rlimit_as;
+      if (setrlimit(RLIMIT_AS, &r)) {
+	int err = errno;
+	getrlimit(RLIMIT_AS, &m);
+	sprintf(tmp, "%s %ld > %ld", strerror(err), r.rlim_cur, m.rlim_max);
+	cerr << TimeStamp() << "External::SetChildLimits() failed with RLIMIT_AS " <<  tmp << endl;
+	return false;
+      }
+      if (FrameVerbose()) {
+	sprintf(tmp,"as=%lu bytes",rlimit_as);
+	cout << TimeStamp() << msg << tmp << endl;
+      }
     }
-    if (FrameVerbose()) {
-      sprintf(tmp,"as=%lu bytes",rlimit_as);
-      cout << msg << tmp << endl;
-    }
+
+    /*  if (FrameVerbose()) {
+	sprintf(tmp, "core = %lu bytes, cpu = %lu s, as = %lu bytes",
+	rlimit_core, rlimit_cpu, rlimit_as);
+	cout << TimeStamp() << "External::SetChildLimits: Restricted child process to " << tmp 
+	<< endl; 
+	}*/
+
+    return true;
   }
 
-  /*  if (FrameVerbose()) {
-    sprintf(tmp, "core = %lu bytes, cpu = %lu s, as = %lu bytes",
-            rlimit_core, rlimit_cpu, rlimit_as);
-    cout << "External::SetChildLimits: Restricted child process to " << tmp 
-         << endl; 
-         }*/
+  //===========================================================================
 
-  return true;
-}
+  int External::FileSize(const string& filename) const {
+    int size = -1;
+    struct stat buf;
 
-//=============================================================================
+    if (stat(filename.c_str(),&buf) == 0) 
+      size = (int)buf.st_size;
 
-int External::FileSize(string filename) const {
-  int size = -1;
-  struct stat buf;
-
-  if (stat(filename.c_str(),&buf) == 0) 
-    size = (int)buf.st_size;
-
-  if (FrameVerbose())
-    cout << "External::FileSize() returns " << size << " bytes" << endl;
-
-  return size;
-}
-
-//=============================================================================
-
-bool External::WaitForFile(string filename) const {
-  if (FrameVerbose())
-    cout << "External::WaitForFile: ensuring file '" << filename << "'."<<endl;
-  int max_wait=10;
-  for (int i=0; i<max_wait; i++) {
-    if (FileSize(filename) > 0)
-      return true;
     if (FrameVerbose())
-      cout << "External::WaitForFile: Waiting...[" << filename  << "]" << endl;
-    sleep(1);
+      cout << TimeStamp() << "External::FileSize() returns " << size << " bytes" << endl;
+
+    return size;
   }
-  return false;
-}
+
+  //===========================================================================
+
+  bool External::WaitForFile(const string& filename) const {
+    if (FrameVerbose())
+      cout << TimeStamp() << "External::WaitForFile: ensuring file '" << filename << "'."<<endl;
+    int max_wait=10;
+    for (int i=0; i<max_wait; i++) {
+      if (FileSize(filename) > 0)
+	return true;
+      if (FrameVerbose())
+	cout << TimeStamp() << "External::WaitForFile: Waiting...[" << filename  << "]" << endl;
+      sleep(1);
+    }
+    return false;
+  }
+
 } // namespace picsom
 

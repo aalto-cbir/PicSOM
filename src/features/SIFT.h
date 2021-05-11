@@ -8,7 +8,7 @@
    SIFT, which is a class that calculates the mel-sift feature
    using an external command
 
-   \author Mats Sjöberg <mats.sjoberg@hut.fi>
+   \author Mats Sjoberg <mats.sjoberg@hut.fi>
    $Revision: 1.13 $
    $Date: 2009/09/08 08:30:47 $
    \bug May be some out there hiding.

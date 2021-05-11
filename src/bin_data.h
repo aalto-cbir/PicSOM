@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: bin_data.h,v 2.30 2019/09/20 12:49:25 jormal Exp $
+// -*- C++ -*-  $Id: bin_data.h,v 2.31 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -192,7 +192,7 @@ namespace picsom {
     ~bin_data();
 
     ///
-    const header& get_header_real() const throw(logic_error) {
+    const header& get_header_real() const /*throw(logic_error)*/ {
       string msg = "bin_data::get_header_real("+_filename+") : ";
       if (!is_ok())
 	throw logic_error(msg+"bin_data not opened or too small");
@@ -200,7 +200,7 @@ namespace picsom {
     }
 
     ///
-    const header& get_header_copy() const throw(logic_error) {
+    const header& get_header_copy() const /*throw(logic_error)*/ {
       string msg = "bin_data::get_header_copy("+_filename+") : ";
       if (!is_ok())
 	throw logic_error(msg+"bin_data not opened or too small");
@@ -277,26 +277,26 @@ namespace picsom {
 
     ///
     bool open(const string&, bool, float, header::format_type,
-	      size_t, size_t) throw(string);
+	      size_t, size_t) /*throw(string)*/;
 
     ///
     bool open_inner(const string&, bool, float, header::format_type,
-		    size_t, size_t) throw(string);
+		    size_t, size_t) /*throw(string)*/;
 
     ///
-    bool resize(size_t, unsigned char = 255) throw(string);
+    bool resize(size_t, unsigned char = 255) /*throw(string)*/;
 
     ///
-    bool resize_common(size_t, unsigned char = 255) throw(string);
+    bool resize_common(size_t, unsigned char = 255) /*throw(string)*/;
 
     ///
-    bool resize_common_inner(size_t, unsigned char = 255) throw(string);
+    bool resize_common_inner(size_t, unsigned char = 255) /*throw(string)*/;
 
     ///
     bool flush();
 
     ///
-    bool close(bool) throw(string);
+    bool close(bool) /*throw(string)*/;
 
     ///
     size_t vdim() const {
@@ -381,7 +381,7 @@ namespace picsom {
     }
     
     ///
-    inline size_t& st(size_t p, size_t i) throw(logic_error) {
+    inline size_t& st(size_t p, size_t i) /*throw(logic_error)*/ {
       size_t a = p + 8*i;
       if (!is_valid_8(a))
 	throw logic_error("bin_data::st()");
@@ -390,7 +390,7 @@ namespace picsom {
     }
     
     ///
-    inline const size_t& st(size_t p, size_t i) const throw(logic_error) {
+    inline const size_t& st(size_t p, size_t i) const /*throw(logic_error)*/ {
       return ((bin_data*)this)->st(p, i);
     }
 

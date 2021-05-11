@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Index.C,v 2.92 2019/04/04 11:44:00 jormal Exp $
+// -*- C++ -*-  $Id: Index.C,v 2.93 2020/01/01 20:57:32 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -17,7 +17,7 @@
 
 namespace picsom {
   static const string Index_C_vcid =
-    "@(#)$Id: Index.C,v 2.92 2019/04/04 11:44:00 jormal Exp $";
+    "@(#)$Id: Index.C,v 2.93 2020/01/01 20:57:32 jormal Exp $";
 
   ///
   Index *Index::list_of_indices;
@@ -508,8 +508,8 @@ namespace picsom {
 	       +(threads?" in threads":""));
     else if (incore.size())
       WriteLog("Extracting "+Name()+" features for "+ToStr(incore.size())
-	       +" INCORE objects starting <"+incore.front().first.first
-	       +","+incore.front().first.second+">"
+	       +" INCORE objects starting <"+incore.front().type
+	       +","+incore.front().ident+">"
 	       +(threads?" in threads":""));
     else if (is_concepts && idxv.size())
       WriteLog("Extracting "+Name()+" CONCEPT features for "+
@@ -602,7 +602,7 @@ namespace picsom {
 
 	} else {
 	  if (incore.size()) {
-	    incore_i->second = i.first;
+	    incore_i->vec = i.first;
 	    incore_i++;
 
 	  } else {

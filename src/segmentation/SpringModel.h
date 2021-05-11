@@ -135,7 +135,7 @@ protected:
   optimization_t optimization;
 
   ///
-  state_t state;  // voi olla että tarvitaan vain funktioissa
+  state_t state;  // voi olla etta tarvitaan vain funktioissa
 
   ///
   vector<spring_t> spring; // list<> ? nyt spring.size() == 6

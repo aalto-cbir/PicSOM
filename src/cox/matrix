@@ -1,11 +1,11 @@
-// -*- C++ -*-  $Id: matrix,v 1.9 2016/04/27 07:08:27 jorma Exp $
+// -*- C++ -*-  $Id: matrix,v 1.10 2021/05/11 14:47:56 jormal Exp $
 // 
 // Copyright 1998-2016 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
 
-// $Id: matrix,v 1.9 2016/04/27 07:08:27 jorma Exp $	
+// $Id: matrix,v 1.10 2021/05/11 14:47:56 jormal Exp $	
 
 #ifndef _cox_matrix_
 #define _cox_matrix_
@@ -112,15 +112,13 @@ namespace cox {
       _d = dense_t(v.begin(), v.end());
     }
     
-    /*
     ///
-    matrix(const vector<vector<T> >& m) throw(string) {
-      for (int i=1; i<m.size(); i++)
-	if (m[i].size()!=m[0].size())
-	  throw("SDFGHJK");
-      e = m;
-    }
-    */
+    // matrix(const vector<vector<T> >& m) /*throw(string)*/ {
+    //   for (int i=1; i<m.size(); i++)
+    // 	if (m[i].size()!=m[0].size())
+    // 	  throw("SDFGHJK");
+    //   e = m;
+    // }
 
     ///
     void resize(size_t r, size_t c) { *this = matrix(r, c, _type); }
@@ -179,7 +177,7 @@ namespace cox {
 
     ///
     template <class I>
-    void insert_column(size_t c, I i, I e) throw (string) {
+    void insert_column(size_t c, I i, I e) /*throw(string)*/ {
       if (c>_c)
 	throw _h()+"insert_column() index not ok";
 
@@ -199,36 +197,36 @@ namespace cox {
 
     ///
     template <class V>
-    void insert_column(size_t c, vector<V>& v) throw (string) {
+    void insert_column(size_t c, vector<V>& v) /*throw(string)*/ {
       insert_column(c, v.begin(), v.end());
     }
 
     ///
     template <class I>
-    void append_column(I i, I e) throw (string) {
+    void append_column(I i, I e) /*throw(string)*/ {
       insert_column(_c, i, e);
     }
 
     ///
     template <class V>
-    void append_column(const vector<V>& v) throw (string) {
+    void append_column(const vector<V>& v) /*throw(string)*/ {
       append_column(v.begin(), v.end());
     }
 
     ///
     template <class I>
-    void prepend_column(I i, I e) throw (string) {
+    void prepend_column(I i, I e) /*throw(string)*/ {
       insert_column(0, i, e);
     }
 
     ///
     template <class V>
-    void prepend_column(const vector<V>& v) throw (string) {
+    void prepend_column(const vector<V>& v) /*throw(string)*/ {
       append_column(v.begin(), v.end());
     }
 
     ///
-    vector<T> column(size_t c) throw (string) {
+    vector<T> column(size_t c) /*throw(string)*/ {
       if (!column_ok(c))
 	throw _h()+"column() index not ok";
 
@@ -240,7 +238,7 @@ namespace cox {
     }
 
     ///
-    void set_column(size_t c, const vector<T>& v) throw (string) {
+    void set_column(size_t c, const vector<T>& v) /*throw(string)*/ {
       if (!column_ok(c))
 	throw _h()+"set_column() index not ok";
       if (v.size()!=_r)
@@ -251,7 +249,7 @@ namespace cox {
     }
 
     ///
-    void remove_column(size_t i) throw (string) {
+    void remove_column(size_t i) /*throw(string)*/ {
       if (!column_ok(i))
 	throw _h()+"remove_column() index not ok";
       if (_c==1)
@@ -265,7 +263,7 @@ namespace cox {
 
     ///
     template <class I>
-    void insert_row(size_t r, I i, I e) throw (string) {
+    void insert_row(size_t r, I i, I e) /*throw(string)*/ {
       if (r>_r)
 	throw _h()+"insert_row() index not ok";
 
@@ -282,37 +280,37 @@ namespace cox {
 
     ///
     template <class V>
-    void insert_row(size_t c, vector<V>& v) throw (string) {
+    void insert_row(size_t c, vector<V>& v) /*throw(string)*/ {
       insert_row(c, v.begin(), v.end());
     }
 
     ///
     template <class I>
-    void append_row(I i, I e) throw (string) {
+    void append_row(I i, I e) /*throw(string)*/ {
       insert_row(_r, i, e);
     }
 
     ///
     template <class V>
-    void append_row(const vector<V>& v) throw (string) {
+    void append_row(const vector<V>& v) /*throw(string)*/ {
       append_row(v.begin(), v.end());
     }
 
     ///
     template <class I>
-    void prepend_row(I i, I e) throw (string) {
+    void prepend_row(I i, I e) /*throw(string)*/ {
       insert_row(0, i, e);
     }
 
     ///
     template <class V>
-    void prepend_row(const vector<V>& v) throw (string) {
+    void prepend_row(const vector<V>& v) /*throw(string)*/ {
       // append_row(v.begin(), v.end()); obs! until 2015-10-20...
       prepend_row(v.begin(), v.end());
     }
 
      ///
-    vector<T> row(size_t r) throw (string) {
+    vector<T> row(size_t r) /*throw(string)*/ {
       if (!row_ok(r))
 	throw _h()+"row() index not ok";
 
@@ -325,7 +323,7 @@ namespace cox {
 
 
     ///
-    void set_row(size_t r, const vector<T>& v) throw (string) {
+    void set_row(size_t r, const vector<T>& v) /*throw(string)*/ {
       if (!row_ok(r))
 	throw _h()+"set_row() index not ok";
       if (v.size()!=_c)
@@ -336,7 +334,7 @@ namespace cox {
     }
 
     ///
-    void remove_row(size_t r) throw (string) {
+    void remove_row(size_t r) /*throw(string)*/ {
       // throw _h()+"remove_row() NOT IMPLEMENTED yet";
       // checks ?
       if (r>=_r)
@@ -356,7 +354,7 @@ namespace cox {
     }
 
     ///
-    void swap_rows(size_t i, size_t j) throw (string) {
+    void swap_rows(size_t i, size_t j) /*throw(string)*/ {
       if (!row_ok(i) || !row_ok(j))
 	throw _h()+"swap_rows() index not ok";
 
@@ -368,7 +366,7 @@ namespace cox {
     }
     
     ///
-    void swap_columns(size_t i, size_t j) throw (string) {
+    void swap_columns(size_t i, size_t j) /*throw(string)*/ {
       if (!column_ok(i) || !column_ok(j))
 	throw _h()+"swap_columns() index not ok";
 
@@ -380,7 +378,7 @@ namespace cox {
     }
     
     ///
-    void swap(size_t i, size_t j) throw (string) {
+    void swap(size_t i, size_t j) /*throw(string)*/ {
       swap_rows(i, j);
       swap_columns(i, j);
     }
@@ -406,7 +404,7 @@ namespace cox {
     /// 
     template <class VA, class VB>
     static T dot_product(const vector<VA>& a, const vector<VB>& b) 
-      throw(string) {
+      /*throw(string)*/ {
 
       if (a.size()!=b.size())
 	throw _h()+"dot_product(const vector<VA>&, const vector<VB>&)"
@@ -431,7 +429,7 @@ namespace cox {
     /// 
     template <class VA, class VB>
     static matrix<T> outer_product(const vector<VA>& a, const vector<VB>& b) 
-      throw(string) {
+      /*throw(string)*/ {
 
       if (!a.size() || !b.size())
 	throw _h()+"outer_product(const vector<VA>&, const vector<VB>&)"
@@ -447,13 +445,13 @@ namespace cox {
 
     /// 
     template <class VA>
-    static matrix<T> self_outer_product(const vector<VA>& a) throw(string) {
+    static matrix<T> self_outer_product(const vector<VA>& a) /*throw(string)*/ {
       return outer_product(a, a);
     }
 
     /// 
     template <class VA>
-    matrix<T>& add_outer_product(const vector<VA>& a) throw(string) {
+    matrix<T>& add_outer_product(const vector<VA>& a) /*throw(string)*/ {
       if (a.size()!=_c)
 	throw _h()+"add_outer_product() size mismatch";
 
@@ -474,7 +472,7 @@ namespace cox {
 
     /// 
     template <class M> 
-    matrix operator*(const matrix<M>& m) const throw(string) {
+    matrix operator*(const matrix<M>& m) const /*throw(string)*/ {
       if (_c!=m._r)
 	throw _h()+"operator*(const matrix<M>&) size mismatch";
 
@@ -494,13 +492,13 @@ namespace cox {
 
     /// 
     template <class V> 
-    vector<T> operator*(const vector<V>& v) const throw(string) {
+    vector<T> operator*(const vector<V>& v) const /*throw(string)*/ {
       return left_multiply(v);
     }
  
     /// 
     template <class V> 
-    vector<T> left_multiply(const vector<V>& v) const throw(string) {
+    vector<T> left_multiply(const vector<V>& v) const /*throw(string)*/ {
       if (_c!=v.size()) {
 	stringstream ss;
 	ss << _c << "!=" << v.size();
@@ -518,7 +516,7 @@ namespace cox {
 
     /// 
     template <class V> 
-    vector<T> left_trans_multiply(const vector<V>& v) const throw(string) {
+    vector<T> left_trans_multiply(const vector<V>& v) const /*throw(string)*/ {
       if (_r!=v.size())
 	throw _h()+"left_trans_multiply(const vector<V>&) size mismatch";
 
@@ -532,7 +530,7 @@ namespace cox {
 
     /// 
     template <class V> 
-    matrix<T> operator+(const matrix<V>& m) const throw(string) {
+    matrix<T> operator+(const matrix<V>& m) const /*throw(string)*/ {
       if (!sizes_match(m))
 	throw _h()+"operator+(const matrix<V>&) size mismatch";
 
@@ -544,7 +542,7 @@ namespace cox {
 
     /// 
     template <class V> 
-    matrix<T> operator-(const matrix<V>& m) const throw(string) {
+    matrix<T> operator-(const matrix<V>& m) const /*throw(string)*/ {
       if (!sizes_match(m))
 	throw _h()+"operator-(const matrix<V>&) size mismatch";
 
@@ -556,7 +554,7 @@ namespace cox {
 
     /// 
     template <class MT> 
-    matrix<T> operator+(MT m) const throw(string) {
+    matrix<T> operator+(MT m) const /*throw(string)*/ {
       matrix<T> r(*this);
       for (typename dense_t::iterator i = r._d.begin(); i<r._d.end(); i++)
 	*i += m;
@@ -566,7 +564,7 @@ namespace cox {
 
     /// 
     template <class MT> 
-    matrix<T> operator-(MT m) const throw(string) {
+    matrix<T> operator-(MT m) const /*throw(string)*/ {
       matrix<T> r(*this);
       for (typename dense_t::iterator i = r._d.begin(); i<r._d.end(); i++)
 	*i -= m;
@@ -576,7 +574,7 @@ namespace cox {
 
     /// 
     template <class MT> 
-    matrix<T> operator*(MT m) const throw(string) {
+    matrix<T> operator*(MT m) const /*throw(string)*/ {
       matrix<T> r(*this);
       for (typename dense_t::iterator i = r._d.begin(); i<r._d.end(); i++)
 	*i *= m;
@@ -586,7 +584,7 @@ namespace cox {
 
     /// 
     template <class MT> 
-    matrix<T> operator/(MT m) const throw(string) {
+    matrix<T> operator/(MT m) const /*throw(string)*/ {
       matrix<T> r(*this);
       for (typename dense_t::iterator i = r._d.begin(); i<r._d.end(); i++)
 	*i /= m;
@@ -596,7 +594,7 @@ namespace cox {
 
     /// 
     template <class MT> 
-    matrix<T>& operator+=(const MT& m) throw(string) {
+    matrix<T>& operator+=(const MT& m) /*throw(string)*/ {
       /// is this still slow...
       *this = operator+(m);
       return *this;
@@ -604,7 +602,7 @@ namespace cox {
 
     /// 
     template <class MT> 
-    matrix<T>& operator-=(const MT& m) throw(string) {
+    matrix<T>& operator-=(const MT& m) /*throw(string)*/ {
       /// is this still slow...
       *this = operator-(m);
       return *this;
@@ -612,7 +610,7 @@ namespace cox {
 
     /// 
     template <class MT> 
-    matrix<T>& operator*=(const MT& m) throw(string) {
+    matrix<T>& operator*=(const MT& m) /*throw(string)*/ {
       /// is this still slow...
       *this = operator*(m);
       return *this;
@@ -620,7 +618,7 @@ namespace cox {
 
     /// 
     template <class MT> 
-    matrix<T>& operator/=(const MT& m) throw(string) {
+    matrix<T>& operator/=(const MT& m) /*throw(string)*/ {
       /// is this still slow...
       *this = operator/(m);
       return *this;
@@ -628,7 +626,7 @@ namespace cox {
 
     /// 
     template <class MT> 
-    T element_product_sum(const matrix<MT>& m) throw(string) {
+    T element_product_sum(const matrix<MT>& m) /*throw(string)*/ {
       if (_c!=m._c || _r!=m._r)
 	throw _h()+"element_product_sum(const matrix<M>&) size mismatch";
 
@@ -641,7 +639,7 @@ namespace cox {
     }
 
     ///
-    matrix inverse() const throw(string) {
+    matrix inverse() const /*throw(string)*/ {
       if (!is_square())
 	throw _h()+"inverse() not square";
 
@@ -685,7 +683,7 @@ namespace cox {
     }
 
     ///
-    matrix pseudo_inverse() const throw(string) {
+    matrix pseudo_inverse() const /*throw(string)*/ {
       if (is_square())
 	return inverse();
 
@@ -704,7 +702,7 @@ namespace cox {
 
     /// 
     pair<list<vector<T> >, vector<T> > eigenvectors(size_t n_vec = 0) const
-      throw(string) {
+      /*throw(string)*/ {
       if (!n_vec)
 	n_vec = columns();
 
@@ -759,7 +757,7 @@ namespace cox {
     ///
     pair<list<vector<double> >, vector<double> > 
     generalized_eigenvectors(const matrix<double>& B, size_t n_vec = 0) const
-      throw(string) {
+      /*throw(string)*/ {
       cout << "enter generilized_eigenvectors()" << endl;
       if (!n_vec)
 	n_vec = columns();
@@ -813,7 +811,7 @@ namespace cox {
 
      /*
     ///
-    vector<T> left_trans_multiply(const vector<T>& v) const throw(string) {
+    vector<T> left_trans_multiply(const vector<T>& v) const {
       if (v.size()!=rows())
 	throw _h()+"left_trans_multiply() size mismatch";
 
@@ -827,7 +825,7 @@ namespace cox {
     }
 
     ///
-    vector<T> left_multiply(const vector<T>& v) const throw(string) {
+    vector<T> left_multiply(const vector<T>& v) const {
       if (v.size()!=columns())
 	throw _h()+"left_multiply() size mismatch";
 

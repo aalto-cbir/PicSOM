@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: segmentfile.C,v 1.181 2019/02/04 09:10:34 jormal Exp $
+// -*- C++ -*-  $Id: segmentfile.C,v 1.182 2021/05/11 14:48:12 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -35,7 +35,7 @@ namespace picsom {
   ///////////////////////////////////////////////////////////////////////////
 
   rectangularRegion::rectangularRegion(const string& s,
-				       const segmentfile *seg) throw(string) {
+				       const segmentfile *seg) /*throw(string)*/ {
     const string msg = string("rectangularRegion(")+s+")";
     is_set = false;
 
@@ -61,7 +61,7 @@ namespace picsom {
   //===========================================================================
 
   bool rectangularRegion::SolvePoint(const string& s,
-				     const segmentfile *seg) throw(string) {
+				     const segmentfile *seg) /*throw(string)*/ {
     string msg = "SolvePoint() : ";
     const char *p = s.c_str();
 
@@ -142,7 +142,7 @@ namespace picsom {
   //===========================================================================
 
   bool rectangularRegion::SolveBox(const string& s,
-				   const segmentfile *seg) throw(string) {
+				   const segmentfile *seg) /*throw(string)*/ {
     string msg = "SolveBox() : ";
     const char *p = s.c_str();
     
@@ -2192,7 +2192,7 @@ namespace picsom {
 
   const string& segmentfile::impl_version() {
     static string v =
-      "$Id: segmentfile.C,v 1.181 2019/02/04 09:10:34 jormal Exp $";
+      "$Id: segmentfile.C,v 1.182 2021/05/11 14:48:12 jormal Exp $";
     return v;
   }
   

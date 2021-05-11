@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: videofile.h,v 1.30 2018/06/21 11:36:01 jormal Exp $
+// -*- C++ -*-  $Id: videofile.h,v 1.31 2020/03/30 19:40:42 jormal Exp $
 // 
 // Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -15,8 +15,8 @@
   (http://ffmpeg.mplayerhq.hu/).
 
   \author Mats Sjoberg <mats.sjoberg@tkk.fi>
-  $Revision: 1.30 $
-  $Date: 2018/06/21 11:36:01 $
+  $Revision: 1.31 $
+  $Date: 2020/03/30 19:40:42 $
   \bug May be some out there hiding.
   \warning Be warned against all odds!
   \todo So many things, so little time...
@@ -31,6 +31,7 @@
 #include <iostream>
 #include <math.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 #define VF_MENCODER 0
 #define VF_FFMPEG   1
@@ -58,7 +59,7 @@ namespace picsom {
     /// Returns version of videofile class ie. version of videofile.h.
     static const string& version() {
       static string v =
-	"$Id: videofile.h,v 1.30 2018/06/21 11:36:01 jormal Exp $";
+	"$Id: videofile.h,v 1.31 2020/03/30 19:40:42 jormal Exp $";
       return v;
     }
 
@@ -154,12 +155,6 @@ namespace picsom {
     */
     bool has_video() { return _has_video; }
 
-    ///
-    static void local_bin(const string& p) { _local_bin = p; }
-
-    ///
-    static const string& local_bin() { return _local_bin; }
-
     /// Returns current debug mode.
     static int debug() { return _debug; }
 
@@ -178,6 +173,19 @@ namespace picsom {
     /// Sets temporary file directory, doesn't crete it though;
     static void tmp_dir(const string& d) { _tmp_dir = d; }
 
+    /// Re-encodes to given filename with given spec.
+    bool reencode(const string&, const string&) const;
+
+    ///
+    static void prepend_bin_path(const string& d) {
+      bin_path.insert(bin_path.begin(), d);
+    }
+    
+    ///
+    static void append_bin_path(const string& d) {
+      bin_path.push_back(d);
+    }
+    
   protected:
     ///
     string frame_outname(const string f_tempname, int f_num=-1);
@@ -189,7 +197,7 @@ namespace picsom {
     bool identify_mplayer_identify(const string& filename);
 
     ///
-    bool identify_avprobe(const string& filename);
+    bool identify_avprobe(const string& file, const string& prog);
 
     ///
     static const string& avconvname();
@@ -232,6 +240,12 @@ namespace picsom {
     ///
     bool close_mplayer();
 
+    ///
+    static bool exists(const string& f) {
+      struct stat tmp;
+      return stat(f.c_str(), &tmp)==0;
+    }
+    
   private:
     /// name of video file
     string _filename;
@@ -254,9 +268,6 @@ namespace picsom {
     ///
     FILE *mplayer;
 
-    ///
-    static string _local_bin;
-
     /// debug flag
     static int _debug;
 
@@ -271,6 +282,9 @@ namespace picsom {
 
     ///
     string _tempdir;
+
+    ///
+    static list<string> bin_path;
 
   }; // class videofile
 } // namespace picsom

@@ -5,12 +5,13 @@
 ## picsom@cis.hut.fi
 ## 
 
-# @(#)$Id: Makefile.am,v 1.3 2008/10/31 11:55:33 jorma Exp $
+# @(#)$Id: Makefile.am,v 1.4 2020/04/02 10:44:02 jormal Exp $
 
 AM_MAKEINFOFLAGS = --no-split
 TEXI2DVI = texi2dvi --batch
 TEXI2HTML = texi2html
 TEXI2HTML_FLAGS = -split_chapter
+ACLOCAL_AMFLAGS = -I m4
 
 info_TEXINFOS = picsom.texi databases.texi features.texi
 

@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: CbirAlgorithm.h,v 2.59 2015/04/20 13:35:41 jorma Exp $
+// -*- C++ -*-  $Id: CbirAlgorithm.h,v 2.60 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science and Technology
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -20,7 +20,7 @@ using namespace std;
 namespace picsom {
   ///
   static const string CbirAlgorithm_h_vcid =
-    "@(#)$Id: CbirAlgorithm.h,v 2.59 2015/04/20 13:35:41 jorma Exp $";
+    "@(#)$Id: CbirAlgorithm.h,v 2.60 2021/05/11 14:46:57 jormal Exp $";
 
   /**
      Abstract base class for CBIR algorithms, one instance per each database.
@@ -299,7 +299,7 @@ namespace picsom {
 	\return pointer to the "factory" instance of the class.
     */
     static const CbirAlgorithm *FindAlgorithm(const string& n, string& a)
-      throw(string) {
+      /*throw(string)*/ {
       a = "";
       const CbirAlgorithm *found = NULL;
       for (const CbirAlgorithm *p = list_of_algorithms; p;
@@ -325,7 +325,7 @@ namespace picsom {
 	\return pointer to created CBIR algorithm instance.
     */
     static CbirAlgorithm *FindAndCreateAlgorithm(DataBase *db,
-						 const string& n) throw (string);
+						 const string& n) /*throw(string)*/;
 
     /// Combines values from subobject back to their parent.
     bool RelevanceUp(CbirAlgorithm::QueryData*,

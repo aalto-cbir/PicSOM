@@ -2,11 +2,17 @@
 
 mkdir -p $HOME/picsom/databases
 
-rsync -va databases/caffe $HOME/picsom/databases/
+if [[ ! -e $HOME/picsom/databases/caffe ]]; then
+    rsync -va databases/caffe $HOME/picsom/databases/
+fi
 
 for rnm in 50 101 152; do
   cd $HOME/picsom/databases/caffe/caffe/models/ResNet-$rnm
-  wget https://www.deepdetect.com/models/resnet/ResNet-$rnm-deploy.prototxt
-  wget https://www.deepdetect.com/models/resnet/ResNet-$rnm-model.caffemodel
+  if [[ ! -e ResNet-$rnm-deploy.prototxt ]]; then
+      wget https://www.deepdetect.com/models/resnet/ResNet-$rnm-deploy.prototxt
+  fi
+  if [[ ! -e ResNet-$rnm-model.caffemodel ]]; then
+      wget https://www.deepdetect.com/models/resnet/ResNet-$rnm-model.caffemodel
+  fi
 done
 

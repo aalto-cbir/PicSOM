@@ -192,8 +192,8 @@ void problem::Clone(problem& dest)
 
 void problem::Load(const char* filename,const NUMBER bias,const int maxdim)
 {	// revised from the LIBLINEAR/LIBSVM read_problem() function
-	timeb TimingMilliSeconds;
-	ftime(&TimingMilliSeconds);
+	//deprecated timeb TimingMilliSeconds;
+	//deprecated ftime(&TimingMilliSeconds);
 	Clear();
 	
 	FILE *fp = fopen(filename,"r");
@@ -287,9 +287,11 @@ void problem::Load(const char* filename,const NUMBER bias,const int maxdim)
 	free(line);
 	line = NULL;
 	
-	struct timeb now;
-    ftime(&now);
-    std::cout<<"Dataset loaded in "<<int( (now.time-TimingMilliSeconds.time)*1000+(now.millitm-TimingMilliSeconds.millitm) )<<" msec."<<std::endl;
+    //deprecated struct timeb now;
+    //deprecated ftime(&now);
+    std::cout<<"Dataset loaded in "
+      // <<int( (now.time-TimingMilliSeconds.time)*1000+(now.millitm-TimingMilliSeconds.millitm) )
+	     <<" msec."<<std::endl;
 }
 
 void problem::GroupClasses(int** start_ret,int** count_ret,int* perm)
@@ -372,8 +374,8 @@ int problem::FindLabel(const int newl) const
 
 void problem::Train(model& model_,const NUMBER C,const NUMBER p)
 {
-	timeb TimingMilliSeconds;
-	ftime(&TimingMilliSeconds);
+	//deprecated timeb TimingMilliSeconds;
+	//deprecated ftime(&TimingMilliSeconds);
 	
 	int *start = NULL;
 	int *count = NULL;
@@ -479,9 +481,11 @@ void problem::Train(model& model_,const NUMBER C,const NUMBER p)
 	delete[] fvalues;
 	delete[] logxplus;
 	
-	struct timeb now;
-    ftime(&now);
-    std::cout<<"Finished in "<<int( (now.time-TimingMilliSeconds.time)*1000+(now.millitm-TimingMilliSeconds.millitm) )<<" msec."<<std::endl;
+    //deprecated struct timeb now;
+    //deprecated ftime(&now);
+    std::cout<<"Finished in "
+      //<<int( (now.time-TimingMilliSeconds.time)*1000+(now.millitm-TimingMilliSeconds.millitm) )
+	     <<" msec."<<std::endl;
 }
 
   void problem::Solve_l2r_l1l2_svc(NUMBER* w,NUMBER C,const NUMBER /*p*/,const int solver_type,const NUMBER* fvalues,const NUMBER* logxplus) const

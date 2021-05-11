@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: videofile.C,v 1.52 2019/11/18 07:57:04 jormal Exp $
+// -*- C++ -*-  $Id: videofile.C,v 1.54 2020/03/30 19:40:42 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -11,16 +11,14 @@
 #include <sstream>
 #include <fstream>
 #include <errno.h>
-#include <sys/stat.h>
 
 namespace picsom {
   using namespace std;
 
-  string videofile::_local_bin = "/usr/local/bin";
-  int    videofile::_debug = 0;
-  bool   videofile::_keep_tmp_files = false;
-  string videofile::_tmp_dir;
-
+  int          videofile::_debug = 0;
+  bool         videofile::_keep_tmp_files = false;
+  string       videofile::_tmp_dir;
+  list<string> videofile::bin_path = { "/usr/bin" };
   ///--------------------------------------------------------------------------
   
   videofile::videofile(const string& filename, bool writing,
@@ -148,30 +146,29 @@ namespace picsom {
 
   ///--------------------------------------------------------------------------
 
-  static string avprobe_cmd;
-
   bool videofile::identify(const string& filename) {
     string fname = filename.empty() ? _filename : filename;
 
-    string probe = "/usr/bin/ffprobe";
-    struct stat tmp;
-    if (stat(probe.c_str(), &tmp)) {
-      probe = local_bin()+"/ffprobe";
-
-      if (stat(probe.c_str(), &tmp)) {
-    	probe = local_bin()+"/avprobe";
-
-    	if (stat(probe.c_str(), &tmp))
-    	  return identify_mplayer_identify(fname);
+    list<string> prog { "ffprobe", "avprobe" };
+    string probe;
+    for (const auto& p : prog) {
+      for (const auto& d : bin_path) {
+	string f = d+"/"+p;
+	if (exists(f)) {
+	  probe = f;
+	  break;
+	}
       }
+      if (probe!="")
+	break;
     }
 
-    if (avprobe_cmd=="")
-      avprobe_cmd = probe;
+    if (probe=="")
+      return identify_mplayer_identify(fname);
 
     bool r = false;
     try {
-      r = identify_avprobe(fname);
+      r = identify_avprobe(fname, probe);
     } catch (const string& err) {
       cerr << "identify_avprobe() failed : " << err << endl;
     }
@@ -198,13 +195,14 @@ namespace picsom {
     return ss.str();
   }
   
-  bool videofile::identify_avprobe(const string& fname) {
+  bool videofile::identify_avprobe(const string& fname,
+				   const string& prog) {
     const string msg = "identify_avprobe(): ";
   
     //bool debug = false;
 
     const string tempname = videofile::tmp_filename(_tempdir);
-    string full_cmd = avprobe_cmd+" -show_format -show_streams "+fname+
+    string full_cmd = prog+" -show_format -show_streams "+fname+
       " 2>/dev/null </dev/null > "+tempname;
     int r = execute_system(full_cmd);
     if (r) {
@@ -302,7 +300,10 @@ namespace picsom {
       }
 
       if (key=="display_aspect_ratio") {
-	id["VIDEO_ASPECT"] = calc_frac(val);
+	string valx = val;
+	if (valx=="N/A") // added 20200127
+	  valx = "0/1";
+	id["VIDEO_ASPECT"] = calc_frac(valx);
 	if (debug())
 	  cout << "* VIDEO_ASPECT=" << id["VIDEO_ASPECT"] << endl;
       }
@@ -365,7 +366,7 @@ namespace picsom {
 			   " 2>/dev/null </dev/null | grep ^ID_ > "+tempname);
     if (r) {
       unlink_file(tempname);
-      throw error(msg, "Execution of ", midentify_cmd, " failed.");
+      throw error(msg, "Execution of <", midentify_cmd+" "+fname, "> failed.");
     }
  
     ifstream tmpf(tempname.c_str());
@@ -454,20 +455,24 @@ namespace picsom {
   ///--------------------------------------------------------------------------
   
   const string& videofile::avconvname() {
-    static string avconv;
-    if (avconv=="") {
-      avconv = "/usr/bin/avconv";
-      struct stat tmp;
-      if (stat(avconv.c_str(), &tmp))
-	avconv = "/usr/bin/ffmpeg";
-      if (stat(avconv.c_str(), &tmp))
-	avconv = local_bin()+"/avconv";
-      if (stat(avconv.c_str(), &tmp))
-	avconv = local_bin()+"/ffmpeg";
-      if (stat(avconv.c_str(), &tmp))
-	avconv = "/bin/false";
+    static string conv;
+    if (conv=="") {
+      list<string> prog { "ffmpeg", "avconv" };
+      for (const auto& p : prog) {
+	for (const auto& d : bin_path) {
+	  string f = d+"/"+p;
+	  if (exists(f)) {
+	    conv = f;
+	    break;
+	  }
+	}
+	if (conv!="")
+	  break;
+      }
+      if (conv=="")
+	conv = "/bin/false";
     }
-    return avconv;
+    return conv;
   }
 
   ///--------------------------------------------------------------------------
@@ -816,6 +821,25 @@ namespace picsom {
     mplayer = NULL;        
 
     return true;
+  }
+
+  ///--------------------------------------------------------------------------
+
+  bool videofile::reencode(const string& dst, const string& spec) const {
+    const string msg = "videofile::reencode("+dst+","+spec+") : ";
+    if (debug())
+      cout << msg << "starting" << endl;
+
+    string cmd = "ffmpeg -i "+_filename+" "+dst;
+    if (!debug())
+      cmd += " 1>/dev/null 2>&1";
+
+    int r = execute_system(cmd);
+
+    if (r)
+      cerr << msg << "failed to execute [" << cmd << "]" << endl;
+    
+    return r==0;
   }
 
   ///--------------------------------------------------------------------------

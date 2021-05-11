@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: DataBase.h,v 2.580 2019/10/09 14:50:02 jormal Exp $
+// -*- C++ -*-  $Id: DataBase.h,v 2.602 2021/03/22 16:51:02 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -67,9 +67,9 @@ typedef struct zip_stat zip_stat_t;
 #endif // LIBZIP_VERSION_MAJOR==0
 #endif // HAVE_ZIP_H
 
-#ifdef HAVE_RAPTOR2_H
-#include <raptor2.h>
-#endif // HAVE_RAPTOR2_H
+#ifdef HAVE_RAPTOR2_RAPTOR2_H
+#include <raptor2/raptor2.h>
+#endif // HAVE_RAPTOR2_RAPTOR2_H
 
 #ifdef HAVE_RASQAL_H
 #include <rasqal.h>
@@ -86,7 +86,7 @@ typedef struct zip_stat zip_stat_t;
 
 namespace picsom {
   static string DataBase_h_vcid =
-    "@(#)$Id: DataBase.h,v 2.580 2019/10/09 14:50:02 jormal Exp $";
+    "@(#)$Id: DataBase.h,v 2.602 2021/03/22 16:51:02 jormal Exp $";
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -852,6 +852,15 @@ namespace picsom {
     size_t MiddleFrameTrick(size_t, const string&, bool);
 
     ///
+    pair<size_t,size_t> VideoOrSegmentStartEndFrame(size_t, bool = true);
+    
+    ///
+    pair<double,double> VideoOrSegmentStartEndTime(size_t, bool = true);
+    
+    ///
+    double VideoOrSegmentMiddleTime(size_t, bool = true);
+    
+    ///
     string ParentObjectStringByPruning(const string& l, bool = true) const;
 
     ///
@@ -892,7 +901,8 @@ namespace picsom {
 
     ///
     pair<size_t,pair<double,double> > ParentStartDuration(size_t,
-							  target_type);
+							  target_type,
+							  bool = true);
 
     /// Checks object's parent and its children for matching types.
     bool ObjectHasLinkToTargetType(int, target_type) const;
@@ -942,6 +952,9 @@ namespace picsom {
       return LabelIndexGentle(l);
     }
 
+    ///
+    int IndexByAuxid(const string&);
+    
     /// Same as the one above with provisional x,y after label.
     int LabelIndexGentleWithXY(const string& l, xymap_ve&) const;
 
@@ -1202,7 +1215,8 @@ namespace picsom {
     bool SetFeatureAugmentation(const string &n, const string &e, 
 			 const string &t = "");
 
-    /// Extracts the feature augmentation info from the node and calls SetFeatureAugmentation
+    /// Extracts the feature augmentation info from the node
+    /// and calls SetFeatureAugmentation
     bool SetFeatureAugmentation(const xmlNodePtr &n);
 
     ///
@@ -1243,6 +1257,24 @@ namespace picsom {
     ///
     void DumpIndexList(ostream&) const;
 
+    ///
+    string IdentifyLanguage(size_t);
+    
+    ///
+    string IdentifyLanguageTextIndex(size_t, const string&);
+    
+    ///
+    string IdentifyAudio(size_t);
+    
+    ///
+    string IdentifyAudioAudioset(size_t, const string&);
+    
+    ///
+    string IdentifyScene(size_t);
+    
+    ///
+    string IdentifySceneSun397(size_t, const string&, float);
+    
     ///
     typedef map<string,pair<string,list<string> > > namedcmdline_t;
 
@@ -1694,8 +1726,18 @@ namespace picsom {
     /// Finds all classes and stores them in contents.
     bool FindAllClasses(bool, bool);
 
+    /// Returns true if argument names a class file.
+    bool IsClassFile(const string& f) const {
+      return IsClassFileCommon(false, f);
+    }
+
     /// Returns true if argument names a METACLASSFILE.
-    bool IsMetaClassFile(const string&) const;
+    bool IsMetaClassFile(const string& f) const {
+      return IsClassFileCommon(true, f);
+    }
+
+    /// Workhorse for the above two.
+    bool IsClassFileCommon(bool, const string&) const;
 
     /// Splits classname by commas.
     list<string> SplitClassNames(const string&) /*const*/;
@@ -1917,8 +1959,8 @@ namespace picsom {
 
     ///
     bool AddVideoSegments(size_t, const vector<double>&,
-			  const pair<string,string>&, XmlDom&, XmlDom&,
-			  bool, bool);
+			  const pair<string,string>&, const vector<string>&,
+			  XmlDom&, XmlDom&, bool, bool);
 
     ///
     pair<string,string> SegmentPrefSuff(size_t) const;
@@ -1960,8 +2002,14 @@ namespace picsom {
     /// Used for VTT subtitles.
     static string VTTtimeStr(double);
 
+    /// Returns one frame from a video.
+    imagedata VideoFrame(size_t, size_t);
+    
     /// Returns image data for given index.
     imagedata ImageData(size_t, bool = false, string* = NULL);
+
+    /// Returns image data for given label or expression.
+    imagedata ImageData(const string&);
 
 #ifdef USE_MRML
     /// HASH table that maps http_path (original file path+name) into picsom
@@ -2078,11 +2126,23 @@ namespace picsom {
     /// Returns state of debugging in access to SQL.
     static bool DebugSql() { return debug_sql; }
 
+    /// Sets debugging in access to RDF.
+    static void DebugRdf(bool d) { debug_rdf = d; }
+
+    /// Returns state of debugging in access to RDF.
+    static bool DebugRdf() { return debug_rdf; }
+
     /// Sets debugging in access to TEXT.
     static void DebugText(bool d) { debug_text = d; }
 
     /// Returns state of debugging in access to TEXT.
     static bool DebugText() { return debug_text; }
+
+    /// Sets debugging in access to boxdata.
+    static void DebugBoxData(bool d) { debug_boxdata = d; }
+
+    /// Returns state of debugging in access to boxdata.
+    static bool DebugBoxData() { return debug_boxdata; }
 
     /// Sets debugging in access to origins files.
     static void DebugObjectPath(bool d) { debug_opath = d; }
@@ -3198,6 +3258,12 @@ namespace picsom {
     ///
     size_t ConceptIndexInFeatures(const string&, const string&);
     
+    ///
+    const string& ConceptNameInFeatures(size_t, const string&);
+    
+    ///
+    vector<string> ConceptNamesInFeatures(const string&);
+    
     /// Loads features from files and updates div and backref data.
     bool LoadAndMatchFeatures(int, const list<string>&, bool, bool);
 
@@ -3368,6 +3434,9 @@ namespace picsom {
     string ShowTfIdf(const vector<float>&, size_t);
 
     ///
+    bool BoxDataInput(const list<boxdata_t>&);
+
+    ///
     bool BoxDataInput(const boxdata_t&);
 
     ///
@@ -3377,7 +3446,24 @@ namespace picsom {
     bool CreateBoxDataTable();
 
     ///
-    list<boxdata_t> BoxData(size_t);
+    list<boxdata_t> BoxData(size_t, const string&,
+			    const string&, const string&);
+
+    ///
+    list<boxdata_t> BoxData(size_t, const string&);
+
+    ///
+    list<boxdata_t> BoxData(const string&);
+
+    ///
+    list<boxdata_t> BoxDataInner(const string&, const string&,
+				 const string&, const string&);
+
+    ///
+    bool StoreBoxDataXML(const boxdata_t&, XmlDom&);
+
+    ///
+    boxdata_t RetrieveBoxDataXML(const XmlDom&);
     
     /// Executes all <extraction><detection> instructions.
     bool DoAllMediaExtractions(bool, const vector<size_t>&,
@@ -3604,6 +3690,18 @@ namespace picsom {
     ///
     float ThresholdValue(const string&);
 
+    ///
+    bool DoAllFaceRecognitions(bool, const vector<size_t>&, const vector<string>&,
+			       XmlDom&);
+
+    ///
+    bool DoOneFaceRecognition(bool, const vector<size_t>&, const string&,
+			       XmlDom&);
+    
+    ///
+    list<boxdata_t> FaceRecognitionFCR(const vector<size_t>&,
+				       const map<string,string>&);
+    
     ///
     vector<string> CaptioningsToTextIndices(const vector<string>&);
     
@@ -4067,14 +4165,14 @@ namespace picsom {
 
     ///
     pair<pair<vector<string>,size_t>,pair<vector<string>,size_t> >
-    DeepCaptionFeatures(const string&);
+    DeepCaptionFeatures(const string&, const string&);
     
 #ifdef PICSOM_USE_PYTHON
     ///
-    PyObject *DeepCaptionCreateModel(const string&);
+    PyObject *DeepCaptionCreateModel(const string&, const string&);
     
     ///
-    PyObject *DeepCaptionGetModel(const string&);
+    PyObject *DeepCaptionGetModel(const string&, const string&);
 
     /// helper
     bool NeuralTalkAddCandidate(textline_t&, PyObject*);
@@ -4346,8 +4444,13 @@ namespace picsom {
     list<XmlDom> FindDetectedObjectInfo(const string&, const string&);
 
     ///
-    bool GenerateSubtitles(size_t idx, const string& type,
-			   const string& spec, const string& file);
+    bool GenerateSubtitlesOld(size_t idx, const string& type,
+			      const string& spec, const string& file);
+
+    ///
+    bool GenerateSubtitlesNew(size_t idx, const list<string>&,
+			      const string& type, size_t,
+			      const string& spec, const string& file);
 
     ///
     const list<string>& ErfDetectionImages() const {
@@ -4367,14 +4470,14 @@ namespace picsom {
     ///
     class linked_data_query_t {
     public:
-      /// is this really needed?
-      linked_data_query_t() : nargs(0) {}
-
+      ///
+      linked_data_query_t() = default;
+      
       ///
       linked_data_query_t(const string&, const string&, const string&);
 
       ///
-      string expand(const vector<string>&) const;
+      pair<string,string> expand(const vector<string>&) const;
 
       ///
       string str() const {
@@ -4398,10 +4501,19 @@ namespace picsom {
       string query;
 
       ///
-      size_t nargs;
+      size_t nargs = 0;
 
     }; // class linked_data_query_t
 
+    ///
+    const linked_data_query_t *FindLinkedDataQuery(const string&,
+						   const string&,
+						   const string&);
+
+    ///
+    linked_data_query_t StaticLinkedDataQuery(const string&,
+					      const string&);
+    
     ///
     list<vector<string> > LinkedDataQuery(const string& t, const string& s,
 					  const vector<string>& a
@@ -4427,6 +4539,13 @@ namespace picsom {
 
     ///
     const string& Concepts() const { return concepts; }
+
+    ///
+    list<pair<string,float> > ConceptDetections(size_t, const string&, const string&);
+
+    ///
+    list<pair<string,float> > ConceptDetectionsSorted(size_t, const string&, const string&);
+
     
 #ifdef PICSOM_USE_PYTHON
     ///
@@ -4909,6 +5028,63 @@ namespace picsom {
     /// not implemented yet
     vector<string> SynsetList(const string& = "");
 
+    ///
+    bool ReadPersonInfo(const string&);
+
+    ///
+    void SetPersonInfo(const string& p, const string& a, const string& v) {
+      person_info[p][a] = v;
+    }
+
+    ///
+    string GetPersonInfo(const string& p, const string& a) const {
+      auto i = person_info.find(p);
+      if (i==person_info.end())
+	return "";
+      auto j = i->second.find(a);
+      return j!=i->second.end() ? j->second : "";
+    }
+    
+    ///
+    bool HasPerson(const string& p) const {
+      return person_info.find(p)!=person_info.end();
+    }
+
+    ///
+    bool HasPersonInfo(const string& p, const string& a) const {
+      auto i = person_info.find(p);
+      return i!=person_info.end() && i->second.find(a)!=i->second.end();
+    }
+
+    ///
+    list<string> PersonList() const {
+      list<string> l;
+      for (const auto& i : person_info)
+	l.push_back(i.first);
+      return l;
+    }
+
+    ///
+    list<string> PersonAttributeList(const string& p) const {
+      list<string> l;
+      auto i = person_info.find(p);
+      if (i!=person_info.end())
+	for (const auto& j : i->second)
+	  l.push_back(j.first);
+      return l;
+    }
+
+    ///
+    string CaptionPostProcess(size_t,
+			      const vector<string>&, const vector<string>&,
+			      const vector<string>&, const vector<string>&,
+			      const vector<string>&, const vector<string>&,
+			      bool) const;
+
+    ///
+    vector<float> VideoSegmentClassMatches(const vector<size_t>&,
+					   const string&);
+    
   protected:
     /// This points back to the system.
     PicSOM *pic_som;
@@ -5127,6 +5303,9 @@ namespace picsom {
     /// Debugging levels for features program etc.
     static size_t debug_images;
 
+    /// Debugging of boxdata operations.
+    static bool debug_boxdata;
+    
     /// Whether to allow writing in SQL databases.
     static bool open_read_write_sql;
 
@@ -5150,6 +5329,9 @@ namespace picsom {
 
     /// Whether sql operations are traced.
     static bool debug_sql;
+
+    /// Whether rdf operations are traced.
+    static bool debug_rdf;
 
     /// Whether text operations are traced.
     static bool debug_text;
@@ -5640,7 +5822,7 @@ namespace picsom {
     map<string,XmlDom> detected_object_info;
 
     ///
-    map<string,linked_data_query_t> linked_data_queries;
+    map<string,linked_data_query_t> linked_data_queries_x;
 
     ///
     map<string,trecvid_med_event> trecvid_med_event_map;
@@ -5714,11 +5896,20 @@ namespace picsom {
     //
     map<string,cat2wn> cat2wm_map;
 
+    //
+    map<string,map<string,string> > person_info;
+    
     // used in InsertVideoSubObjects()
     string forcedfiletype;
 
     // used in ExtractVideoFrames()
     bool extendlastframe = false;
+
+    //
+    map<string,int> auxid_to_index;
+
+    //
+    map<string,map<size_t,textline_t> > incore_textindex;
     
   };  // class DataBase
 

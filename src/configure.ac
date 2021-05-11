@@ -1,18 +1,18 @@
-## -*- autoconf -*-  $Id: configure.ac,v 2.135 2019/12/20 13:28:52 jormal Exp $
+## -*- autoconf -*-  $Id: configure.ac,v 2.140 2021/05/11 13:38:51 jormal Exp $
 ## 
-## Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+## Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
 ## PO Box 15400, FI-00076 Aalto, FINLAND
 ## 
 
-AC_INIT(PicSOM, 0.38, picsom@ics.aalto.fi)
+AC_INIT(PicSOM, 0.39, picsom@ics.aalto.fi)
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
 AC_PREREQ(2.59)
 AC_COPYRIGHT(PicSOM Development Group)
-AC_REVISION($Revision: 2.135 $)
+AC_REVISION($Revision: 2.140 $)
 
 #AC_CONFIG_MACRO_DIRS([m4])
 
@@ -155,8 +155,14 @@ AC_CHECK_HEADERS([tiffio.h],[],
 AC_CHECK_HEADERS([H5Cpp.h],[],
         [warnings="$warnings|HDF5 use disabled due to missing header."])
 
-AC_CHECK_HEADERS([raptor2.h rasqal.h],[],
-        [warnings="$warnings|RDF use disabled due to missing header."])
+AC_CHECK_HEADERS([raptor2/raptor2.h],[],
+        [warnings="$warnings|RAPTOR use disabled due to missing header."])
+
+AC_CHECK_HEADERS([rasqal.h],[],
+        [warnings="$warnings|RASQAL use disabled due to missing header."])
+
+AC_CHECK_HEADERS([Python.h],[],
+        [warnings="$warnings|Python use disabled due to missing header."])
 
 AC_CHECK_HEADERS([libavcodec/avcodec.h libavdevice/avdevice.h   \
 		  libavfilter/avfilter.h libavformat/avformat.h \
@@ -255,9 +261,11 @@ AC_CHECK_LIB(gdi32,  main)
 AC_CHECK_LIB(ws2_32, main, [AC_DEFINE(MKDIR_ONE_ARG, 1)])
 
 # general stuff
-AC_CHECK_LIB(z,     main)
-AC_CHECK_LIB(iconv, main)
-AC_CHECK_LIB(regex, main)
+AC_CHECK_LIB(xml2,   main)
+AC_CHECK_LIB(z,      main)
+AC_CHECK_LIB(iconv,  main)
+AC_CHECK_LIB(regex,  main)
+AC_CHECK_LIB(gcrypt, main)
 
 # needed in SunOS
 AC_CHECK_LIB(nsl, main)
@@ -277,6 +285,8 @@ AC_CHECK_LIB(aspell,    main)
 AC_CHECK_LIB(wordnet,   main)
 AC_CHECK_LIB(WN,        main)
 AC_CHECK_LIB(vl,        main)
+AC_CHECK_LIB(raptor2,   main)
+AC_CHECK_LIB(rasqal,    main)
 
 ## ImageMagick++, GraphicsMagick++ and picsom::imagefile
 #magicktype="imagemagick"
@@ -321,6 +331,7 @@ AC_CHECK_HEADERS([opencv2/core/cuda.hpp],[],[])
 AC_CHECK_HEADERS([opencv2/core/gpumat.hpp],[],[])
 AC_CHECK_HEADERS([opencv2/nonfree/nonfree.hpp],[],[])
 AC_CHECK_HEADERS([opencv2/nonfree/gpu.hpp],[],[])
+AC_CHECK_HEADERS([opencv2/cudaimgproc.hpp],[],[])
 AC_CHECK_LIB(opencv_core,       main,,magicktype="none")
 AC_CHECK_LIB(opencv_highgui,    main,,magicktype="none")
 AC_CHECK_LIB(opencv_flann,      main,,magicktype="none")

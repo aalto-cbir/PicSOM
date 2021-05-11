@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: imagefile.h,v 1.57 2019/05/29 12:49:18 jormal Exp $
+// -*- C++ -*-  $Id: imagefile.h,v 1.58 2021/05/11 14:47:41 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -15,8 +15,8 @@
   of physical image format libraries.
 
   \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-  $Revision: 1.57 $
-  $Date: 2019/05/29 12:49:18 $
+  $Revision: 1.58 $
+  $Date: 2021/05/11 14:47:41 $
   \bug May be some out there hiding.
   \warning Be warned against all odds!
   \todo So many things, so little time...
@@ -60,7 +60,7 @@ namespace picsom {
     /// Returns version of imagefile class ie. version of imagefile.h.
     static const string& version() {
       static string v =
-	"$Id: imagefile.h,v 1.57 2019/05/29 12:49:18 jormal Exp $";
+	"$Id: imagefile.h,v 1.58 2021/05/11 14:47:41 jormal Exp $";
       return v;
     }
 
@@ -244,7 +244,7 @@ namespace picsom {
        \param fmt format if default not preferred
      */
     void write(const string& fname = "",
-	       const string& fmt = "") const throw(string) {
+	       const string& fmt = "") const /*throw(string)*/ {
       if (!_nframes)
 	throw errtxt("write(", fname, ", ", fmt, ") failed: _nframes==0");
 
@@ -264,7 +264,7 @@ namespace picsom {
 	\param fmt format if default not preferred
     */
     static void write(const imagedata& d, const string& fn,
-                      const string& fmt = "") throw(string) {
+                      const string& fmt = "") /*throw(string)*/ {
       imagefile file(fn, true, fmt);
       file.add_frame(d);
       file.write();

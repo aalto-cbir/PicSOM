@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// $Id: subspace,v 1.1 2007/11/19 07:59:57 jorma Exp $
+// $Id: subspace,v 1.2 2021/05/11 14:47:56 jormal Exp $
 
 #ifndef _cox_subspace_
 #define _cox_subspace_
@@ -33,7 +33,7 @@ namespace cox {
 
     ///
     subspace(const vector<T>& m, const matrix<T>& b, const vector<T>& e)
-      throw(string) : _mean(m), _base(b), _eigv(e) {
+      /*throw(string)*/ : _mean(m), _base(b), _eigv(e) {
       if (m.size()!=b.rows())
 	  throw("SDFGHJK");
     }
@@ -79,7 +79,7 @@ namespace cox {
     /* FILE I/O FUNCTIONS ARE HERE */
 
     ///
-    void read_sompak(const string& fname) throw(string) {
+    void read_sompak(const string& fname) /*throw(string)*/ {
       typedef list<labeled<vector<float> > > data_t;
       data_t data = sompak::data(fname);
       _base = matrix<T>(data.begin(), data.end());
@@ -99,7 +99,7 @@ namespace cox {
     }
 
     ///
-    void write_sompak(const string& fname) throw(string) {
+    void write_sompak(const string& fname) /*throw(string)*/ {
       sompak::data data(fname, true);
       for (size_t c=0; c<_base.cols(); c++)
 	data.insert(_base.column(c));

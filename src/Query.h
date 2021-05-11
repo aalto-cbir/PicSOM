@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Query.h,v 2.337 2019/03/20 13:26:05 jormal Exp $
+// -*- C++ -*-  $Id: Query.h,v 2.338 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -39,7 +39,7 @@ namespace picsom {
   using simple::RandVar;
 
   static const string Query_h_vcid =
-    "@(#)$Id: Query.h,v 2.337 2019/03/20 13:26:05 jormal Exp $";
+    "@(#)$Id: Query.h,v 2.338 2021/05/11 14:46:57 jormal Exp $";
 
   /**
      documentation missing
@@ -78,7 +78,7 @@ namespace picsom {
    
    @short A class implementing query processing in the PicSOM engine. 
 
-   @version $Id: Query.h,v 2.337 2019/03/20 13:26:05 jormal Exp $
+   @version $Id: Query.h,v 2.338 2021/05/11 14:46:57 jormal Exp $
 
 */
 
@@ -2853,7 +2853,7 @@ namespace picsom {
     }
 
     /// Get access to stage_map.
-    const cbir_function& StageFunc(cbir_stage s) const throw(logic_error) {
+    const cbir_function& StageFunc(cbir_stage s) const /*throw(logic_error)*/ {
       stage_map_t::const_iterator i = stage_map.find(s);
       if (i==stage_map.end())
         throw logic_error("unknown cbir_stage");
@@ -2861,7 +2861,7 @@ namespace picsom {
     }
 
     /// Set access to stage_map.
-    void StageFunc(cbir_stage s, cbir_function f) throw(logic_error) {
+    void StageFunc(cbir_stage s, cbir_function f) /*throw(logic_error)*/ {
       if (!StageOK(s))
         throw logic_error("unknown cbir_stage");
 
@@ -2869,7 +2869,7 @@ namespace picsom {
     }
 
     /// Get access to stage_arg_map.
-    const string& StageArgs(cbir_stage s) const throw(logic_error) {
+    const string& StageArgs(cbir_stage s) const /*throw(logic_error)*/ {
       stage_arg_map_t::const_iterator i = stage_arg_map.find(s);
       if (i==stage_arg_map.end())
         throw logic_error("unknown cbir_stage");
@@ -2877,7 +2877,7 @@ namespace picsom {
     }
 
     /// Set access to stage_arg_map.
-    void StageArgs(cbir_stage s, const string& a) throw(logic_error) {
+    void StageArgs(cbir_stage s, const string& a) /*throw(logic_error)*/ {
       if (!StageOK(s))
         throw logic_error("unknown cbir_stage");
 

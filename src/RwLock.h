@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: RwLock.h,v 2.10 2017/04/28 07:46:07 jormal Exp $
+// -*- C++ -*-  $Id: RwLock.h,v 2.11 2020/01/01 18:18:53 jormal Exp $
 // 
-// Copyright 1998-2015 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science and Technology
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -15,7 +15,7 @@ using simple::Simple;
 using namespace std;
 
 static const string RwLock_h_vcid =
-  "@(#)$Id: RwLock.h,v 2.10 2017/04/28 07:46:07 jormal Exp $";
+  "@(#)$Id: RwLock.h,v 2.11 2020/01/01 18:18:53 jormal Exp $";
 
 #ifdef SIMPLE_USE_PTHREADS
 #define PICSOM_USE_PTHREADS
@@ -42,6 +42,8 @@ namespace picsom {
     // let's just hope that this works...
     /// Poison...
     /// RwLock(const RwLock&) { abort(); } 
+    ///
+    RwLock(const RwLock&) = default; // don't know about this...
     
     ~RwLock() {
       // cout << "RwLock::~RwLock()" << endl;

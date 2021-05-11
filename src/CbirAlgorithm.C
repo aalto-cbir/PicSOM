@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: CbirAlgorithm.C,v 2.41 2018/12/15 23:07:50 jormal Exp $
+// -*- C++ -*-  $Id: CbirAlgorithm.C,v 2.42 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2016 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science and Technology
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -11,7 +11,7 @@
 namespace picsom {
   ///
   static const string CbirAlgorithm_C_vcid =
-    "@(#)$Id: CbirAlgorithm.C,v 2.41 2018/12/15 23:07:50 jormal Exp $";
+    "@(#)$Id: CbirAlgorithm.C,v 2.42 2021/05/11 14:46:57 jormal Exp $";
 
   /// Head of the list of "factory" instances.
   CbirAlgorithm *CbirAlgorithm::list_of_algorithms;
@@ -57,7 +57,7 @@ namespace picsom {
 
   CbirAlgorithm *CbirAlgorithm::FindAndCreateAlgorithm(DataBase *db,
 						       const string& n)
-    throw (string) {
+    /*throw(string)*/ {
 
     string args;
     const CbirAlgorithm *p = FindAlgorithm(n, args);

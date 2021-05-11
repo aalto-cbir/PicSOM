@@ -1,3 +1,8 @@
+2021-05-11  jormal  <jormal@cs-271>
+
+	* blas 1.7, classifier 1.2, knn 1.4, lsc 1.4, matlab 1.3, matrix 1.10, sompak 1.3, stat 1.4, subspace 1.2:
+	Commented out deprecated dynamic exception specifications.
+
 2017-11-03  jormal  <jormal@cs-271>
 
 	* demangle 1.2: Summary: Made g++ 7.2.0 happy.

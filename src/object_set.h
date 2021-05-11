@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: object_set.h,v 2.6 2019/09/24 12:32:35 jormal Exp $
+// -*- C++ -*-  $Id: object_set.h,v 2.7 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -18,7 +18,7 @@ namespace picsom {
   using namespace std;
 
   static const string object_set_h_vcid =
-    "@(#)$Id: object_set.h,v 2.6 2019/09/24 12:32:35 jormal Exp $";
+    "@(#)$Id: object_set.h,v 2.7 2021/05/11 14:46:57 jormal Exp $";
 
   class DataBase;
 
@@ -29,7 +29,7 @@ namespace picsom {
   public:
     /// 
     object_info& add(DataBase *b, const string& l, target_type t) 
-      throw(logic_error) {
+      /*throw(logic_error)*/ {
       _set.push_back(object_info(b, size(), l, t));
       object_info& o = _set.back();
       auto const r = _label.insert( { l, &o } );
@@ -48,12 +48,12 @@ namespace picsom {
     void clear() { _set.clear(); _label.clear(); }
 
     ///
-    const string& label(size_t i) const throw(out_of_range) {
+    const string& label(size_t i) const /*throw(out_of_range)*/ {
       return find(i).label;
     }
 
     ///
-    int index(const string& l) const throw(out_of_range) {
+    int index(const string& l) const /*throw(out_of_range)*/ {
       return find(l).index;
     }
 
@@ -64,7 +64,7 @@ namespace picsom {
     }
 
     ///
-    object_info& find(size_t i) throw(out_of_range,logic_error) {
+    object_info& find(size_t i) /*throw(out_of_range,logic_error)*/ {
       try {
 	object_info& ret = _set.at(i);
 	if (ret.index!=(int)i)
@@ -77,12 +77,12 @@ namespace picsom {
     }
 
     ///
-    const object_info& find(size_t i) const throw(out_of_range,logic_error) {
+    const object_info& find(size_t i) const /*throw(out_of_range,logic_error)*/ {
       return ((object_set*)this)->find(i);
     }
 
     ///
-    object_info& find(const string& l) throw(out_of_range) {
+    object_info& find(const string& l) /*throw(out_of_range)*/ {
       label_map_type::const_iterator p = _label.find(l);
       if (p==_label.end())
 	throw out_of_range("label not found");
@@ -90,7 +90,7 @@ namespace picsom {
     }
 
     ///
-    const object_info& find(const string& l) const throw(out_of_range) {
+    const object_info& find(const string& l) const /*throw(out_of_range)*/ {
       label_map_type::const_iterator p = _label.find(l);
       if (p==_label.end())
 	throw out_of_range("label not found");

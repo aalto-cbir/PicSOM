@@ -1,4 +1,4 @@
-// -*- C++ -*-    $Id: textdata.h,v 1.18 2017/04/28 07:48:19 jormal Exp $
+// -*- C++ -*-    $Id: textdata.h,v 1.19 2021/05/11 14:48:42 jormal Exp $
 
 /**
    \file textdata.h
@@ -10,8 +10,8 @@
    in a vector of wchar_t elements.
    
    \author Hannes Muurinen <hannes.muurinen@hut.fi>
-   $Revision: 1.18 $
-   $Date: 2017/04/28 07:48:19 $
+   $Revision: 1.19 $
+   $Date: 2021/05/11 14:48:42 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -71,13 +71,13 @@ namespace picsom {
     /// Version control identifier of the imagedata.h file.
     static const string& version() {
       static const string v =
-	"$Id: textdata.h,v 1.18 2017/04/28 07:48:19 jormal Exp $";
+	"$Id: textdata.h,v 1.19 2021/05/11 14:48:42 jormal Exp $";
       return v;
     }
 
     /// The constructor initializes the vector used to store the data
     textdata(int l = 0, bool only_orig = false)
-      throw(string) {
+      /*throw(string)*/ {
 	if (l <0)
 	  throw "textdata : illegal argument";
 	_vec_wchar = textdata_char_vect_t(l, (textdata_char_t)0);

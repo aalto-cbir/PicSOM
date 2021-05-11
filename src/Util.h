@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Util.h,v 2.100 2019/11/06 10:05:19 jormal Exp $
+// -*- C++ -*-  $Id: Util.h,v 2.107 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -98,12 +98,20 @@ using namespace std;
 
 namespace picsom {
   static const string Util_h_vcid =
-    "@(#)$Id: Util.h,v 2.100 2019/11/06 10:05:19 jormal Exp $";
+    "@(#)$Id: Util.h,v 2.107 2021/05/11 14:46:57 jormal Exp $";
 
   extern bool trap_after_error;
   // extern bool jam_after_error;
   extern bool backtrace_before_trap;
 
+  extern string _picsom_util_temp_dir;
+
+  ///
+  inline void set_temp_dir(const string& d) { _picsom_util_temp_dir = d; }
+
+  ///
+  string get_temp_file_name(const string& = "");
+  
   ///
   inline pid_t gettid() {
 #ifdef __linux__
@@ -145,6 +153,7 @@ namespace picsom {
 
   /// Reads a file in a string.
   inline string FileToString(const string& fname) {
+    string err = "FileToString("+fname+") : ";
     ifstream in(fname.c_str());
     string data;
     for (;;)
@@ -156,7 +165,16 @@ namespace picsom {
 	if (!n || !in)
 	  break;
       }
-      catch (...) {}
+      catch (const ifstream::failure &e) {
+	cerr << err+"ifstream "+to_string(data.size())+" failure "+e.what()
+	     << endl;
+	return "";
+      }
+      catch (const exception &e) {
+	cerr << err+to_string(data.size())+" exception "+e.what()
+	     << endl;
+	return "";
+      }
     return data;
   }
 
@@ -615,7 +633,7 @@ namespace picsom {
 
   /// Checks if line contains key=value and splits.
   pair<string,string> SplitKeyEqualValueNew(const string& s) 
-    throw(logic_error);
+    /*throw(logic_error)*/;
 
   inline const char *CopyString(const char *s) {
     return s ? strcpy(new char[strlen(s)+1], s) : (char*)NULL; }
@@ -754,6 +772,9 @@ namespace picsom {
   /// An utility to avoi utf probles for now...
   string Latin1ToUTF(const string& s);
 
+  ///
+  size_t utf8length(const string& s);
+  
   // Copied from Features
   bool GetMemoryUsage(int& pagesize, int& size, int& resident,
 		      int& share, int& trs, int& drs, int& lrs,
@@ -825,6 +846,23 @@ namespace picsom {
 
   ///
   string WashString(const string&, const string&);
+
+  ///
+  list<vector<pair<string,string> > >
+  SparqlQuery(const string&, const string&, bool = false);
+  
+  ///
+  list<vector<pair<string,string> > >
+  SparqlQueryJena(const string&, const string&, bool = false);
+  
+  ///
+  list<vector<pair<string,string> > >
+  SparqlQueryRasqal(const string&, const string&, bool = false);
+  
+  ///
+  string RdfToString(const list<pair<string,string> >&,
+		     const list<vector<string> >&,
+		     const string&);
   
 } // namespace picsom
 

@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// $Id: matlab,v 1.2 2010/09/08 19:50:21 jorma Exp $	
+// $Id: matlab,v 1.3 2021/05/11 14:47:56 jormal Exp $	
 
 #ifndef _cox_matlab_
 #define _cox_matlab_
@@ -27,7 +27,7 @@ namespace cox {
     /// this is the innermost method for all..
     template <class T>
     inline void write(const vector<T>& v, ostream& os, bool c /*= true*/)
-      throw (string) {
+      /*throw(string)*/ {
       for (size_t i=0; i<v.size(); i++)
 	os << " " << v[i] << (i%8==7 && i!=v.size()-1 ?" ...\n":"");
       if (c)
@@ -37,7 +37,7 @@ namespace cox {
     ///
     template <class T>
     inline void write(const labeled<vector<T> >& v, ostream& os = cout)
-      throw (string) {
+      /*throw(string)*/ {
       os << v.label() << " = [";
       write((const vector<T>)v, os, false);
       os << "];" << endl;
@@ -46,14 +46,14 @@ namespace cox {
     ///
     template <class T>
     inline void write(const labeled<vector<T> >& v, const string& fn,
-		      bool a = false) throw (string) {
+		      bool a = false) /*throw(string)*/ {
       write(v, ofstream(fn.c_str(), ios::out|(a?ios::app:ios::trunc)));
     }
 
     ///
     template <class T>
     inline void write(const vector<T>& v, const string& l, ostream& os = cout)
-      throw (string) {
+      /*throw(string)*/ {
       labeled<vector<T> > vl(v, l);
       write(vl, os);
     }
@@ -61,14 +61,14 @@ namespace cox {
     ///
     template <class T>
     inline void write(const vector<T>& v, const string& l, const string& fn,
-		      bool a = false) throw (string) {
+		      bool a = false) /*throw(string)*/ {
       ofstream os(fn.c_str(), ios::out|(a?ios::app:ios::trunc));
       write(v, l, os);
     }
   
     ///
     template <class T>
-    inline void write(T b, T e, ostream& os = cout) throw (string) {
+    inline void write(T b, T e, ostream& os = cout) /*throw(string)*/ {
       for (T i=b; i!=e; i++)
 	write(*i, os, true);
     }
@@ -76,7 +76,7 @@ namespace cox {
     ///
     template <class T>
     inline void write(T i, T e, const string& fn, bool a = false)
-      throw (string) {
+      /*throw(string)*/ {
       // write(i, e, ofstream(fn.c_str()));
       ofstream os(fn.c_str(), ios::out|(a?ios::app:ios::trunc));
       write(i, e, os);
@@ -84,14 +84,14 @@ namespace cox {
     
     ///
     template <class T>
-    inline void write(const T& c, ostream& os = cout) throw (string) {
+    inline void write(const T& c, ostream& os = cout) /*throw(string)*/ {
       write(c.begin(), c.end(), os);
     }
     
     ///
     template <class T>
     inline void write(const matrix<T>& m, const string& l, ostream& os)
-      throw (string) {
+      /*throw(string)*/ {
       os << l << " = [";
       for (size_t r=0; r<m.rows(); r++)
 	for (size_t c=0; c<m.cols(); c++) {
@@ -107,14 +107,14 @@ namespace cox {
     ///
     template <class T>
     inline void write(const labeled<matrix<T> >& m, ostream& os)
-      throw (string) {
+      /*throw(string)*/ {
       write(m, m.label(), os);
     }
     
     ///
     template <class T>
     inline void write(const matrix<T>& m, const string& l, const string& fn,
-		      bool a = false) throw (string) {
+		      bool a = false) /*throw(string)*/ {
       ofstream os(fn.c_str(), ios::out|(a?ios::app:ios::trunc));
       write(m, l, os);
     }
@@ -122,7 +122,7 @@ namespace cox {
     ///
     template <class T>
     inline void write(const labeled<matrix<T> >& m, const string& fn,
-		      bool a = false) throw (string) {
+		      bool a = false) /*throw(string)*/ {
       write(m, m.label(), fn, a);
     }
 

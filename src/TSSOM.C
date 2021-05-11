@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: TSSOM.C,v 2.210 2019/04/17 08:03:20 jormal Exp $
+// -*- C++ -*-  $Id: TSSOM.C,v 2.211 2020/09/17 07:32:43 jormal Exp $
 // 
 // Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -19,7 +19,7 @@
 
 namespace picsom {
   static const string TSSOM_C_vcid =
-    "@(#)$Id: TSSOM.C,v 2.210 2019/04/17 08:03:20 jormal Exp $";
+    "@(#)$Id: TSSOM.C,v 2.211 2020/09/17 07:32:43 jormal Exp $";
 
   static TSSOM list_entry(true);
 
@@ -1706,7 +1706,8 @@ bool TSSOM::CheckDataSetTargetTypes() const {
 			  bool forcerecalculate) {
     string msg = "TSSOM::CheckDataSet() <"+Name()+"> : ";
 
-    bool fast_bin_check = VectorIndex::FastBinCheck(); //  fast doesn't detect zero vectors
+    //  fast doesn't detect zero vectors
+    bool fast_bin_check = VectorIndex::FastBinCheck(); 
     bool check_nan_inf  = VectorIndex::NanInfCheck();
 
     DataBase *db = CheckDB();
@@ -1747,10 +1748,10 @@ bool TSSOM::CheckDataSetTargetTypes() const {
     if (db->UseBinFeaturesRead())
       BinDataOpen(db->OpenReadWriteFea(), db->Size(), false, 0.0, augm);
 
-    string zzz;
+    string zzz = " target_type="+TargetTypeString(tt);
     if (db->UseBinFeaturesRead())
-      zzz = " "+string(fast_bin_check?"fast":
-		       VectorIndex::BinDataFullTest()?"full":"simple")
+      zzz += " "+string(fast_bin_check?"fast":
+			VectorIndex::BinDataFullTest()?"full":"simple")
 	+" bin data test"+string(check_nan_inf&&!fast_bin_check?
 				 " with component check":"");
     WriteLog("Starting to check data for zero vectors, orphans, etc."+zzz);
@@ -1796,7 +1797,8 @@ bool TSSOM::CheckDataSetTargetTypes() const {
       bool hit = ttmatch && (restr.empty() || restr[i]==1);
 
       if (verbose>3)
-	cout << db->ObjectDump(i) << " ttmatchold=" << ttmatchold
+	cout << db->ObjectDump(i) << " ottmask=" << TargetTypeString(ottmask)
+	     << " ttmatchold=" << ttmatchold
 	     << " ttmatchnew=" << ttmatchnew
 	     << " ttmatchnewer=" << ttmatchnewer
 	     << " restr.empty()=" << restr.empty()

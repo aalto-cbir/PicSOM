@@ -8,7 +8,7 @@
    Cepstrum, which is a class that calculates the mel-cepstrum feature
    using an external command
 
-   \author Mats Sjöberg <mats.sjoberg@hut.fi>
+   \author Mats Sjoberg <mats.sjoberg@hut.fi>
    $Revision: 1.10 $
    $Date: 2008/10/31 09:44:26 $
    \bug May be some out there hiding.

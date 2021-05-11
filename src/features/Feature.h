@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Feature.h,v 1.220 2019/04/01 09:43:05 jormal Exp $
+// -*- C++ -*-  $Id: Feature.h,v 1.223 2021/05/11 14:48:42 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -15,8 +15,8 @@
    features.
   
    \author Jorma Laaksonen <jorma.laaksonen@hut.fi>
-   $Revision: 1.220 $
-   $Date: 2019/04/01 09:43:05 $
+   $Revision: 1.223 $
+   $Date: 2021/05/11 14:48:42 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -89,7 +89,7 @@ namespace picsom {
     }
 
     ///
-    void append(const labeled_float_vector& v) throw(string) {
+    void append(const labeled_float_vector& v) /*throw(string)*/ {
       if (!data.empty() && dimension()!=v.first.size())
 	throw string("feature_result::append(vector) : dimension mismatch "
 		     +ToStr(dimension())+"!="+ToStr(v.first.size()));
@@ -97,7 +97,7 @@ namespace picsom {
     }
 
     ///
-    void append(const feature_result& src) throw(string) {
+    void append(const feature_result& src) /*throw(string)*/ {
       if (!data.empty() && dimension()!=src.dimension())
 	throw string("feature_result::append(feature_result) : "
 		     "dimension mismatch "
@@ -113,7 +113,23 @@ namespace picsom {
   }; // class feature_result
 
   ///
-  typedef pair<pair<string,string>,vector<float> > incore_feature_t;
+  /// typedef pair<pair<string,string>,vector<float> > incore_feature_t;
+  class incore_feature_t {
+  public:
+    ///
+    incore_feature_t(const string& t, const string& i,
+		     const vector<float>& v) :
+      type(t), ident(i), vec(v) {}
+      
+    ///
+    string type;
+
+    ///
+    string ident;
+
+    ///
+    vector<float> vec;
+  }; // class incore_feature_t
 
   ///
   class feature_batch_e {
@@ -503,7 +519,7 @@ namespace picsom {
 
     /** Access to image segmentation information.
      */
-    segmentfile *SegmentData() const throw(string) {
+    segmentfile *SegmentData() const /*throw(string)*/ {
       if (!segmentfile_ptr)
 	throw string("segmentdata pointer is null");
       return segmentfile_ptr;
@@ -2136,6 +2152,14 @@ namespace picsom {
     static imagedata ExtractSegment(const string&, const string&,
 				    const string&);
 
+    /** Returns true if temporary files should be kept
+	\return true if temporary files should be kept
+    */
+    static bool KeepTmp() { return keeptmp; }
+
+    ///
+    static void KeepTmp(bool k) { keeptmp = k; }
+
   protected:
     /// The default constructor  
     Feature();
@@ -2421,12 +2445,6 @@ namespace picsom {
       vector<vector<float> > vec;
     };
     
-
-    /** Returns true if temporary files should be kept
-	\return true if temporary files should be kept
-    */
-    bool KeepTmp() const { return keeptmp; }
-
     /// true if zero shall be used as an index
     // bool UseZeroIndex() const { return use_background||!ZeroIsBackground();}
 
@@ -2868,7 +2886,7 @@ namespace picsom {
     static string static_tempdir;
 
     /// if we should keep temporary files
-    bool keeptmp;
+    static bool keeptmp;
 
 #ifdef HAVE_GLOG_LOGGING_H
     ///

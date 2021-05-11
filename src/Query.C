@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Query.C,v 2.643 2018/12/15 23:07:51 jormal Exp $
+// -*- C++ -*-  $Id: Query.C,v 2.645 2020/11/20 18:19:49 jormal Exp $
 // 
-// Copyright 1998-2018 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -22,7 +22,7 @@ namespace picsom {
   using namespace std;
 
   static const string Query_C_vcid =
-    "@(#)$Id: Query.C,v 2.643 2018/12/15 23:07:51 jormal Exp $";
+    "@(#)$Id: Query.C,v 2.645 2020/11/20 18:19:49 jormal Exp $";
 
   static string splitchars = " \t\r\n/";
 
@@ -20221,8 +20221,10 @@ double Query::HannVectorValue(double i, double len, double) {
     typedef double * dptr;
 
     double **tgtp=new dptr[3];
-    for(i=0;i<3;i++)
-      tgtp[i]=m[i]-1;
+    ShowError("MSEFitParabola() : error... aborting...");
+    SimpleAbort();
+    // for(i=0;i<3;i++)
+    //   tgtp[i]=m[i]-1; // ??? warning: array subscript ...
 
     InvertMatrix(tgtp-1,3);
 

@@ -167,7 +167,7 @@ protected:
       // extract the day string, and then remove it:
       date = StripLeadingWhitespace(date);
       i = date.find_first_not_of(
-		 "abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ");
+		 "abcdefghijklmnopqrstuvwxyzåaoABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ");
       day_of_week = DayStringToInt(date.substr(0,i));
       date.erase(0,i);
       if (day_of_week < 0)
@@ -182,7 +182,7 @@ protected:
       // extract the month string and convert it to int:
       date = StripLeadingWhitespace(date);
       i = date.find_first_not_of(
-		 "abcdefghijklmnopqrstuvwxyzåäöABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ");
+		 "abcdefghijklmnopqrstuvwxyzåaoABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ");
       month = MonthStringToInt(date.substr(0,i));
       date.erase(0,i);
       if (month < 0)
@@ -368,8 +368,8 @@ protected:
 	{ 3,  "Maalis" },
 	{ 4,  "Huhti" },
 	{ 5,  "Touko" },
-	{ 6,  "Kesä" },
-	{ 7,  "Heinä" },
+	{ 6,  "Kesa" },
+	{ 7,  "Heina" },
 	{ 8,  "Elo" },
 	{ 9,  "Syys" },
 	{ 10, "Loka" },

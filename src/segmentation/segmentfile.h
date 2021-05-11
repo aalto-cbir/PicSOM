@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: segmentfile.h,v 1.121 2019/02/04 09:10:34 jormal Exp $
+// -*- C++ -*-  $Id: segmentfile.h,v 1.123 2021/05/11 14:48:12 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -41,18 +41,25 @@ namespace picsom {
 
     /// default constructor
     coord(){x=y=0;};
+
     ///
     coord(int X,int Y){x=X;y=Y;}
+
     /// copy constructor
-    coord(const coord &c){ x=c.x; y=c.y;}
+    // coord(const coord &c){ x=c.x; y=c.y;}
+
     /// truncates floating point coordinates
     coord(const coord_float &c);
+
     /// 
     bool operator ==(const coord &c) const {return (x==c.x && y==c.y);} 
+
     ///
     bool operator !=(const coord &c) const {return (!(*this==c));} 
+
     /// orders according to y coord first, in case of ties according to x
     bool operator < (const coord &c) const {return (y<c.y||(y==c.y && x<c.x));}
+
     /// writes coord class to stream
     friend std::ostream &operator<<(std::ostream &out, const coord &c) {
       out << c.x << " " << c.y;
@@ -210,15 +217,14 @@ namespace picsom {
     RGBTriple() :v(3) {v[0]=v[1]=v[2]=0;}
 
     ///
-    RGBTriple(const RGBTriple &o) : v(3){
+    RGBTriple(const RGBTriple &o) : v(3) {
       v[0]=o.v[0];
       v[1]=o.v[1];
       v[2]=o.v[2];
     };
     
     ///
-    RGBTriple(float red,float green, float blue)
-      : v(3){
+    RGBTriple(float red, float green, float blue) : v(3) {
       if(red>1 || green > 1 || blue>1 || red < 0 || green < 0 || blue < 0 )
 	throw 
 	  std::string("Segmentation::RGBTriple::RGBTriple : "
@@ -228,7 +234,11 @@ namespace picsom {
       b(blue);
     }
 
+    ///
     virtual ~RGBTriple() {}
+
+    ///
+    RGBTriple& operator=(const RGBTriple&) = default;
     
     ///
     float SqrDist(const RGBTriple &o) {
@@ -1246,7 +1256,7 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
 	\param s a pointer to segmentation data
     */
     rectangularRegion(const string& d,
-		      const segmentfile *s = NULL) throw(string);
+		      const segmentfile *s = NULL) /*throw(string)*/;
 
     virtual Region *parseAndCreate(const string &s) const {
       if(s.find("rect:")!=0)
@@ -1267,7 +1277,7 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
 	\param s a pointer to segmentation data. In this case
 	(x0,y0) is replaced by name of point-type segmentation result.
     */
-    bool SolvePoint(const string& d, const segmentfile *s) throw(string);
+    bool SolvePoint(const string& d, const segmentfile *s) /*throw(string)*/;
 
     /** Used by standard constructor for box regions.
 	\param p a string of the form "ulx,uly,brx,bry", where the 
@@ -1275,7 +1285,7 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
 	\param s a pointer to segmentation data. In this case
 	ulx,uly,brx,bry is replaced by name of box-type segmentation result.
     */
-    bool SolveBox(const string& d, const segmentfile *s) throw(string);
+    bool SolveBox(const string& d, const segmentfile *s) /*throw(string)*/;
 
     /// definitions for virtual functions
 
@@ -1841,7 +1851,7 @@ class preprocessResult_HueDiffSumQuant256: public preprocessResult{
     ///
     static const string& version() {
       static string v =
-	"$Id: segmentfile.h,v 1.121 2019/02/04 09:10:34 jormal Exp $";
+	"$Id: segmentfile.h,v 1.123 2021/05/11 14:48:12 jormal Exp $";
       return v;
     }
 

@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: bin_data.C,v 2.40 2019/09/20 12:49:42 jormal Exp $
+// -*- C++ -*-  $Id: bin_data.C,v 2.41 2021/05/11 14:46:57 jormal Exp $
 // 
 // Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -33,7 +33,7 @@
 
 namespace picsom {
   static const string bin_data_C_vcid =
-    "@(#)$Id: bin_data.C,v 2.40 2019/09/20 12:49:42 jormal Exp $";
+    "@(#)$Id: bin_data.C,v 2.41 2021/05/11 14:46:57 jormal Exp $";
 
   bool bin_data::_close_handles = true;
 
@@ -132,7 +132,7 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool bin_data::close(bool do_throw) throw(string) {
+  bool bin_data::close(bool do_throw) /*throw(string)*/ {
     string msg = "bin_data::close() : ", err;
 
     bool ok = true;
@@ -292,7 +292,7 @@ namespace picsom {
 
   bool bin_data::open(const string& fn, bool rw, float v,
 		      bin_data::header::format_type fmt,
-		      size_t bits, size_t vl) throw(string) {
+		      size_t bits, size_t vl) /*throw(string)*/ {
     // string msg = "bin_data::open("+fn+") : ";
 
     bool ok = false;
@@ -338,7 +338,7 @@ namespace picsom {
 
   bool bin_data::open_inner(const string& fn, bool rw, float v,
 			    bin_data::header::format_type fmt,
-			    size_t bits, size_t vl) throw(string) {
+			    size_t bits, size_t vl) /*throw(string)*/ {
     string msg = "bin_data::open_inner("+fn+") : ";
 
     _incore = fn.find("/dev/null")==0;
@@ -587,7 +587,7 @@ namespace picsom {
   
   /////////////////////////////////////////////////////////////////////////////
 
-  bool bin_data::resize(size_t n, unsigned char x) throw(string) {
+  bool bin_data::resize(size_t n, unsigned char x) /*throw(string)*/ {
     // string msg = "bin_data::resize() : ";
     // this could work also for v11 containing only one block of type 1
     return is_v10() ? resize_common(rawsize(n), x) : false;
@@ -595,7 +595,7 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool bin_data::resize_common(size_t l, unsigned char x) throw(string) {
+  bool bin_data::resize_common(size_t l, unsigned char x) /*throw(string)*/ {
     // string msg = "bin_data::resize_common() : ";
 
     bool ok = false;
@@ -623,7 +623,7 @@ namespace picsom {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool bin_data::resize_common_inner(size_t l, unsigned char x) throw(string) {
+  bool bin_data::resize_common_inner(size_t l, unsigned char x) /*throw(string)*/ {
     string msg = "bin_data::resize_common_inner("+ToStr(l)+") : ";
 
     // cout << "resize_inner() : 0" << endl;

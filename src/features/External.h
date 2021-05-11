@@ -1,4 +1,4 @@
-// -*- C++ -*- $Id: External.h,v 1.51 2014/02/03 09:21:16 jorma Exp $
+// -*- C++ -*- $Id: External.h,v 1.53 2020/03/06 13:18:47 jormal Exp $
 
 /**
    \file External.h
@@ -9,13 +9,14 @@
    External, which is a base class for feature calculations that
    use an external program to perform the feature extraction.
   
-   \author Mats Sjöberg <mats.sjoberg@hut.fi>
-   $Revision: 1.51 $
-   $Date: 2014/02/03 09:21:16 $
+   \author Mats Sjoberg <mats.sjoberg@hut.fi>
+   $Revision: 1.53 $
+   $Date: 2020/03/06 13:18:47 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
 */
+
 #ifndef _External_h_
 #define _External_h_
 
@@ -250,19 +251,19 @@ protected:
 
   void SetInput(const string& s) { input = s; }
 
-  virtual string GetInput() const { return input; }
+  virtual const string& GetInput() const { return input; }
 
   virtual bool SaveOutput() const { return false; }
 
   virtual void StoreOutput(const string& buf) { output = buf; }
 
-  virtual string GetOutput() const { return output; }
+  virtual const string& GetOutput() const { return output; }
 
   virtual bool SaveError() const { return false; }
 
   virtual void StoreError(const string& buf) { error_output = buf; }
 
-  virtual string GetError() const { return error_output; }
+  virtual const string& GetError() const { return error_output; }
 
   virtual bool NeedsConversion() const { return false; }
 
@@ -295,14 +296,23 @@ protected:
   ///
   virtual execchain_t GetExecChain(int f, bool all, int l) = 0;
 
+  //
   virtual void SetEnsurePost() {};
+
+  //
   virtual void SetEnsurePre() {};
 
-  int FileSize(string filename) const;
-  bool WaitForFile(string filename) const;
+  //
+  int FileSize(const string& filename) const;
 
-  void PostEnsure(string s) { post_ensure_files.push_back(s); }
-  void PreEnsure(string s) { pre_ensure_files.push_back(s); }
+  //
+  bool WaitForFile(const string& filename) const;
+
+  //
+  void PostEnsure(const string& s) { post_ensure_files.push_back(s); }
+
+  //
+  void PreEnsure(const string& s) { pre_ensure_files.push_back(s); }
 
   bool binary_not_found;
 

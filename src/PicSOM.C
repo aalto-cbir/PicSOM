@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: PicSOM.C,v 2.618 2019/11/19 12:26:43 jormal Exp $
+// -*- C++ -*-  $Id: PicSOM.C,v 2.638 2021/05/11 13:01:28 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -26,6 +26,7 @@
 #include <Feature.h>
 #include <RandVar.h>
 #include <SVM.h>
+#include <PythonUtil.h>
 
 #include <map>
 
@@ -195,7 +196,7 @@ extern "C" {
 
 namespace picsom {
   const string PicSOM_C_vcid =
-    "@(#)$Id: PicSOM.C,v 2.618 2019/11/19 12:26:43 jormal Exp $";
+    "@(#)$Id: PicSOM.C,v 2.638 2021/05/11 13:01:28 jormal Exp $";
 
   int PicSOM::debug_times  = 0;
   int PicSOM::debug_mem    = 0;
@@ -231,9 +232,9 @@ namespace picsom {
   bool PicSOM::has_segmentation_internal = true;
   bool PicSOM::has_imgrobot_internal     = false;
 
-#if defined(PICSOM_USE_CAFFE)||defined(PICSOM_USE_CAFFE2)
+#if defined(HAVE_CAFFE2_CORE_MACROS_H) && defined(PICSOM_USE_CAFFE2)
   static bool caffe2_initialized = false;
-#endif // PICSOM_USE_CAFFE||PICSOM_USE_CAFFE2
+#endif // HAVE_CAFFE2_CORE_MACROS_H && PICSOM_USE_CAFFE2
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -275,7 +276,11 @@ namespace picsom {
 
 #if defined(HAVE_GLOG_LOGGING_H) && (defined(PICSOM_USE_CAFFE)||defined(PICSOM_USE_CAFFE2))
     // should test something like google::IsGoogleLoggingInitialized()
-    if (!Feature::GlogInitDone() && !caffe2_initialized)
+    bool do_init = !Feature::GlogInitDone();
+#if defined(HAVE_CAFFE2_CORE_MACROS_H) && defined(PICSOM_USE_CAFFE2)
+    do_init = do_init && !caffe2_initialized;
+#endif // HAVE_CAFFE2_CORE_MACROS_H && PICSOM_USE_CAFFE2
+    if (do_init)
       google::InitGoogleLogging(myname_str.c_str());
     FLAGS_logtostderr = 0;
     Feature::GlogInitDone(true);
@@ -353,20 +358,25 @@ namespace picsom {
 
     LoggingModeTimestampIdentity();
 
-#ifdef PICSOM_USE_PYTHON
-    // setenv("PYTHONPATH", ".", 1);
-    Py_Initialize();
-    PyEval_InitThreads();
-    PyEval_SaveThread(); // obs!
-    string pyv = "2";
-#ifdef PICSOM_USE_PYTHON3
-    pyv = "3";
-#endif // PICSOM_USE_PYTHON3
-    // this should obey quiet switch -q ...
-    // WriteLog("Python"+pyv+" initialized");
-    // TestPyGILState("PicSOM::PicSOM()");
-#endif // PICSOM_USE_PYTHON
+// #ifdef PICSOM_USE_PYTHON
+//     setenv("PYTHONHOME", "/l/jormal/picsom/features/venv", 1);
+//     // setenv("PYTHONPATH", ".", 1);
+//     Py_Initialize();
+//     PyEval_InitThreads();
+//     // PyEval_SaveThread(); // obs!
+//     string pyv = "2";
+// #ifdef PICSOM_USE_PYTHON3
+//     pyv = "3";
+// #endif // PICSOM_USE_PYTHON3
+//     // this should obey quiet switch -q ...
+//     // WriteLog("Python"+pyv+" initialized");
+//     // TestPyGILState("PicSOM::PicSOM()");
+// #endif // PICSOM_USE_PYTHON
+//     Feature::PythonInitialized(true);
 
+    // PythonHome("/l/jormal/picsom/features/venv");
+    // ConditionallyInitializePython();
+    
     if (env.find("_CONDOR_JOB_AD")==env.end()) {
       gpudevice = SolveGpuDevice();
       if (gpudevice==-2) {
@@ -388,7 +398,7 @@ namespace picsom {
 #endif // PICSOM_USE_MPI
     use_slaves = true;
 
-    CleanUpBogusDirs();
+    // CleanUpBogusDirs();  // moved below...
 
     for (size_t ai=0; ai<arg.size(); ai++) {
       cmdline_str += (ai?" ":"");
@@ -412,6 +422,8 @@ namespace picsom {
       exit(1);
     }
 
+    CleanUpBogusDirs();
+
     if (env.find("ROOT")!=env.end()) {
       path_str = env["ROOT"];
 
@@ -428,7 +440,9 @@ namespace picsom {
 
     Segmentation::PicSOMroot(path_str);
     Feature::PicSOMroot(path_str);
-    videofile::local_bin(Path()+"/"+SolveArchitecture()+"/bin");
+    string bindir = Path()+"/"+SolveArchitecture()+"/bin";
+    videofile::prepend_bin_path(bindir);
+    set_temp_dir(TempDirPersonal());
 
     if (guarding) {
       if (!DoGuarding())
@@ -823,6 +837,8 @@ namespace picsom {
 
     set<string> vars;
     vars.insert("PATH");
+    vars.insert("TMPDIR");
+    vars.insert("LOCAL_SCRATCH");
     vars.insert("LD_LIBRARY_PATH");
     vars.insert("LD_PRELOAD");
     vars.insert("PYTHONPATH");
@@ -1387,6 +1403,7 @@ bool PicSOM::DoSshForwarding(int p) {
        << " load=" << slave.load 
        << " cpus=" << slave.cpucount 
        << " usage=" << slave.cpuusage
+       << " rssize=" << HumanReadableBytes(slave.rssize)
        << " returned_empty=" << int(slave.returned_empty)
        << endl << "      "
        << " n_slaves_now=" << slave.n_slaves_now
@@ -1551,7 +1568,8 @@ bool PicSOM::DoSshForwarding(int p) {
     
     // triton defaults are: 00:15:00       2000 (M)   smallmem
     set<string> sbatch_keys { "time", "mem-per-cpu", "partition", "qos",
-	"N", "n", "exclusive", "constraint", "gres", "debug" };
+			      "N", "n", "exclusive", "constraint", "gres",
+			      "account", "debug" };
     set<string> condor_keys { "request_memory" };
     list<pair<string,string>> sbatch_keyval;
     map<string,string> condor_keyval;
@@ -2366,7 +2384,10 @@ bool PicSOM::DoSshForwarding(int p) {
     size_t n_locked_tot = 0, n_locked_other = 0;
     size_t n_keep_locked = 0, n_term = 0, n_limbo = 0;
     size_t no_conn = 0, n_close = 0, n_fail = 0, no_mpi = 0;
-    size_t no_req = 0, n_sent = 0, n_rcvd = 0, n_norcvd = 0, n_wait = 0; 
+    size_t no_req = 0, n_sent = 0, n_rcvd = 0, n_norcvd = 0, n_wait = 0;
+    size_t max_rssize = 0;
+    static size_t max_max_rssize = 0;
+
     for (auto& i : slave_list) {
       if (i.Locked()) {
 	n_locked_tot++;
@@ -2380,6 +2401,9 @@ bool PicSOM::DoSshForwarding(int p) {
       if (!was_locked)
 	i.RwLockIt();
 
+      if (i.rssize!=size_t(-1) && i.rssize>max_rssize)
+	max_rssize = i.rssize;
+      
       if (i.status=="terminated")
 	n_term++;
 
@@ -2394,7 +2418,7 @@ bool PicSOM::DoSshForwarding(int p) {
 
       else if (i.conn->IsFailed())
 	n_fail++;
-      
+
       else if (!stats_only) {
 	if (i.conn->Type()!=Connection::conn_mpi_down)
 	  no_mpi++;
@@ -2447,11 +2471,17 @@ bool PicSOM::DoSshForwarding(int p) {
        << " wait="   	   << n_wait
        << " rcvd="   	   << n_rcvd
        << " no_rcvd="	   << n_norcvd
-       << " sent="   	   << n_sent;
+       << " sent="   	   << n_sent
+       << " max_rssize="   << HumanReadableBytes(max_rssize);
 
     if (debug)
       WriteLog(msg+ss.str());
 
+    if (max_rssize>max_max_rssize) {
+      WriteLog(msg+"New max RSSize="+HumanReadableBytes(max_rssize));
+      max_max_rssize = max_rssize;
+    }
+    
     RwUnlockReadSlaveList();
     if (debug)
       WriteLog(msg+"unlocked");
@@ -2636,6 +2666,15 @@ bool PicSOM::DoSshForwarding(int p) {
       return ShowError(msg+"empty <cpuusage>");
     }
     s.cpuusage = atof(u.c_str());
+
+    string r = xml.FindContent("/result/status/rssize", true);
+    if (r.find_first_not_of(" \t\n")==string::npos) {
+      s.status_requested = false;
+      if (do_lock)
+	s.RwUnlockIt();
+      return ShowError(msg+"empty <rssize>");
+    }
+    s.rssize = atol(r.c_str());
 
     s.running_threads = 0;
     s.pending_threads = 0;
@@ -3142,8 +3181,8 @@ bool PicSOM::DoSshForwarding(int p) {
     string msg = "CheckSlaveCountSlurm() : ";
 
     //string slurm = "/share/apps/bin/slurm";
-    //string slurm = "/usr/bin/slurm";
-    string slurm = "/usr/local/bin/slurm";
+    //string slurm = "/usr/local/bin/slurm";
+    string slurm = "/usr/bin/slurm";
     size_t n_pend = 0;
     set<size_t> ids;
     stringstream ss;
@@ -3262,11 +3301,18 @@ bool PicSOM::DoSshForwarding(int p) {
   bool PicSOM::PossiblyStartNewSlaves(slave_info_t& s) {
     string msg = "PossiblyStartNewSlaves() : ";
 
-    static size_t r = 0;
-    r++;
-    if (r%10==0)
-      CheckSlaveCount(s);
+    // static size_t r = 0;
+    // r++;
+    // if (r%10==0)
+    //   CheckSlaveCount(s);
 
+    int check_interval_sec = 60;
+    static struct timespec time_last = TimeZero();
+    if (MoreRecent(time_last, check_interval_sec)) {
+      CheckSlaveCount(s);
+      time_last = TimeNow();
+    }
+    
     size_t start = 0, max_all = s.max_slaves_start+s.max_slaves_add;
     if (s.n_slaves_now<s.max_slaves_start && s.max_slaves_add && 
 	s.n_slaves_started<max_all) {
@@ -4277,6 +4323,7 @@ bool PicSOM::DoSshForwarding(int p) {
 	*/
       if (astr=="-Dkeep" || astr=="-Dkeep_temp") {
 	KeepTemp(true);
+	Feature::KeepTmp(true);
 	continue;
       }
 
@@ -4781,11 +4828,29 @@ bool PicSOM::DoSshForwarding(int p) {
       }
 
       /*>
+	-Drdf
+        *DOCUMENTATION MISSING*
+	*/
+      if (astr=="-Drdf") {
+	DataBase::DebugRdf(true);
+	continue;
+      }
+
+      /*>
 	-Dtext
         *DOCUMENTATION MISSING*
 	*/
       if (astr=="-Dtext") {
 	DataBase::DebugText(true);
+	continue;
+      }
+
+      /*>
+	-Dtext
+        *DOCUMENTATION MISSING*
+	*/
+      if (astr=="-Dboxdata") {
+	DataBase::DebugBoxData(true);
 	continue;
       }
 
@@ -6284,7 +6349,7 @@ void PicSOM::WriteLogCommon(const char *head, ostringstream& os) const {
     SetVersionData("Pieces", piecestr);
 
 #ifdef PY_VERSION
-    string pythonv = Py_GetVersion();
+    string pythonv = PythonVersion(true);
     for (;;) {
       size_t p = pythonv.find("\n");
       if (p==string::npos)
@@ -6563,6 +6628,14 @@ bool PicSOM::AddToXMLanalysis(XmlDom& xml, const Analysis *ana,
     string cpuusage = ToStr(tmp);
     s.Element("cpuusage", cpuusage);
 
+    int pagesize=0, size=0, resident=0, share=0;
+    int trs=0, drs=0, lrs=0, dt=0;
+    bool r = GetMemoryUsage(pagesize, size, resident, share,
+			    trs, drs, lrs, dt);
+    if (!r)
+      pagesize = 0;
+    s.Element("rssize", ToStr(size_t(pagesize)*resident));
+    
     return AddToXMLanalysislist(s, "brief") && AddToXMLthreadlist(s);
   }
 
@@ -6593,9 +6666,10 @@ bool PicSOM::AddToXMLanalysis(XmlDom& xml, const Analysis *ana,
     s.Element("executable", e->executable);
     //s.Element("command",  join(e->command));
     s.Element("status",     e->status);
-    s.Element("load",    	  ToStr(e->load));
+    s.Element("load",       ToStr(e->load));
     s.Element("cpucount",   ToStr(e->cpucount));
     s.Element("cpuusage",   ToStr(e->cpuusage));
+    s.Element("rssize",     ToStr(e->rssize));
     s.Element("submitted",  TimeString(e->submitted));
     s.Element("started",    TimeString(e->started));
     s.Element("updated",    TimeString(e->updated));
@@ -7071,7 +7145,7 @@ void PicSOM::StartTimes() {
 
       bool no_dir = !DirectoryExists(dbpath);
       basedb = new DataBase(this, name, dbpath, "", false, no_dir);
-      basedb->InterpretDefaults(); // added 2010-03-01
+      basedb->InterpretDefaults();
 
       if (all_views)
 	basedb->FindAllViews();
@@ -7252,523 +7326,546 @@ void PicSOM::FindAllDataBases(bool all_views) {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
-bool PicSOM::DoInterpret(const string& key, const string& val,
-			 PicSOM *p, Query *q,
-			 const Connection *cc, Connection *mc,
-			 Analysis *a, TSSOM *t, bool other, bool warn) {
-  bool ready = false;
-  int result = 0;
+  bool PicSOM::DoInterpret(const string& key, const string& val,
+			   PicSOM *p, Query *q,
+			   const Connection *cc, Connection *mc,
+			   Analysis *a, TSSOM *t, bool other, bool warn) {
+    bool ready = false;
+    int result = 0;
 
-  //if (q) cout << "1 >>>> " << TargetTypeString(q->Target()) << endl;
+    //if (q) cout << "1 >>>> " << TargetTypeString(q->Target()) << endl;
 
-  if (a)
-    a->RecordKeyEqualValue(key, val);
+    if (a)
+      a->RecordKeyEqualValue(key, val);
 
-  if (!ready && p) {
-    ready = p->Interpret(key, val, result);
-    TraceInterpret(ready, "PicSOM", key, val, result);
-  }
-
-  if (!ready && a) {
-    ready = a->Interpret(key, val, result);
-    TraceInterpret(ready, "  Analysis", key, val, result);
-  }
-
-  if (!ready && mc) {
-    ready = mc->Interpret(key, val, result);
-    TraceInterpret(ready, "  Connection", key, val, result);
-  }
-  
-  if (!ready && q) {
-    ready = q->Interpret(key, val, result, cc);
-    TraceInterpret(ready, "  Query", key, val, result);
-  }
-
-  // earlier it was needed that q->QueryMode()==operation_create|insert
-  if (!ready && q && q->GetDataBase()) {
-    ready = q->GetDataBase()->Interpret(key, val, result);
-    TraceInterpret(ready, "  DataBase", key, val, result);
-  }
- 
-  if (!ready && t) {
-    ready = t->Interpret(key, val, result);
-    TraceInterpret(ready, "  TSSOM", key, val, result);
-  }
-
-  if (!ready && a) {
-    object_type ot = ObjectType(key);
-    if (int(ot)>=0) {
-      string oname = val, ospec;
-      size_t p = oname.find(' ');
-      if (p!=string::npos) {
-        ospec = oname.substr(p+1);
-        oname.erase(p);
-      }
-      ready = a->ProcessObjectRequest(ot, oname, ospec, result);
+    if (!ready && p) {
+      ready = p->Interpret(key, val, result);
+      TraceInterpret(ready, "PicSOM", key, val, result);
     }
-    TraceInterpret(ready, "  object", key, val, result);
+
+    if (!ready && a) {
+      ready = a->Interpret(key, val, result);
+      TraceInterpret(ready, "  Analysis", key, val, result);
+    }
+
+    if (!ready && mc) {
+      ready = mc->Interpret(key, val, result);
+      TraceInterpret(ready, "  Connection", key, val, result);
+    }
+  
+    if (!ready && q) {
+      ready = q->Interpret(key, val, result, cc);
+      TraceInterpret(ready, "  Query", key, val, result);
+    }
+
+    // earlier it was needed that q->QueryMode()==operation_create|insert
+    if (!ready && q && q->GetDataBase()) {
+      ready = q->GetDataBase()->Interpret(key, val, result);
+      TraceInterpret(ready, "  DataBase", key, val, result);
+    }
+ 
+    if (!ready && t) {
+      ready = t->Interpret(key, val, result);
+      TraceInterpret(ready, "  TSSOM", key, val, result);
+    }
+
+    if (!ready && a) {
+      object_type ot = ObjectType(key);
+      if (int(ot)>=0) {
+	string oname = val, ospec;
+	size_t p = oname.find(' ');
+	if (p!=string::npos) {
+	  ospec = oname.substr(p+1);
+	  oname.erase(p);
+	}
+	ready = a->ProcessObjectRequest(ot, oname, ospec, result);
+      }
+      TraceInterpret(ready, "  object", key, val, result);
+    }
+
+    if (!ready && q && other)
+      ready = q->AddOtherKeyValue(key, val);
+  
+    //if (q) cout << "2 >>>> " << TargetTypeString(q->Target()) << endl;
+
+    if (warn && (!ready || result!=1))
+      ShowError("PicSOM::DoInterpret() <", key, ">=<", val, "> ",
+		!ready?"not recognized":result==-1?"resulted in -1":"failed");
+
+    return result==1;
   }
 
-  if (!ready && q && other)
-    ready = q->AddOtherKeyValue(key, val);
-  
-  //if (q) cout << "2 >>>> " << TargetTypeString(q->Target()) << endl;
+  /////////////////////////////////////////////////////////////////////////////
 
-  if (warn && (!ready || result!=1))
-    ShowError("PicSOM::DoInterpret() <", key, ">=<", val, "> ",
-	      !ready?"not recognized":result==-1?"resulted in -1":"failed");
+  bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
+    res = 1;
 
-  return result==1;
-}
+    int  intval  = atoi(valstr.c_str());
+    bool boolval = IsAffirmative(valstr);
 
-///////////////////////////////////////////////////////////////////////////////
-
-bool PicSOM::Interpret(const string& keystr, const string& valstr, int& res) {
-  res = 1;
-
-  int  intval  = atoi(valstr.c_str());
-  bool boolval = IsAffirmative(valstr);
-
-  /*>> interpret
+    /*>> interpret
       path
       *DOCUMENTATION MISSING* */
     
-  if (keystr=="path") {
-    Path(valstr);
-    return true;
-  }
+    if (keystr=="path") {
+      Path(valstr);
+      return true;
+    }
 
-  if (keystr=="tempdir") {
-    if (!IsSlave() && !SetTempDirRoot(valstr))
-      res = ShowError("failed to set temp dir <"+valstr+">");
-    return true;
-  }
+    if (keystr=="tempdir") {
+      if (!IsSlave() && !SetTempDirRoot(valstr))
+	res = ShowError("failed to set temp dir <"+valstr+">");
+      return true;
+    }
 
-  if (keystr=="slavetempdir") {
-    if (IsSlave() && !SetTempDirRoot(valstr))
-      res = ShowError("failed to set temp dir <"+valstr+">");
-    return true;
-  }
+    if (keystr=="slavetempdir") {
+      if (IsSlave() && !SetTempDirRoot(valstr))
+	res = ShowError("failed to set temp dir <"+valstr+">");
+      return true;
+    }
 
-  /*>
+    /*>
       log
       *DOCUMENTATION MISSING* */
     
-  if (keystr=="log") {
-    OpenLog(valstr.c_str());
-    WriteLogVersion(); 
-    WriteLogProcessInfo();
-    return true;
-  }
-
-  // ...
-    
-  if (keystr=="logmode") {
-    LoggingMode(valstr);
-    return true;
-  }
-
-  if (keystr=="sqlserver") {
-    sqlserver = valstr;
-    if (DataBase::DebugSql())
-      cout << "sqlserver = " << sqlserver << endl;
-    return true;
-  }
-
-  if (keystr=="tempsqlitedb") {
-    if (!IsSlave())
-      tempsqlitedb = boolval;
-    return true;
-  }
-
-  if (keystr=="slavetempsqlitedb") {
-    if (IsSlave())
-      tempsqlitedb = boolval;
-    return true;
-  }
-
-  if (keystr=="unlimited") {
-    SetUnLimited();
-    return true;
-  }
-
-  if (keystr=="childlimits") {
-    childlimits = boolval; // this comes too late. see -guard=nolimits
-    return true;
-  }
-
-  if (keystr=="uselocalhost") {
-    uselocalhost = boolval;
-    return true;
-  }
-
-  if (keystr=="quiet") {
-    quiet = boolval;
-    return true;
-  }
-
-  if (keystr=="debugtimes") {
-    DebugTimes(intval);
-    StartTimes();
-    return true;
-  }
-
-  if (keystr=="debugmem") {
-    DebugMemoryUsage(intval);
-    PossiblyShowDebugInformation("After processing debugmem=x setting");
-    return true;
-  }
-
-  if (keystr=="debuglocks") {
-    Connection::DebugLocks(true);
-    DataBase::DebugLocks(true);
-    return true;
-  }
-
-  if (keystr=="debugkeys") {
-    Query::DebugAllKeys(boolval);
-    return true;
-  }
-
-  if (keystr=="debugtrap") {
-    Simple::TrapAfterError(boolval);
-    picsom::TrapAfterError(boolval);
-    return true;
-  }
-
-  if (keystr=="debugbacktrace") {
-    Simple::BackTraceBeforeTrap(boolval);
-    BackTraceBeforeTrap(boolval);
-    return true;
-  }
-
-  if (keystr=="debugoctave") {
-    DebugOctave(intval);
-    return true;
-  }
-
-  if (keystr=="debugorigins") {
-    DataBase::DebugOrigins(boolval);
-    return true;
-  }
-
-  if (keystr=="debugimg") {
-    imagefile::debug_impl(intval);
-    return true;
-  }
-
-  if (keystr=="debugvideo") {
-    videofile::debug(intval);
-    return true;
-  }
-
-  if (keystr=="debugimages") {
-    DataBase::DebugImages(intval);
-    return true;
-  }
-
-  if (keystr=="debugreads") {
-    Connection::DebugReads(boolval);
-    return true;
-  }
-
-  if (keystr=="debugwrites") {
-    Connection::DebugWrites(intval);
-    return true;
-  }
-
-  if (keystr=="debughttp") {
-    Connection::DebugHTTP(intval);
-    return true;
-  }
-
-  if (keystr=="debugajax") {
-    Query::DebugAjax(intval);
-    return true;
-  }
-
-  if (keystr=="debugaspects") {
-    Query::DebugAspects(boolval);
-    return true;
-  }
-
-  if (keystr=="debugplaceseen") {
-    Query::DebugPlaceSeen(boolval);
-    return true;
-  }
-
-  if (keystr=="debugstages") {
-    Query::DebugStages(boolval);
-    CbirAlgorithm::DebugStages(boolval);
-    return true;
-  }
-
-  if (keystr=="debugclassify") {
-    Query::DebugClassify(true);
-    CbirAlgorithm::DebugClassify(true);
-    return true;
-  }
-
-  if (keystr=="debugweights") {
-    Query::DebugWeights(true);
-    CbirAlgorithm::DebugWeights(true);
-    return true;
-  }
-
-  if (keystr=="debuglists") {
-    Query::DebugLists(intval);
-    CbirAlgorithm::DebugLists(intval);
-    return true;
-  }
-
-  if (keystr=="debugchecklists") {
-    Query::DebugCheckLists(true);
-    CbirStageBased::DebugCheckLists(true);
-    return true;
-  }
-
-  if (keystr=="debuggt") {
-    DataBase::DebugGroundTruth(true);
-    return true;
-  }
-
-  if (keystr=="debuggtexp") {
-    DataBase::DebugGroundTruthExpand(true);
-    return true;
-  }
-
-  if (keystr=="debugsvm") {
-    SVM::DebugSVM(intval);
-    return true;
-  }
-
-  if (keystr=="debugdetections") {
-    DataBase::DebugDetections(intval);
-    return true;
-  }
-
-  if (keystr=="debugcaptionings") {
-    DataBase::DebugCaptionings(intval);
-    return true;
-  }
-
-  if (keystr=="debugfeatures") {
-    DataBase::DebugFeatures(intval);
-    return true;
-  }
-
-  if (keystr=="debugsegmentation") {
-    DataBase::DebugSegmentation(intval);
-    Segmentation::Verbose(intval);
-    return true;
-  }
-
-  if (keystr=="debugsubobjects") {
-    Query::DebugSubobjects(boolval);
-    return true;
-  }
-
-  if (keystr=="debugslaves") {
-    debug_slaves = boolval;
-    return true;
-  }
-
-  if (keystr=="debugthreads") {
-#ifdef PICSOM_USE_PTHREADS
-    debug_threads = boolval;
-#endif // PICSOM_USE_PTHREADS
-    return true;
-  }
-
-  if (keystr=="debugscript") {
-    Analysis::DebugScript(boolval);
-    return true;
-  }
-
-  if (keystr=="debuginterpret") {
-    debug_interpret = boolval;
-    return true;
-  }
-
-  if (keystr=="debugsql") {
-    DataBase::DebugSql(boolval);
-    return true;
-  }
-
-  if (keystr=="debugtext") {
-    DataBase::DebugText(boolval);
-    return true;
-  }
-
-  if (keystr=="caffe_expand_task") {
-#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
-    extern void caffe_expand_task(size_t);
-    caffe_expand_task(intval);
-#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
-    return true;
-  }
-
-  if (keystr=="bin_data_full_test") {
-    VectorIndex::BinDataFullTest(boolval);
-    return true;
-  }
-
-  if (keystr=="fast_bin_check") {
-    VectorIndex::FastBinCheck(boolval);
-    return true;
-  }
-
-  if (keystr=="nan_inf_check") {
-    VectorIndex::NanInfCheck(boolval);
-    return true;
-  }
-
-  if (keystr=="force_fast_slave") {
-    ForceFastSlave(boolval);
-    return true;
-  }
-
-  if (keystr.find("limit_")==0)
-    return SetLimit(keystr.substr(6), valstr);
-
-  if (keystr=="pre707bug") {
-    Valued::Pre707Bug(boolval);
-    return true;
-  }
-
-  if (keystr=="slaves") {
-    SetSlaveInfo(valstr);
-    return true;
-  }
-
-  if (keystr=="slavepipe") {
-    slavepipe = valstr;
-    return true;
-  }
-
-  if (keystr=="use_slaves") {
-    use_slaves = boolval;
-    return true;
-  }
-
-  if (keystr=="use_mpi_slaves") {
-    use_mpi_slaves = boolval;
-    return true;
-  }
-
-  if (keystr=="gpupolicy") {
-    gpupolicy = intval;
-    if (gpupolicy==2 && gpudevice<0)
-      res = ShowError("gpupolicy=2 failed due to missing device");
-
-    Feature::GpuDeviceId(GpuDeviceId());
-    return true;
-  }
-
-  if (keystr=="gpudevice") {
-    gpudevice = intval;
-    Feature::GpuDeviceId(GpuDeviceId());
-    return true;
-  }
-
-  if (keystr=="parse_external_metadata") {
-    DataBase::ParseExternalMetadata(boolval);
-    return true;
-  }
-
-  if (keystr=="alloweddbs") {
-    SetAllowedDataBases(valstr);
-    return true;
-  }
-
-  if (keystr=="dbopenmode") {
-    if (!IsSlave())
-      DataBase::OpenReadWrite(valstr);
-    return true;
-  }
-
-  if (keystr=="slavedbopenmode") {
-    if (IsSlave())
-      DataBase::OpenReadWrite(valstr);
-    return true;
-  }
-
-  if (keystr=="force_lucene_unlock") {
-    // DataBase::ForceLuceneUnlock(boolval);
-    DataBase::ForceLuceneUnlock(false); // this shouldn't be true...
-    return true;
-  }
-
-  if (keystr=="listenport") {
-    if (valstr=="my") {
-      if (!ListenPort(UserName()))
-	ShowError("listenport=my failed for user ", UserName());
-
-    } else if (valstr=="yes") {
-      ListenPort();
-
-    } else {
-      int p, q;
-      int n = sscanf(valstr.c_str()+6, "%d..%d", &p, &q);
-      ListenPort(p, n==2?q:p);
+    if (keystr=="log") {
+      OpenLog(valstr.c_str());
+      WriteLogVersion(); 
+      WriteLogProcessInfo();
+      return true;
     }
 
-    SetUpListenConnection(true, true, "/");
+    // ...
+    
+    if (keystr=="logmode") {
+      LoggingMode(valstr);
+      return true;
+    }
 
-    return true;
-  }
+    if (keystr=="sqlserver") {
+      sqlserver = valstr;
+      if (DataBase::DebugSql())
+	cout << "sqlserver = " << sqlserver << endl;
+      return true;
+    }
+
+    if (keystr=="tempsqlitedb") {
+      if (!IsSlave())
+	tempsqlitedb = boolval;
+      return true;
+    }
+
+    if (keystr=="slavetempsqlitedb") {
+      if (IsSlave())
+	tempsqlitedb = boolval;
+      return true;
+    }
+
+    if (keystr=="storeauxid") {
+      storeauxid = boolval;
+      return true;
+    }
+
+    if (keystr=="unlimited") {
+      SetUnLimited();
+      return true;
+    }
+
+    if (keystr=="childlimits") {
+      childlimits = boolval; // this comes too late. see -guard=nolimits
+      return true;
+    }
+
+    if (keystr=="uselocalhost") {
+      uselocalhost = boolval;
+      return true;
+    }
+
+    if (keystr=="quiet") {
+      quiet = boolval;
+      return true;
+    }
+
+    if (keystr=="debugtimes") {
+      DebugTimes(intval);
+      StartTimes();
+      return true;
+    }
+
+    if (keystr=="debugmem") {
+      DebugMemoryUsage(intval);
+      PossiblyShowDebugInformation("After processing debugmem=x setting");
+      return true;
+    }
+
+    if (keystr=="debuglocks") {
+      Connection::DebugLocks(true);
+      DataBase::DebugLocks(true);
+      return true;
+    }
+
+    if (keystr=="debugkeys") {
+      Query::DebugAllKeys(boolval);
+      return true;
+    }
+
+    if (keystr=="debugtrap") {
+      Simple::TrapAfterError(boolval);
+      picsom::TrapAfterError(boolval);
+      return true;
+    }
+
+    if (keystr=="debugbacktrace") {
+      Simple::BackTraceBeforeTrap(boolval);
+      BackTraceBeforeTrap(boolval);
+      return true;
+    }
+
+    if (keystr=="debugoctave") {
+      DebugOctave(intval);
+      return true;
+    }
+
+    if (keystr=="debugorigins") {
+      DataBase::DebugOrigins(boolval);
+      return true;
+    }
+
+    if (keystr=="debugimg") {
+      imagefile::debug_impl(intval);
+      return true;
+    }
+
+    if (keystr=="debugvideo") {
+      videofile::debug(intval);
+      return true;
+    }
+
+    if (keystr=="debugimages") {
+      DataBase::DebugImages(intval);
+      return true;
+    }
+
+    if (keystr=="debugreads") {
+      Connection::DebugReads(boolval);
+      return true;
+    }
+
+    if (keystr=="debugwrites") {
+      Connection::DebugWrites(intval);
+      return true;
+    }
+
+    if (keystr=="debughttp") {
+      Connection::DebugHTTP(intval);
+      return true;
+    }
+
+    if (keystr=="debugajax") {
+      Query::DebugAjax(intval);
+      return true;
+    }
+
+    if (keystr=="debugaspects") {
+      Query::DebugAspects(boolval);
+      return true;
+    }
+
+    if (keystr=="debugplaceseen") {
+      Query::DebugPlaceSeen(boolval);
+      return true;
+    }
+
+    if (keystr=="debugstages") {
+      Query::DebugStages(boolval);
+      CbirAlgorithm::DebugStages(boolval);
+      return true;
+    }
+
+    if (keystr=="debugclassify") {
+      Query::DebugClassify(true);
+      CbirAlgorithm::DebugClassify(true);
+      return true;
+    }
+
+    if (keystr=="debugweights") {
+      Query::DebugWeights(true);
+      CbirAlgorithm::DebugWeights(true);
+      return true;
+    }
+
+    if (keystr=="debuglists") {
+      Query::DebugLists(intval);
+      CbirAlgorithm::DebugLists(intval);
+      return true;
+    }
+
+    if (keystr=="debugchecklists") {
+      Query::DebugCheckLists(true);
+      CbirStageBased::DebugCheckLists(true);
+      return true;
+    }
+
+    if (keystr=="debuggt") {
+      DataBase::DebugGroundTruth(true);
+      return true;
+    }
+
+    if (keystr=="debuggtexp") {
+      DataBase::DebugGroundTruthExpand(true);
+      return true;
+    }
+
+    if (keystr=="debugsvm") {
+      SVM::DebugSVM(intval);
+      return true;
+    }
+
+    if (keystr=="debugdetections") {
+      DataBase::DebugDetections(intval);
+      return true;
+    }
+
+    if (keystr=="debugcaptionings") {
+      DataBase::DebugCaptionings(intval);
+      return true;
+    }
+
+    if (keystr=="debugfeatures") {
+      DataBase::DebugFeatures(intval);
+      return true;
+    }
+
+    if (keystr=="debugsegmentation") {
+      DataBase::DebugSegmentation(intval);
+      Segmentation::Verbose(intval);
+      return true;
+    }
+
+    if (keystr=="debugsubobjects") {
+      Query::DebugSubobjects(boolval);
+      return true;
+    }
+
+    if (keystr=="debugslaves") {
+      debug_slaves = boolval;
+      return true;
+    }
+
+    if (keystr=="debugthreads") {
+#ifdef PICSOM_USE_PTHREADS
+      debug_threads = boolval;
+#endif // PICSOM_USE_PTHREADS
+      return true;
+    }
+
+    if (keystr=="debugscript") {
+      Analysis::DebugScript(boolval);
+      return true;
+    }
+
+    if (keystr=="debuginterpret") {
+      debug_interpret = boolval;
+      return true;
+    }
+
+    if (keystr=="debugsql") {
+      DataBase::DebugSql(boolval);
+      return true;
+    }
+
+    if (keystr=="debugrdf") {
+      DataBase::DebugRdf(boolval);
+      return true;
+    }
+
+    if (keystr=="debugtext") {
+      DataBase::DebugText(boolval);
+      return true;
+    }
+
+    if (keystr=="debugboxdata") {
+      DataBase::DebugBoxData(boolval);
+      return true;
+    }
+
+    if (keystr=="caffe_expand_task") {
+#if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
+      extern void caffe_expand_task(size_t);
+      caffe_expand_task(intval);
+#endif // HAVE_CAFFE_CAFFE_HPP && PICSOM_USE_CAFFE
+      return true;
+    }
+
+    if (keystr=="bin_data_full_test") {
+      VectorIndex::BinDataFullTest(boolval);
+      return true;
+    }
+
+    if (keystr=="fast_bin_check") {
+      VectorIndex::FastBinCheck(boolval);
+      return true;
+    }
+
+    if (keystr=="nan_inf_check") {
+      VectorIndex::NanInfCheck(boolval);
+      return true;
+    }
+
+    if (keystr=="force_fast_slave") {
+      ForceFastSlave(boolval);
+      return true;
+    }
+
+    if (keystr.find("limit_")==0)
+      return SetLimit(keystr.substr(6), valstr);
+
+    if (keystr=="pre707bug") {
+      Valued::Pre707Bug(boolval);
+      return true;
+    }
+
+    if (keystr=="slaves") {
+      SetSlaveInfo(valstr);
+      return true;
+    }
+
+    if (keystr=="slavepipe") {
+      slavepipe = valstr;
+      return true;
+    }
+
+    if (keystr=="use_slaves") {
+      use_slaves = boolval;
+      return true;
+    }
+
+    if (keystr=="use_mpi_slaves") {
+      use_mpi_slaves = boolval;
+      return true;
+    }
+
+    if (keystr=="gpupolicy") {
+      gpupolicy = intval;
+      if (gpupolicy==2 && gpudevice<0)
+	res = ShowError("gpupolicy=2 failed due to missing device");
+
+      Feature::GpuDeviceId(GpuDeviceId());
+      return true;
+    }
+
+    if (keystr=="gpudevice") {
+      gpudevice = intval;
+      Feature::GpuDeviceId(GpuDeviceId());
+      return true;
+    }
+
+    if (keystr=="parse_external_metadata") {
+      DataBase::ParseExternalMetadata(boolval);
+      return true;
+    }
+
+    if (keystr=="alloweddbs") {
+      SetAllowedDataBases(valstr);
+      return true;
+    }
+
+    if (keystr=="dbopenmode") {
+      if (!IsSlave())
+	DataBase::OpenReadWrite(valstr);
+      return true;
+    }
+
+    if (keystr=="slavedbopenmode") {
+      if (IsSlave())
+	DataBase::OpenReadWrite(valstr);
+      return true;
+    }
+
+    if (keystr=="force_lucene_unlock") {
+      // DataBase::ForceLuceneUnlock(boolval);
+      DataBase::ForceLuceneUnlock(false); // this shouldn't be true...
+      return true;
+    }
+
+    if (keystr=="pythonhome") {
+      string phome = valstr;
+      if (phome.substr(0, 2)=="~/")
+	phome.replace(0, 1, UserHomeDir());
+      PythonHome(phome);
+      return true;
+    }
+
+    if (keystr=="listenport") {
+      if (valstr=="my") {
+	if (!ListenPort(UserName()))
+	  ShowError("listenport=my failed for user ", UserName());
+
+      } else if (valstr=="yes") {
+	ListenPort();
+
+      } else {
+	int p, q;
+	int n = sscanf(valstr.c_str()+6, "%d..%d", &p, &q);
+	ListenPort(p, n==2?q:p);
+      }
+
+      SetUpListenConnection(true, true, "/");
+
+      return true;
+    }
 
 #ifdef PICSOM_USE_PTHREADS
-  if (keystr=="threads") {
-    threads = intval;
-    return true;
-  }
+    if (keystr=="threads") {
+      threads = intval;
+      return true;
+    }
 
-  if (keystr.find("pthreads_conn")==0) {
-    pthreads_connection = boolval;
-    return true;
-  }
+    if (keystr.find("pthreads_conn")==0) {
+      pthreads_connection = boolval;
+      return true;
+    }
 
-  if (keystr=="pthreads_tssom") {
-    pthreads_tssom = boolval;
-    return true;
-  }
+    if (keystr=="pthreads_tssom") {
+      pthreads_tssom = boolval;
+      return true;
+    }
 
-  if (keystr=="pthreads_analysis") {
-    Analysis::UsePthreads(intval);
-    return true;
-  }
+    if (keystr=="pthreads_analysis") {
+      Analysis::UsePthreads(intval);
+      return true;
+    }
 
-  if (keystr=="usethreads") {
-    vector<string> v = SplitInSomething(",", false, valstr);
-    if (v.size()==0)
-      v.push_back("");
-    for (size_t i=0; i<v.size(); i++)
-      if (v[i]=="analysis")
-	Analysis::UsePthreads(1000); // obs!
-      else if (v[i]=="insert")
-	Analysis::UsePthreadsInsert(true);
-      else if (v[i]=="detection")
-	DataBase::UsePthreadsDetection(true);
-      else if (v[i]=="features")
-	DataBase::UsePthreadsFeatures(true);
-      else if (v[i]=="connection")
-	pthreads_connection = true;
-      else if (v[i]=="tssom")
-	pthreads_tssom = true;
-      else {
-	res = 0;
-	ShowError("PicSOM::Interpret() : failed to interpret usethreads="+
-		  v[i]);
-      }
-    return true;
-  }
+    if (keystr=="usethreads") {
+      vector<string> v = SplitInSomething(",", false, valstr);
+      if (v.size()==0)
+	v.push_back("");
+      for (size_t i=0; i<v.size(); i++)
+	if (v[i]=="analysis")
+	  Analysis::UsePthreads(1000); // obs!
+	else if (v[i]=="insert")
+	  Analysis::UsePthreadsInsert(true);
+	else if (v[i]=="detection")
+	  DataBase::UsePthreadsDetection(true);
+	else if (v[i]=="features")
+	  DataBase::UsePthreadsFeatures(true);
+	else if (v[i]=="connection")
+	  pthreads_connection = true;
+	else if (v[i]=="tssom")
+	  pthreads_tssom = true;
+	else {
+	  res = 0;
+	  ShowError("PicSOM::Interpret() : failed to interpret usethreads="+
+		    v[i]);
+	}
+      return true;
+    }
 #endif // PICSOM_USE_PTHREADS
 
-  return false;
-}
+    return false;
+  }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -10810,7 +10907,7 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
       // if (temp_dir_root_d!=temp_dir_root)
       //   return ShowError("Setting temporary storage too late after usage.");
       // else
-	return true;
+      return true;
     }
 
     vector<string> pl = SplitInSomething(":", false, p);
@@ -10862,6 +10959,10 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	temp_dir_personal = "";
       }
 
+      string util_temp = temp_dir_root+"/util";
+      MkDir(util_temp, 0770);
+      set_temp_dir(util_temp);
+      
       return true;
     }
 
@@ -10880,12 +10981,21 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	}
 
       } else {
-	char *envdir = getenv("TMPDIR");
-	string d = (envdir && (strlen(envdir)>0) ? envdir : "/tmp");
+	list<string> l = { "LOCAL_SCRATCH", "TMPDIR" };
+	string d = "/tmp";
+	for (const auto& i : l) {
+	  char *envdir = getenv(i.c_str());
+	  if (envdir && (strlen(envdir)>0)) {
+	    d = envdir;
+	    break;
+	  }
+	}
 	while (d.size() && d[d.size()-1]=='/')
 	  d.erase(d.size()-1);
 	temp_dir_root_d = d;
       }
+      
+      WriteLog("Set default tempdirroot <"+temp_dir_root_d+">");
     }
     return temp_dir_root_d;
   }
@@ -11400,45 +11510,130 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 	ss << "evaluator=[" << evaluator << "] ";
     }
 
-    if (time && is_time_set())
-      ss << start << " " << end << " ";
-
     size_t j = 0;
-    for (auto& i : txt_val_box) {
+    for (const auto& i : txt_val_box_time) {
       if (!multi && j)
 	break;
       
       if (j++)
 	ss << " # ";
-      string t = i.t;
-      if (enc) {
-	size_t p = 0;
-	for (;;) {
-	  p = t.find('#', p);
-	  if (p==string::npos)
-	    break;
-	  t.insert(p, "#");
-	  p += 2;
-	}
-      }
-      ss << t;
-      if (val) {
-	if (i.is_val_set())
-	  ss << " (" << i.v << ")";
-	if (i.is_box_set())
-	  ss << " [" << i.x << " " << i.y << " " << i.h << " " << i.w << "]";
-      }
+
+      ss << i.str(time, val, enc);
     }
-	  
+    
     return ss.str();
   }
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool textline_t::txt_decode(const string& sin) {
-    string msg = "textline_t::txt_decode("+sin+") : ", s = sin;
+  string textline_t::txt_val_box_time_t::str(bool time, bool val,
+					     bool enc) const {
+    stringstream ss;
+    
+    if (time && is_time_set())
+      ss << b << " " << e << " ";
 
-    *this = textline_t();
+    if (is_speaker_set())
+      ss << "{" << s << "} ";
+
+    string z = t;
+    if (enc) {
+      size_t p = 0;
+      for (;;) {
+	p = z.find('#', p);
+	if (p==string::npos)
+	  break;
+	z.insert(p, "#");
+	p += 2;
+      }
+    }
+    ss << z;
+    if (val) {
+      if (is_val_set())
+	ss << " (" << v << ")";
+      if (is_box_set())
+	ss << " [" << x << " " << y << " " << h << " " << w << "]";
+    }
+
+    return ss.str();
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  textline_t::txt_val_box_time_t::txt_val_box_time_t(const string& sin) {
+    string msg = "txt_val_box_time("+sin+") : ", s = sin;
+
+    size_t p = s.find_first_not_of("0123456789.: \t");
+    if (p!=0 && s.substr(0, 2)!=" (") {
+      size_t q = s.find_first_of(" \t");
+      if (q!=string::npos) {
+	if (q==0) {
+	  ShowError(msg+"error #1");
+	  return;
+	}
+	if (q<=p) {
+	  size_t r = s.find_first_not_of(" \t", q);
+	  if (r==string::npos) {
+	    ShowError(msg+"error #2");
+	    return;
+	  }
+	  size_t t = s.find_first_of(" \t", r);
+	  if (t!=string::npos && t<=p) {      
+	    b = TimeStrToSec(s.substr(0, q));
+	    e = TimeStrToSec(s.substr(r, t-r));
+	    s.erase(0, p);
+	  }
+	}
+      }
+    }
+    
+    p = s.find_first_not_of(" \t");
+    if (p!=string::npos && s[p]=='{') {
+      size_t q = s.find('}', p);
+      if (q!=string::npos) {
+	this->s = s.substr(p+1, q-p-1);
+	p = s.find_first_not_of(" \t", q+1);
+	s.erase(0, p);
+      }
+    }
+    
+    t = s;
+    string b = s;
+    p = t.find(" (");
+    if (p!=string::npos) {
+      char *endptr = NULL;
+      errno = 0;
+      string ss = t.substr(p+2);
+      double d = strtod(ss.c_str(), &endptr);
+      if (!errno && endptr && *endptr==')') {
+	v = d;
+	t.erase(p);
+      }
+    }
+    p = b.find(" [");
+    if (p!=string::npos && b[b.size()-1]==']') {
+      int r = sscanf(b.substr(p+2).c_str(), "%lg %lg %lg %lg",
+		     &x, &y, &w, &h);
+      if (r!=4)
+	x = y = w = h = 0;
+    }
+
+    p = 0;
+    for (;;) {
+      p = t.find("##", p);
+      if (p==string::npos)
+	break;
+      t.erase(p, 1);
+      p += 1;
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool textline_t::add_decode(const string& sin) {
+    string msg = "textline_t::add_decode("+sin+") : ", s = sin;
+
+    // *this = textline_t();
 
     size_t p = s.find('\n');
     if (p!=string::npos && p!=s.size()-1)
@@ -11447,60 +11642,9 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
     if (p!=string::npos)
       s.erase(p);
 
-    p = s.find_first_not_of("0123456789.: \t");
-    if (p!=0 && s.substr(0, 2)!=" (") {
-      size_t q = s.find_first_of(" \t");
-      if (q==0 || q==string::npos)
-	return ShowError(msg+"error #1");
-      if (q<=p) {
-	size_t r = s.find_first_not_of(" \t", q);
-	if (r==string::npos)
-	  return ShowError(msg+"error #2");
-
-	size_t t = s.find_first_of(" \t", r);
-	if (t!=string::npos && t<=p) {      
-	  start = TimeStrToSec(s.substr(0, q));
-	  end   = TimeStrToSec(s.substr(r, t-r));
-	  s.erase(0, p);
-	}
-      }
-    }
-    
     vector<string> m = SplitOnWord(" # ", s);
-    for (auto i : m ) {
-      double v = empty_v, x = 0, y = 0, w = 0, h = 0;
-      string t = i, b = i;
-      size_t p = t.find(" (");
-      if (p!=string::npos) {
-	char *endptr = NULL;
-	errno = 0;
-	string ss = t.substr(p+2);
-	double d = strtod(ss.c_str(), &endptr);
-	if (!errno && endptr && *endptr==')') {
-	  v = d;
-	  t.erase(p);
-	}
-      }
-      p = b.find(" [");
-      if (p!=string::npos && b[b.size()-1]==']') {
-	int r = sscanf(b.substr(p+2).c_str(), "%lg %lg %lg %lg",
-		       &x, &y, &w, &h);
-	if (r!=4)
-	  x = y = w = h = 0;
-      }
-
-      p = 0;
-      for (;;) {
-	p = t.find("##", p);
-	if (p==string::npos)
-	  break;
-	t.erase(p, 1);
-	p += 1;
-      }
-      
-      add(t, v, x, y, w, h);
-      // txt_val.push_back(make_pair(a, val));
-    }
+    for (const auto& i : m)
+      txt_val_box_time.push_back({i});
 
     return true;
   }
@@ -11508,28 +11652,36 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
   /////////////////////////////////////////////////////////////////////////////
 
   boxdata_t::boxdata_t(const DataBase *d, const vector<string>& a) {
+    // a[0]  a[1]  a[2] a[3] a[4] a[5] a[6] a[7] a[8] a[9] a[10] a[11...]
+    // label begin end segm recog tl_x tl_y br_x br_y val type   txt... 
+
     string msg = "boxdata_t::() : ";
     db = d;
-    if (a.size())
-      idx = db->LabelIndexGentle(a[0], false);
-    if (a.size()>1)
-      segm = a[1];
-    if (a.size()>2)
-      recog = a[2];
-    if (a.size()>6) {
-      tl_x = atof(a[3].c_str());
-      tl_y = atof(a[4].c_str());
-      br_x = atof(a[5].c_str());
-      br_y = atof(a[6].c_str());
+    size_t i = 0;
+    if (a.size()>i)
+      idx = db->LabelIndexGentle(a[i++], false);
+    if (a.size()>i+1) {
+      begin = atoi(a[i++].c_str());
+      end   = atoi(a[i++].c_str());
     }
-    if (a.size()>7)
-      val = atof(a[7].c_str());
-    if (a.size()>8)
-      type = a[8];
+    if (a.size()>i)
+      segm = a[i++];
+    if (a.size()>i)
+      recog = a[i++];
+    if (a.size()>i+3) {
+      tl_x = atof(a[i++].c_str());
+      tl_y = atof(a[i++].c_str());
+      br_x = atof(a[i++].c_str());
+      br_y = atof(a[i++].c_str());
+    }
+    if (a.size()>i)
+      val = atof(a[i++].c_str());
+    if (a.size()>i)
+      type = a[i++];
 
-    if (a.size()>9) {
+    if (a.size()>i) {
       vector<string> b = a;
-      for (size_t i=0; i<9; i++)
+      for (size_t j=0; j<i; j++)
 	b.erase(b.begin());
       txt = JoinWithString(b, " ");
     }
@@ -11539,10 +11691,126 @@ const char *PicSOM::CbirAlgorithmP(cbir_algorithm a) {
 
   string boxdata_t::str() const {
     stringstream ss;
-    ss << "[" << db->Name() << " #" << idx << " <" << db->Label(idx)
-       << "> " << segm << "/" << recog << " [" << tl_x << "," << tl_y
+    string idxs  = db->IndexOK(idx) ? ToStr(idx)     : "*no-index*";
+    string label = db->IndexOK(idx) ? db->Label(idx) : "*no-label*";
+    string range = end>begin ? ToStr(begin)+"-"+ToStr(end-1) : "";
+    ss << "[" << db->Name() << " #" << idxs << " <" << label << "> ["
+       << range << "] " << segm << "/" << recog << " [" << tl_x << "," << tl_y
        << " " << br_x << "," << br_y << "] " << val << " (" << type
-       << ") \"" << txt << "\"";
+       << ") \"" << txt << "\" ]";
+    return ss.str();
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  vector<vector<boxdata_t> >
+  boxdata_t::to_vector_vector(const list<boxdata_t>& l) {
+    string msg = "boxdata_t::to_vector_vector() : ";
+    vector<vector<boxdata_t> > vv;
+    size_t idx = -1;
+    for (const auto& i : l) {
+      if (idx==(size_t)-1)
+	idx = i.idx;
+      else if (idx!=i.idx) {
+	i.db->ShowError(msg+"mixed objects");
+	return {};
+      }
+      // size_t x = i.idx;
+      size_t x = i.begin;
+      while (vv.size()<=x)
+	vv.push_back({});
+      vv[x].push_back(i);
+    }
+    return vv;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  size_t boxdata_t::best_match(const vector<boxdata_t>& l) const {
+    string msg = "boxdata_t::best_match() : ";
+    size_t r = string::npos;
+    double m = 0;
+    for (size_t i=0; i<l.size(); i++) {
+      double a = intersect_area(l[i]);
+      if (a>m) {
+	m = a;
+	r = i;
+      }
+    }
+    return r;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool alternative_text_t::parse(const string& s) {
+    words.clear();
+    vector<string> v = SplitInSpaces(s);
+    for (const auto& i : v) {
+      vector<alternative_text_e> av;
+      vector<string> a = SplitInSomething("/", false, i);
+      for (const auto& j : a) {
+	alternative_text_e x;
+	size_t p = j.find('=');
+	if (p==string::npos)
+	  x.word = j;
+	else {
+	  x.word = j.substr(0, p);
+	  x.prob = atof(j.substr(p+1).c_str());
+	  p = j.find('(', p);
+	  if (p!=string::npos && j[j.size()-1]==')')
+	    x.ner = j.substr(p+1, j.size()-p-2);
+	}
+	av.push_back(x);
+      }
+      words.push_back(av);
+    }
+    return true;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string alternative_text_t::str() const {
+    vector<string> w;
+    for (const auto& i : words) {
+      vector<string> a;
+      for (const auto& j : i) {
+	string s = j.word;
+	if (j.prob_set())
+	  s += "="+ToStr(j.prob);
+	if (j.ner_set())
+	  s += "("+j.ner+")";
+	a.push_back(s);
+      }
+      w.push_back(JoinWithString(a, "/"));
+    }
+    return JoinWithString(w, " ");;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string alternative_text_t::plain() const {
+    vector<string> w;
+    for (const auto& i : words)
+      w.push_back(i.begin()->word);
+    return JoinWithString(w, " ");;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  string alternative_text_t::dump() const {
+    stringstream ss;
+    for (const auto& i : words) {
+      bool first = true;
+      for (const auto& j : i) {
+	ss << (first?"":" / ") << j.word;
+	if (j.prob_set())
+	  ss << " " << j.prob;
+	if (j.ner_set())
+	  ss << " " << j.ner;
+	first = false;
+      }
+      ss << endl;
+    }
     return ss.str();
   }
 

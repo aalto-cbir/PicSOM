@@ -1,4 +1,4 @@
-// -*- C++ -*-  $Id: VectorIndex.h,v 2.53 2019/04/11 13:28:58 jormal Exp $
+// -*- C++ -*-  $Id: VectorIndex.h,v 2.54 2020/10/21 08:22:08 jormal Exp $
 // 
 // Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
@@ -148,9 +148,19 @@ namespace picsom {
       return (size_t) data.VectorLength();
     }
 
-     /// Returns vector dimensionality, zero if not known.
+    /// Returns vector dimensionality, zero if not known.
     virtual size_t GuessVectorLength();
 
+    ///
+    size_t VectorLengthForced() const {
+      return VectorLength() ? VectorLength() : forced_vectorlength;
+    }
+
+    ///
+    void ForceVectorLength(size_t l) {
+      forced_vectorlength = l;
+    }
+    
     /// This is now done only when really needed...
     void SolveDataFileNames(bool force=false);
 
@@ -491,7 +501,9 @@ namespace picsom {
     }
 
   protected:
-
+    ///
+    size_t forced_vectorlength = 0;
+    
   };  // class VectorIndex
 
 } // namespace picsom

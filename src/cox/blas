@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// $Id: blas,v 1.6 2016/05/03 10:54:21 jorma Exp $	
+// $Id: blas,v 1.7 2021/05/11 14:47:56 jormal Exp $	
 
 #ifndef _cox_blas_
 #define _cox_blas_
@@ -46,7 +46,7 @@ namespace cox {
 
     ///
     template <class T>
-    static vector<T> from(int l, const string& s) throw(string) {
+    static vector<T> from(int l, const string& s) /*throw(string)*/ {
       // cout << "[" << s << "]" << endl;
       stringstream str(s);
       return from<T>(l, str);
@@ -54,7 +54,7 @@ namespace cox {
 
     ///
     template <class T>
-    static vector<T> from(int l, istream& s) throw(string) {
+    static vector<T> from(int l, istream& s) /*throw(string)*/ {
       vector<T> r(l);
       istream_iterator<T> is(s);
       typename vector<T>::iterator ir = r.begin();
@@ -70,7 +70,7 @@ namespace cox {
     ///
     template <class T>
     inline labeled_float_vector labeled_fv_from(int l, istream& s)
-      throw(string) {
+      /*throw(string)*/ {
       vector<T> r(l);
       istream_iterator<T> is(s);
       typename vector<T>::iterator ir = r.begin();
@@ -92,7 +92,7 @@ namespace cox {
     ///
     template <class T>
     inline labeled_float_vector labeled_fv_from(int l, const string& s)
-      throw(string) {
+      /*throw(string)*/ {
       // cout << "[" << s << "]" << endl;
       stringstream str(s);
       return labeled_fv_from<T>(l, str);
@@ -100,7 +100,7 @@ namespace cox {
 
     ///
     template <class T>
-    inline labeled<T> labeled_from(int l, istream& s) throw(string) {
+    inline labeled<T> labeled_from(int l, istream& s) /*throw(string)*/ {
       labeled<T> r(l);
       istream_iterator<typename T::value_type> is(s), eof;
       typename labeled<T>::iterator ir = r.begin();
@@ -121,7 +121,7 @@ namespace cox {
 
     ///
     template <class T>
-    inline labeled<T> labeled_from(int l, const string& s) throw(string) {
+    inline labeled<T> labeled_from(int l, const string& s) /*throw(string)*/ {
       stringstream str(s);
       return labeled_from<T>(l, str);
     }
@@ -129,7 +129,7 @@ namespace cox {
     ///
     template <class T>
     inline labeled<vector<T> > labeled_vector_from(int l, istream& s)
-      throw(string) {
+      /*throw(string)*/ {
       //
       // this should call labeled_from()...
       //
@@ -154,7 +154,7 @@ namespace cox {
     ///
     template <class T>
     inline labeled<vector<T> > labeled_vector_from(int l, const string& s)
-      throw(string) {
+      /*throw(string)*/ {
       // cout << "[" << s << "]" << endl;
       stringstream str(s);
       return labeled_vector_from<T>(l, str);
@@ -193,7 +193,7 @@ namespace cox {
 
     ///
     template <class T, class U>
-    void vec_add(vector<T>& v, const vector<U>& u) throw(string) {
+    void vec_add(vector<T>& v, const vector<U>& u) /*throw(string)*/ {
       if (v.size()!=u.size()) 
 	throw _h()+"vec_add() size mismatch "+_ne(v.size(), u.size());
 
@@ -205,7 +205,7 @@ namespace cox {
 
     ///
     template <class T, class U>
-    vector<T> vec_plus(const vector<T>& v, const vector<U>& u) throw(string) {
+    vector<T> vec_plus(const vector<T>& v, const vector<U>& u) /*throw(string)*/ {
       if (v.size()!=u.size()) 
 	throw _h()+"vec_plus() size mismatch "+_ne(v.size(), u.size());
 
@@ -220,7 +220,7 @@ namespace cox {
 
     ///
     template <class T, class U>
-    vector<T> vec_minus(const vector<T>& v, const vector<U>& u) throw(string) {
+    vector<T> vec_minus(const vector<T>& v, const vector<U>& u) /*throw(string)*/ {
       if (v.size()!=u.size())
 	throw _h()+"vec_minus() size mismatch "+_ne(v.size(), u.size());
 
@@ -235,7 +235,7 @@ namespace cox {
 
     ///
     template <class T, class U>
-    vector<T> vec_times(const vector<T>& v, const vector<U>& u) throw(string) {
+    vector<T> vec_times(const vector<T>& v, const vector<U>& u) /*throw(string)*/ {
       if (v.size()!=u.size())
 	throw _h()+"vec_times() size mismatch "+_ne(v.size(), u.size());
 
@@ -250,7 +250,7 @@ namespace cox {
 
     ///
     template <class T, class U>
-    vector<T> vec_div(const vector<T>& v, const vector<U>& u) throw(string) {
+    vector<T> vec_div(const vector<T>& v, const vector<U>& u) /*throw(string)*/ {
       if (v.size()!=u.size())
 	throw _h()+"vec_div() size mismatch "+_ne(v.size(), u.size());
 
@@ -265,7 +265,7 @@ namespace cox {
 
     ///
     template <class T>
-    T vec_sum(const vector<T>& v) throw(string) {
+    T vec_sum(const vector<T>& v) /*throw(string)*/ {
       T t = T();
       typename vector<T>::const_iterator vi = v.begin();
       while (vi!=v.end())
@@ -284,7 +284,7 @@ namespace cox {
     template <class T>
     inline double euclidean_squared_distance(const vector<T>& a,
 					     const vector<T>& b)
-      throw(string) {
+      /*throw(string)*/ {
       
       if (a.size()!=b.size())
 	throw _h()+"euclidean_squared_distance() vector size mismatch";
@@ -305,7 +305,7 @@ namespace cox {
 						   const vector<T>& b,
 						   double r =
 						   numeric_limits<T>::max())
-      throw(string) {
+      /*throw(string)*/ {
       
       size_t bs = 50, l = a.size();
       if (l!=b.size())
@@ -338,7 +338,7 @@ namespace cox {
 						       const vector<T>& b,
 						       double l =
 						       numeric_limits<T>::max())
-      throw(string) {
+      /*throw(string)*/ {
       
       if (a.size()!=b.size())
 	throw _h()+"euclidean_squared_distance_break() vector size mismatch";
@@ -360,7 +360,7 @@ namespace cox {
     static double euclidean_distance_break(const vector<T>& a,
 					   const vector<T>& b,
 					   double l = numeric_limits<T>::max())
-      throw(string) {
+      /*throw(string)*/ {
 
       if (l!=numeric_limits<T>::max())
 	l = l*l;

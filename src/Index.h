@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Index.h,v 2.62 2019/02/04 09:55:17 jormal Exp $
+// -*- C++ -*-  $Id: Index.h,v 2.63 2020/01/01 18:46:36 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2020 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -62,6 +62,9 @@ namespace picsom {
     ///
     virtual ~Index();
 
+    /// added 2020-01-01 and is a bit suspicious...
+    Index& operator=(const Index&) = default;
+    
     ///
     virtual const string& MethodName() const = 0;
 

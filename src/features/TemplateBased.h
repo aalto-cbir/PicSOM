@@ -10,7 +10,7 @@
    is defined by a template, which is given as a vector of x,y-offset
    pairs.
   
-   \author Mats Sjöberg <mats.sjoberg@hut.fi>
+   \author Mats Sjoberg <mats.sjoberg@hut.fi>
    $Revision: 1.13 $
    $Date: 2008/10/31 09:44:27 $
    \bug May be some out there hiding.

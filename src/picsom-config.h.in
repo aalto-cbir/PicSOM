@@ -239,6 +239,9 @@
    (-lflandmark_shared). */
 #undef HAVE_LIBFLANDMARK_SHARED
 
+/* Define to 1 if you have the `gcrypt' library (-lgcrypt). */
+#undef HAVE_LIBGCRYPT
+
 /* Define to 1 if you have the `gdi32' library (-lgdi32). */
 #undef HAVE_LIBGDI32
 
@@ -329,6 +332,12 @@
 /* Define to 1 if you have the `png' library (-lpng). */
 #undef HAVE_LIBPNG
 
+/* Define to 1 if you have the `raptor2' library (-lraptor2). */
+#undef HAVE_LIBRAPTOR2
+
+/* Define to 1 if you have the `rasqal' library (-lrasqal). */
+#undef HAVE_LIBRASQAL
+
 /* Define to 1 if you have the `regex' library (-lregex). */
 #undef HAVE_LIBREGEX
 
@@ -367,6 +376,9 @@
 
 /* Define to 1 if you have the `wordnet' library (-lwordnet). */
 #undef HAVE_LIBWORDNET
+
+/* Define to 1 if you have the `xml2' library (-lxml2). */
+#undef HAVE_LIBXML2
 
 /* Define to 1 if you have the `z' library (-lz). */
 #undef HAVE_LIBZ
@@ -458,6 +470,9 @@
 /* Define to 1 if you have the <opencv2/core/gpumat.hpp> header file. */
 #undef HAVE_OPENCV2_CORE_GPUMAT_HPP
 
+/* Define to 1 if you have the <opencv2/cudaimgproc.hpp> header file. */
+#undef HAVE_OPENCV2_CUDAIMGPROC_HPP
+
 /* Define to 1 if you have the <opencv2/nonfree/gpu.hpp> header file. */
 #undef HAVE_OPENCV2_NONFREE_GPU_HPP
 
@@ -488,11 +503,14 @@
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
 
+/* Define to 1 if you have the <Python.h> header file. */
+#undef HAVE_PYTHON_H
+
 /* Define to 1 if you have the `rand_r' function. */
 #undef HAVE_RAND_R
 
-/* Define to 1 if you have the <raptor2.h> header file. */
-#undef HAVE_RAPTOR2_H
+/* Define to 1 if you have the <raptor2/raptor2.h> header file. */
+#undef HAVE_RAPTOR2_RAPTOR2_H
 
 /* Define to 1 if you have the <rasqal.h> header file. */
 #undef HAVE_RASQAL_H

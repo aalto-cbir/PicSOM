@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: CbirStageBased.h,v 2.27 2009/10/01 08:57:50 jorma Exp $
+// -*- C++ -*-  $Id: CbirStageBased.h,v 2.28 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2009 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@cis.hut.fi>
 // Helsinki University of Technology
 // P.O.BOX 5400, FI-02015 TKK, FINLAND
 // 
@@ -16,7 +16,7 @@ using namespace std;
 namespace picsom {
   ///
   static const string CbirStageBased_h_vcid =
-    "@(#)$Id: CbirStageBased.h,v 2.27 2009/10/01 08:57:50 jorma Exp $";
+    "@(#)$Id: CbirStageBased.h,v 2.28 2021/05/11 14:46:57 jormal Exp $";
 
   /**
      An stagebased of CBIR algorithm implementation derived from the abstract
@@ -315,7 +315,7 @@ namespace picsom {
     static const char* FunctionName(cbir_function);
 
     /// Get access to stage_map.
-    const cbir_function& StageFunc(cbir_stage s) const throw(logic_error) {
+    const cbir_function& StageFunc(cbir_stage s) const /*throw(logic_error)*/ {
       stage_map_t::const_iterator i = stage_map.find(s);
       if (i==stage_map.end())
 	throw logic_error("unknown cbir_stage");
@@ -323,7 +323,7 @@ namespace picsom {
     }
 
     /// Set access to stage_map.
-    void StageFunc(cbir_stage s, cbir_function f) throw(logic_error) {
+    void StageFunc(cbir_stage s, cbir_function f) /*throw(logic_error)*/ {
       if (!StageOK(s))
 	throw logic_error("unknown cbir_stage");
 
@@ -331,7 +331,7 @@ namespace picsom {
     }
 
     /// Get access to stage_arg_map.
-    const string& StageArgs(cbir_stage s) const throw(logic_error) {
+    const string& StageArgs(cbir_stage s) const /*throw(logic_error)*/ {
       stage_arg_map_t::const_iterator i = stage_arg_map.find(s);
       if (i==stage_arg_map.end())
 	throw logic_error("unknown cbir_stage");
@@ -339,7 +339,7 @@ namespace picsom {
     }
 
     /// Set access to stage_arg_map.
-    void StageArgs(cbir_stage s, const string& a) throw(logic_error) {
+    void StageArgs(cbir_stage s, const string& a) /*throw(logic_error)*/ {
       if (!StageOK(s))
 	throw logic_error("unknown cbir_stage");
 

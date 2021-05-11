@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: Analysis.h,v 2.526 2019/10/09 14:50:22 jormal Exp $
+// -*- C++ -*-  $Id: Analysis.h,v 2.552 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -40,7 +40,7 @@ namespace picsom {
   using simple::DataSet;
 
   static const string Analysis_h_vcid =
-    "@(#)$Id: Analysis.h,v 2.526 2019/10/09 14:50:22 jormal Exp $";
+    "@(#)$Id: Analysis.h,v 2.552 2021/05/11 14:46:57 jormal Exp $";
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -532,7 +532,7 @@ namespace picsom {
     ///
     bool SplitSemiColonsAndEqualSigns(script_exp_t& plist,
 				      const string& a) const
-      throw(logic_error) {
+      /*throw(logic_error)*/ {
       vector<string> aa = SplitInSomething(";", false, a);
       for (size_t i=0; i<aa.size(); i++)
 	plist.push_back(SplitKeyEqualValueNew(aa[i]));
@@ -584,7 +584,7 @@ namespace picsom {
     bool InsertObjectsOperation(const string&, const vector<string>&);
 
     ///
-    bool AddTextLineData(const string&, size_t, const string&);
+    bool AddTextLineData(const string&, const string&, size_t, const string&);
 
     ///
     bool WriteOutTextLineData();
@@ -956,6 +956,12 @@ namespace picsom {
     ///
     bool ProcessSlaveXmlResultObjectChildInfo(const XmlDom&, size_t&);
 
+    ///
+    bool ProcessSlaveXmlResultBoxDataList(const XmlDom&, size_t&);
+
+    ///
+    bool ProcessSlaveXmlResultBoxData(const XmlDom&);
+
     /// This calls the actual analysis methods upon the value of method.
     list<analyse_result> AnalyseSerial(const script_list_t&);
     
@@ -1095,6 +1101,9 @@ namespace picsom {
     analyse_result AnalyseVisualGenomeTest(const vector<string>&);
     
     ///
+    analyse_result AnalyseAlternativeTextTest(const vector<string>&);
+    
+    ///
     analyse_result AnalyseSparqlTest(const vector<string>&);
     
     ///
@@ -1102,6 +1111,9 @@ namespace picsom {
     
     ///
     analyse_result AnalyseRdfTest(const vector<string>&);
+
+    ///
+    analyse_result AnalyseImportRdf(const vector<string>&);
 
     ///
     analyse_result AnalyseOpenCvTest(const vector<string>&);
@@ -1212,6 +1224,9 @@ namespace picsom {
     analyse_result AnalyseFinlandiaKatsaus(const vector<string>&);
 
     ///
+    analyse_result AnalyseFaceVoice(const vector<string>&);
+    
+    ///
     float TimeSegmentationScore(const vector<size_t>&, size_t, size_t,
 				const vector<float>&, float,
 				float, float, float,
@@ -1267,11 +1282,15 @@ namespace picsom {
     analyse_result AnalyseDetectorDifference(const vector<string>&);
 
     ///
+    analyse_result AnalyseDetectorMatches(const vector<string>&);
+
+    ///
     analyse_result AnalyseDetectorPerformance(const vector<string>&);
 
     ///
-    void ShowExamples(const multimap<float,size_t>&, bool, size_t,
-		      DataBase*, const string&, bool);
+    void ShowExamples(const string&, const string&,
+		      const multimap<float,pair<pair<size_t,size_t>,string> >&,
+		      bool, size_t, DataBase*, const string&, bool, bool);
 
     ///
     bool WriteHistogramImage(const vector<size_t>&, size_t, bool,
@@ -1425,6 +1444,12 @@ namespace picsom {
     ///
     static int MapUsage(const simple::FloatMatrix&); 
 
+    ///
+    analyse_result AnalyseFaceRecognition(const vector<string>&);
+
+    ///
+    analyse_result AnalyseFaceRecognitionTest(const vector<string>&);
+    
   private:
     static double identity_kernel(const double x) { return x; }
 
@@ -1701,6 +1726,9 @@ namespace picsom {
 
     ///
     analyse_result AnalyseRetrieve(const vector<string>&);
+
+    ///
+    analyse_result AnalyseBestFeatureMatches(const vector<string>&);
 
     ///
     analyse_result AnalyseBest(const vector<string>&);
@@ -2038,9 +2066,18 @@ namespace picsom {
   
     /// Creates an annotated video
     analyse_result AnalyseVideoTimeline(const vector<string>&);
-  
+
+    ///
+    analyse_result AnalyseBurnSubtitles(const vector<string>&);
+    
     ///
     analyse_result AnalyseSubtitles(const vector<string>&);
+
+    ///
+    analyse_result AnalyseSubtitlesNew(const vector<string>&);
+
+    ///
+    analyse_result AnalyseSubtitlesOld(const vector<string>&);
 
     ///
     analyse_result AnalyseElanize(const vector<string>&);
@@ -2059,6 +2096,9 @@ namespace picsom {
 
     /// Creates a video summary
     analyse_result AnalyseVideoSummary(const vector<string>&);
+
+    ///
+    analyse_result AnalyseVideoCategories(const vector<string>&);
 
     ///
     analyse_result AnalyseVideoShotSequence(const vector<string>&);
@@ -2096,6 +2136,9 @@ namespace picsom {
 
     /// Inserts all videoframes as objects
     analyse_result AnalyseInsertFrames(const vector<string>&);
+
+    /// Inserts all middle frames of videos as objects
+    analyse_result AnalyseInsertMiddleFrames(const vector<string>&);
 
     /// Used in for video segments.
     //string SolveSegmentfilePath(const string&) const;
@@ -2278,6 +2321,9 @@ namespace picsom {
     analyse_result AnalyseImportExternalDetections(const vector<string>&);
 
     ///
+    analyse_result AnalyseExport(const vector<string>&);
+    
+    ///
     analyse_result AnalyseExportWadm(const vector<string>&);
     
     ///
@@ -2293,7 +2339,13 @@ namespace picsom {
     analyse_result AnalyseExportLmdbFeatures(const vector<string>&);
     
     ///
+    analyse_result AnalyseExportNumPyFeatures(const vector<string>&);
+    
+    ///
     analyse_result AnalyseExportOrderedFeatures(const vector<string>&);
+    
+    ///
+    analyse_result AnalyseExportConceptDetection(const vector<string>&);
     
     ///
     bool libsvmdump;
@@ -2408,6 +2460,24 @@ namespace picsom {
     ///
     analyse_result AnalyseTextWash(const vector<string>&);
 
+    ///
+    analyse_result AnalyseCaptionPostProcess(const vector<string>&);
+
+    ///
+    analyse_result AnalyseCaptionPostProcessTest(const vector<string>&);
+
+    ///
+    analyse_result AnalyseExportBoxData(const vector<string>&);
+    
+    ///
+    analyse_result AnalyseFilterBoxData(const vector<string>&);
+
+    ///
+    analyse_result AnalyseVerifyBoxData(const vector<string>&);
+
+    ///
+    analyse_result AnalyseProgramStructure(const vector<string>&);
+    
     ///
     analyse_result AnalyseGoogleCustomSearch(const vector<string>&);
 
@@ -2692,6 +2762,40 @@ namespace picsom {
       return *outdir.rbegin()=='/' ? outdir : outdir+'/';
     }
 
+    ///
+    static string sequence_str(const vector<pair<float,float> >&,
+			       float, float, size_t, char, char);
+    
+    ///
+    static vector<pair<float,float> >
+    sequence_dilate(const vector<pair<float,float> >&, float);
+    
+    ///
+    static vector<pair<float,float> >
+    sequence_erode(const vector<pair<float,float> >&, float);
+    
+    ///
+    static vector<pair<float,float> >
+    sequence_open(const vector<pair<float,float> >& s, float l) {
+      return sequence_dilate(sequence_erode(s, l), l);
+    }
+    
+    ///
+    static vector<pair<float,float> >
+    sequence_close(const vector<pair<float,float> >& s, float l) {
+      return sequence_erode(sequence_dilate(s, l), l);
+    }
+    
+    ///
+    static vector<pair<float,float> >
+    sequence_or(const vector<pair<float,float> >&,
+		const vector<pair<float,float> >&);
+    
+    ///
+    static vector<pair<float,float> >
+    sequence_and(const vector<pair<float,float> >&,
+		 const vector<pair<float,float> >&);
+    
     /// Adds textual output to be passed to the browser.
     bool AddToXML(XmlDom&) const;
 
@@ -3039,6 +3143,9 @@ namespace picsom {
     ///
     float Threshold() const { return threshold; }
 
+    ///
+    const string& OutFormat() const { return outformat; }
+    
 #if defined(HAVE_CAFFE_CAFFE_HPP) && defined(PICSOM_USE_CAFFE)
     ///
     analyse_result AnalyseCreateLevelDB(const vector<string>&);
@@ -3416,6 +3523,9 @@ namespace picsom {
     /// Prefix of result files in AnalyseBest().
     string resultname;
 
+    /// Format of results if choices.
+    string outformat;
+    
     /// Used in AnalyseImportFeatures().
     string sourcedatabase;
 
@@ -3797,6 +3907,12 @@ namespace picsom {
     
     ///
     map<string,Connection*> nlp_pipes;
+
+    ///
+    bool add_middle_frame { true };
+
+    ///
+    list<string> subtitle;
     
   };  // class Analysis
 

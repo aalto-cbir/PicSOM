@@ -7,7 +7,7 @@
    MuvisFeat.h contains declarations and definitions of class the
    MuvisFeat, which is a class that ...
 
-   \author Mats Sjöberg <mats.sjoberg@tkk.fi>
+   \author Mats Sjoberg <mats.sjoberg@tkk.fi>
    $Revision: 1.10 $
    $Date: 2011/08/25 17:34:21 $
    \bug May be some out there hiding.

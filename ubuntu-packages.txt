@@ -1,0 +1,17 @@
+make
+autoconf
+g++
+libtool
+libgcrypt20-dev
+libxml2-dev
+libz-dev
+libboost1.67-dev:amd64
+libsqlite3-dev
+libcaffe-cpu-dev
+libgflags-dev
+libgoogle-glog-dev
+libprotobuf-dev
+libopenblas-dev
+libopencv-dev
+libmagic-dev
+ffmpeg

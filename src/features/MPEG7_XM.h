@@ -7,7 +7,7 @@
    MPEG7_XM.h contains declarations and definitions of class the
    MPEG7_XM, which is a class that ...
 
-   \author Mats Sjöberg <mats.sjoberg@hut.fi>
+   \author Mats Sjoberg <mats.sjoberg@hut.fi>
    $Revision: 1.71 $
    $Date: 2014/01/24 15:16:20 $
    \bug May be some out there hiding.

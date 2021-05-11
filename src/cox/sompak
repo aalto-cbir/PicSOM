@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// $Id: sompak,v 1.2 2012/06/29 09:08:02 jorma Exp $	
+// $Id: sompak,v 1.3 2021/05/11 14:47:56 jormal Exp $	
 
 #ifndef _cox_sompak_
 #define _cox_sompak_
@@ -36,7 +36,7 @@ namespace cox {
     using cox::blas::labeled_from;
 
     ///
-    static int read_vector_length(istream& is) throw (string) {
+    static int read_vector_length(istream& is) /*throw(string)*/ {
       for (;;) {
 	string s;
 	is >> s;
@@ -57,13 +57,13 @@ namespace cox {
     }
 
     ///
-    inline void write_vector_length(size_t l, ostream& os) throw (string) {
+    inline void write_vector_length(size_t l, ostream& os) /*throw(string)*/ {
       os << l << endl;
     }
 
     ///
     template <class T>
-    static vector<T> read_vector(int l, istream& is) throw (string) {
+    static vector<T> read_vector(int l, istream& is) /*throw(string)*/ {
       string str;
       do {
 	if (!is)
@@ -78,7 +78,7 @@ namespace cox {
     ///
     template <class T>
     static labeled_float_vector read_labeled_fv(int l, istream& is)
-      throw (string) {
+      /*throw(string)*/ {
       string str;
       do {
 	if (!is)
@@ -93,7 +93,7 @@ namespace cox {
     ///
     template <class T>
     inline labeled<T> read_labeled(int l, istream& is)
-      throw (string) {
+      /*throw(string)*/ {
       string str;
       do {
 	if (!is)
@@ -108,14 +108,14 @@ namespace cox {
     ///
     template <class T>
     static labeled<vector<T> > read_labeled_vector(int l, istream& is)
-      throw (string) {
+      /*throw(string)*/ {
       return read_labeled<vector<T> >(l, is);
     }
 
     ///
     template <class T>
     static void write_labeled(const labeled<vector<T> >& v,
-			      ostream& os) throw (string) {
+			      ostream& os) /*throw(string)*/ {
       for (size_t i=0; i<v.size(); i++)
 	os << (i?" ":"") << v[i];
       if (v.label_set())
@@ -126,22 +126,22 @@ namespace cox {
     class data {
     public:
       ///
-      data() throw(string) : _l(0), _n(0), _l_written(false), _trace(false) {}
+      data() /*throw(string)*/ : _l(0), _n(0), _l_written(false), _trace(false) {}
       
       ///
       data(const string& fname, bool write = false, bool tra = false)
-	throw(string) :
+	/*throw(string)*/ :
 	_l(0), _n(0), _l_written(false), _trace(tra) {
 	  open(fname, write);
 	}
       
       ///
-      int open(const string& fname, bool write) throw(string) {
+      int open(const string& fname, bool write) /*throw(string)*/ {
 	return write ? open_write(fname) : open_read(fname);
       }
       
       ///
-      int open_read(const string& fname) throw(string) {
+      int open_read(const string& fname) /*throw(string)*/ {
 	_l = 0;
 	_n = 0;
 	close();
@@ -156,7 +156,7 @@ namespace cox {
       }
       
       ///
-      int open_write(const string& fname) throw(string) {
+      int open_write(const string& fname) /*throw(string)*/ {
 	close();
 	_n = 0;
 	_os.clear();
@@ -170,29 +170,29 @@ namespace cox {
       }
       
       ///
-      void close() throw(string) {
+      void close() /*throw(string)*/ {
 	_l_written = false;
 	_is.close();
 	_os.close();
       }
 
       ///
-      int vector_length() throw(string) { return _l; }
+      int vector_length() /*throw(string)*/ { return _l; }
       
       ///
-      labeled_float_vector labeled_next() throw(string) {
+      labeled_float_vector labeled_next() /*throw(string)*/ {
 	return read_labeled_fv<float>(_l, _is);
       }
       
       ///
       template <class T>
-      labeled<vector<T> > next_vector() throw(string) {
+      labeled<vector<T> > next_vector() /*throw(string)*/ {
 	return next<vector<T> >();
       }
 
       ///
       template <class T>
-      labeled<T> next() throw(string) {
+      labeled<T> next() /*throw(string)*/ {
 	if (_trace && (_n%100)==0)
 	  cout << _n << "\r" << flush;
 	_n++;
@@ -201,7 +201,7 @@ namespace cox {
 
       ///
       template <class T>
-      operator T() throw(string) {
+      operator T() /*throw(string)*/ {
 	T l;
 	try {
 	  for (;;)
@@ -214,7 +214,7 @@ namespace cox {
 
       ///
       template <class T>
-      void insert(const labeled<vector<T> >& v) throw(string) {
+      void insert(const labeled<vector<T> >& v) /*throw(string)*/ {
 	if (!_l_written) {
 	  write_vector_length(v.size(), _os);
 	  _l = v.size();
@@ -228,7 +228,7 @@ namespace cox {
 
       ///
       template <class T>
-      void insert(const vector<T>& v) throw(string) {
+      void insert(const vector<T>& v) /*throw(string)*/ {
 	insert(labeled<vector<T> >(v));
       }
 

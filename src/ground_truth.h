@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: ground_truth.h,v 2.31 2013/06/27 06:58:38 jorma Exp $
+// -*- C++ -*-  $Id: ground_truth.h,v 2.33 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2012 PicSOM Development Group <picsom@cis.hut.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@cis.hut.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -19,7 +19,7 @@ namespace picsom {
   using namespace std;
 
   static const string ground_truth_h_vcid =
-    "@(#)$Id: ground_truth.h,v 2.31 2013/06/27 06:58:38 jorma Exp $";
+    "@(#)$Id: ground_truth.h,v 2.33 2021/05/11 14:46:57 jormal Exp $";
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
@@ -39,6 +39,9 @@ namespace picsom {
     explicit ground_truth(size_t d, value_type v = 0) : vec(d, v), implicit(d), 
 							exp(true) {}
 
+    ///
+    ground_truth(const ground_truth&) = default;
+    
     ///
     size_t size() const { return vec.size(); }
 
@@ -397,7 +400,7 @@ namespace picsom {
 
   protected:
     ///
-    void check(const ground_truth& g) const throw(logic_error) {
+    void check(const ground_truth& g) const /*throw(logic_error)*/ {
       if (g.size()!=size()) {
 	stringstream ss;
 	ss << "sizes of ground_truths differ: " << size() << "!=" << g.size();

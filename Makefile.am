@@ -1,12 +1,11 @@
-##
-## Copyright 1998-2007 PicSOM Development Group
-## Helsinki University of Technology
-## P.O.BOX 5400, FI-02015 HUT, FINLAND
-## picsom@cis.hut.fi
-##
+## 
+## Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
+## Aalto University School of Science
+## PO Box 15400, FI-00076 Aalto, FINLAND
+## 
 
-# @(#)$Id: Makefile.am,v 1.2 2018/12/16 08:00:36 jormal Exp $
+# @(#)$Id: Makefile.am,v 1.3 2020/04/03 12:31:04 jormal Exp $
 
-SUBDIRS = src doc
+SUBDIRS = src
 
 ACLOCAL_AMFLAGS = -I m4

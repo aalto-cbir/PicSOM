@@ -1,6 +1,6 @@
-## -*- Makefile -*-  $Id: Makefile.am,v 2.37 2017/06/20 08:16:25 jormal Exp $
+## -*- Makefile -*-  $Id: Makefile.am,v 2.39 2020/05/04 19:04:41 jormal Exp $
 ## 
-## Copyright 1998-2017 PicSOM Development Group <picsom@ics.aalto.fi>
+## Copyright 1998-2020 PicSOM Development Group <picsom@ics.aalto.fi>
 ## Aalto University School of Science
 ## PO Box 15400, FI-00076 Aalto, FINLAND
 ## 
@@ -9,7 +9,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 lib_LTLIBRARIES = libpicsom.la
 
-bin_PROGRAMS    = picsom
+bin_PROGRAMS    = picsom c3d-wrapper
 #bin_PROGRAMS    = 
 
 if PICSOM_STATIC
@@ -27,7 +27,8 @@ SOURCEFILELIST = PicSOM.C DataBase.C Analysis.C Query.C Index.C \
 		 libsvm.C liblinear.C tron.C picsom-templates.C PmSVM.C \
 		 CbirAlgorithm.C CbirRandom.C CbirStageBased.C \
 		 CbirPicsom.C PicSOMserver.C uiart-state.C bin_data.C \
-		 ontology.C image/videofile.C image/imagedata.C \
+		 ontology.C PythonUtil.C \
+		 image/videofile.C image/imagedata.C \
 		 simple/Simple.C simple/SubSpace.C simple/DataSet.C \
 		 simple/SOM.C simple/TreeSOM.C simple/ConfusionMatrix.C \
 		 simple/RandVar.C simple/Histogram.C simple/gzstream.C \
@@ -71,7 +72,8 @@ SOURCEFILELIST = PicSOM.C DataBase.C Analysis.C Query.C Index.C \
                  features/AudioBased.C features/AudioFreq.C \
                  features/AvgAudioEnergy.C features/EdgeFourier.C \
                  features/NGram.C features/Caffe.C features/VLFeat.C \
-                 features/OCVMlhmsLbp.C features/Trajectory.C features/Torch.C
+                 features/OCVMlhmsLbp.C features/Trajectory.C features/Torch.C \
+		 features/TorchVision.C features/ExtBatch.C
 
 otherincludedir = $(includedir)/picsom
 
@@ -96,13 +98,13 @@ otherinclude_HEADERS = Analysis.h aspects.h base64.h bin_data.h CbirAlgorithm.h 
                   features/sfaudiofile.h features/SIFT.h features/SimpleGeometric.h \
                   features/SLMHeadPose.h features/soundfile.h features/soundfile_impl.h \
                   features/TemplateBased.h features/TextBased.h features/textdata.h \
-                  features/textfile.h features/Texture.h features/Torch.h \
+                  features/textfile.h features/Texture.h features/Torch.h features/TorchVision.h \
                   features/Trajectory.h features/VLFeat.h features/WebLink.h \
-                  features/WordHist.h features/ZernikeMom.h ground_truth.h \
+                  features/WordHist.h features/ZernikeMom.h features/ExtBatch.h ground_truth.h \
                   image/imagecolor.h image/imagedata.h image/imagefile.h \
                   image/imagescaling.h image/videofile.h Index.h InvertedIndex.h \
                   liblinear.h libsvm.h ModifiableFile.h object_info.h \
-                  object_set.h ontology.h picsom-config.h.in PicSOM.h PicSOMserver.h \
+                  object_set.h ontology.h PythonUtil.h picsom-config.h.in PicSOM.h PicSOMserver.h \
                   PmSVM.h PreCalculatedIndex.h Query.h RemoteHost.h RwLock.h \
                   segmentation/AddDescription.h segmentation/AlignmentMarks.h \
                   segmentation/Binarise.h segmentation/ByTypicality.h \
@@ -165,13 +167,13 @@ libpicsom_la_DEPENDENCIES  = image/libpicsom_la-imagefile-@IMAGEFILEIMPL@.lo @CB
 
 libpicsom_la_CPPFLAGS = -std=c++11 -Wno-deprecated \
            -I./simple -I./image -I./features -I./segmentation \
-	   -DPICSOM_IMAGEDATA_FAST -DPICSOM_USE_OPENCV @NOPTHREADS@ \
-	   @XML_CPPFLAGS@ @LIBGCRYPT_CFLAGS@ @CSOAP_CFLAGS@ \
+	   -DPICSOM_IMAGEDATA_FAST -DPICSOM_USE_OPENCV -DPICSOM_USE_PYTHON3 \
+	   @NOPTHREADS@ @XML_CPPFLAGS@ @LIBGCRYPT_CFLAGS@ @CSOAP_CFLAGS@ \
 	   @OCTAVE_CFLAGS@ @MYSQL_CFLAGS@
 
 libpicsom_la_LIBADD = image/libpicsom_la-imagefile-@IMAGEFILEIMPL@.lo @CBIRALGORITHMSLA@
 
-libpicsom_la_LDFLAGS  = -version-info 0:35
+libpicsom_la_LDFLAGS  = -version-info 0:39
 
 ###
 
@@ -213,4 +215,14 @@ picsom_soap_SOURCES  = picsom-soap.C PicSOMserver.C base64.C
 picsom_soap_CPPFLAGS = -std=c++11 @CSOAP_CFLAGS@
 
 picsom_soap_LDADD    = @LIBPTHREAD@ @CSOAP_LIBS@
+
+###
+
+c3d_wrapper_SOURCES  = c3d-wrapper.C
+
+c3d_wrapper_DEPENDENCIES = libpicsom.la
+
+c3d_wrapper_CPPFLAGS = $(picsom_CPPFLAGS)
+
+c3d_wrapper_LDADD    = $(picsom_LDADD)
 

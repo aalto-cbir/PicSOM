@@ -1,6 +1,6 @@
-// -*- C++ -*-  $Id: PicSOM.h,v 2.323 2019/11/19 12:26:15 jormal Exp $
+// -*- C++ -*-  $Id: PicSOM.h,v 2.333 2021/05/11 14:46:57 jormal Exp $
 // 
-// Copyright 1998-2019 PicSOM Development Group <picsom@ics.aalto.fi>
+// Copyright 1998-2021 PicSOM Development Group <picsom@ics.aalto.fi>
 // Aalto University School of Science
 // PO Box 15400, FI-00076 Aalto, FINLAND
 // 
@@ -24,6 +24,7 @@
 #include <Util.h>
 #include <XMLutil.h>
 #include <TimeUtil.h>
+#include <PythonUtil.h>
 #include <RwLock.h>
 
 #include <Segmentation.h>
@@ -51,10 +52,6 @@
 #undef PICSOM_USE_CONTEXTSTATE
 
 // #define PICSOM_USE_READLINE
-
-#if defined(PICSOM_USE_PYTHON2) || defined(PICSOM_USE_PYTHON3)
-#define PICSOM_USE_PYTHON 1
-#endif // PICSOM_USE_PYTHON2 | PICSOM_USE_PYTHON3
 
 #if defined(PICSOM_USE_CAFFE) && defined(PICSOM_USE_CAFFE2)
 #error Cannot have both PICSOM_USE_CAFFE and PICSOM_USE_CAFFE2
@@ -111,7 +108,7 @@ namespace picsom {
   using simple::ListOf;
 
   static string PicSOM_h_vcid =
-    "@(#)$Id: PicSOM.h,v 2.323 2019/11/19 12:26:15 jormal Exp $";
+    "@(#)$Id: PicSOM.h,v 2.333 2021/05/11 14:46:57 jormal Exp $";
 
   extern const string PicSOM_C_vcid, picsom_C_vcid;
 
@@ -517,7 +514,7 @@ namespace picsom {
 
   /// General string => enum conversion tool.
   inline int EnumInfoEnum(const enum_info_struct& eis,
-			  const string& s) throw(invalid_argument) {
+			  const string& s) /*throw(invalid_argument)*/ {
     const enum_info_map& map = eis.second;
     for (enum_info_map::const_iterator i = map.begin(); i!=map.end(); i++)
       if (i->second.first==s)
@@ -528,7 +525,7 @@ namespace picsom {
 
   /// General enum => string conversion tool.
   inline const string& EnumInfoName(const enum_info_struct& eis,
-				    int e) throw(invalid_argument) {
+				    int e) /*throw(invalid_argument)*/ {
     const enum_info_map& map = eis.second;
     enum_info_map::const_iterator i = map.find(e);
     if (i!=map.end())
@@ -542,7 +539,7 @@ namespace picsom {
 
   /// General enum => char conversion tool.
   inline const string& EnumInfoChar(const enum_info_struct& eis,
-				    int e) throw(invalid_argument) {
+				    int e) /*throw(invalid_argument)*/ {
     const enum_info_map& map = eis.second;
     enum_info_map::const_iterator i = map.find(e);
     if (i!=map.end())
@@ -717,7 +714,7 @@ namespace picsom {
      @verbinclude cmdline-io.dox
    
      @short A class implementing the PicSOM engine. 
-     @version $Id: PicSOM.h,v 2.323 2019/11/19 12:26:15 jormal Exp $
+     @version $Id: PicSOM.h,v 2.333 2021/05/11 14:46:57 jormal Exp $
   */
   class PicSOM : public Simple {
   public:
@@ -763,7 +760,7 @@ namespace picsom {
     static string ExtractVersion(const string&);
 
     /// Filled in by release/build script.
-    static string Release() { return "" "picsom-0.38" ; }
+    static string Release() { return "" "picsom-0.39" ; }
 
     ///
     static bool HasFeaturesInternal() { return has_features_internal; }
@@ -895,6 +892,9 @@ namespace picsom {
     ///
     bool TempSqliteDB() const { return tempsqlitedb; }
 
+    ///
+    bool StoreAuxId() const { return storeauxid; }
+    
     /// Hints to novices and otherwise innocent.
     void ShowUsage(bool = true);
 
@@ -979,7 +979,7 @@ namespace picsom {
       slave_info_t(const string& h, const string& e) :
 	parent(NULL),
 	hostspec(h), executable(e), status("uninit"), pid(0),
-	load(-1), cpucount(0),cpuusage(-1),
+	load(-1), cpucount(0), cpuusage(-1), rssize(0),
 	n_slaves_now(0), n_slaves_started(0), n_slaves_contacted(0),
 	max_slaves_start(1), max_slaves_add(0),
 	max_tasks_par(0), max_tasks_tot(0),
@@ -996,7 +996,7 @@ namespace picsom {
       slave_info_t(const string& h, Connection *c) :
 	parent(NULL),
 	hostspec(h), status("connected"), pid(0),
-	load(-1), cpucount(0), cpuusage(-1),
+	load(-1), cpucount(0), cpuusage(-1), rssize(0),
 	n_slaves_now(0), n_slaves_started(0), n_slaves_contacted(0),
 	max_slaves_start(0), max_slaves_add(0),
 	max_tasks_par(0), max_tasks_tot(0),
@@ -1066,6 +1066,9 @@ namespace picsom {
       ///
       double cpuusage;
 
+      ///
+      size_t rssize;
+      
       ///
       size_t n_slaves_now;
 
@@ -3045,8 +3048,11 @@ namespace picsom {
     string sqlserver;
 
     ///
-    bool tempsqlitedb;
+    bool tempsqlitedb; 
 
+    /// for DataBase...
+    bool storeauxid = false;
+    
     ///
     string pidfile;
 
@@ -3128,8 +3134,7 @@ namespace picsom {
   class video_frange {
   public:
     ///
-    video_frange() : db(NULL), idx((size_t)-1), begin(0), end(0),
-		     begin_t(0.0), end_t(0.0) {}
+    video_frange() = default;
 
     ///
     video_frange(const DataBase *db, size_t idx, size_t b, size_t e,
@@ -3192,16 +3197,16 @@ namespace picsom {
     }
 
     ///
-    const DataBase *db;
+    const DataBase *db = NULL;
 
     ///
-    size_t idx;
+    size_t idx   = -1;
 
     ///
-    size_t begin;
+    size_t begin = 0;
 
     ///
-    size_t end;
+    size_t end   = 0;
 
     ///
     string type;
@@ -3213,10 +3218,10 @@ namespace picsom {
     string text;
 
     ///
-    float begin_t;
+    float begin_t = 0.0;
 
     ///
-    float end_t;
+    float end_t   = 0.0;
 
   }; // class video_frange
 
@@ -3343,13 +3348,17 @@ namespace picsom {
     static constexpr double empty_v = numeric_limits<double>::quiet_NaN();
 
     //
-    class txt_val_box_t {
+    class txt_val_box_time_t {
     public:
       //
-      txt_val_box_t(const string& _t, double _v = empty_v,
-		    double _x = 0.0, double _y = 0.0, 
-		    double _w = 0.0, double _h = 0.0) 
-	: t(_t), v(_v), x(_x), y(_y), w(_w), h(_h) {}
+      txt_val_box_time_t(const string&);
+
+      //
+      txt_val_box_time_t(const string& _t, double _v /*= empty_v*/,
+			 double _x = 0.0, double _y = 0.0, 
+			 double _w = 0.0, double _h = 0.0,
+			 double _b = 0.0, double _e = 0.0)
+	: t(_t), v(_v), x(_x), y(_y), w(_w), h(_h), b(_b), e(_e) {}
 
       //
       bool is_val_set() const { return !std::isnan(v); }
@@ -3360,23 +3369,41 @@ namespace picsom {
       }
 
       //
+      bool is_time_set() const { 
+	return e!=0;
+      }
+
+      //
+      bool is_speaker_set() const { 
+	return s!="";
+      }
+
+      //
+      string str(bool, bool, bool) const;
+      
+      //
       string t;
 
       //
-      double v, x, y, w, h;
+      string s;
       
-    }; // class txt_val_box_t
+      //
+      double v = empty_v;
+      double x = 0;
+      double y = 0;
+      double w = 0;
+      double h = 0;
+      double b = 0;
+      double e = 0;
+    }; // class txt_val_box_time_t
 
     //
-    textline_t() : db(NULL), idx(-1), start(-1), end(-1) {}
+    textline_t() : db(NULL), idx(-1) {}
 
     //
     textline_t(DataBase *_db, size_t _idx) :
-      db(_db), idx(_idx), start(-1), end(-1) {}
+      db(_db), idx(_idx)/*, start(-1), end(-1)*/ {}
 
-    //
-    bool is_time_set() const { return start!=-1 && end!=-1; }
-      
     //
     string str_common_x(bool, bool, bool, bool, bool) const;
 
@@ -3398,49 +3425,57 @@ namespace picsom {
     }
     
     //
-    bool txt_decode(const string&);
-
-    //
-    void add(const txt_val_box_t& tvb) {
-      txt_val_box.push_back(tvb);
+    void add(const txt_val_box_time_t& tvb) {
+      txt_val_box_time.push_back(tvb);
     }
 
     //
-    void add(const pair<string,double>& tv) {
-      add(txt_val_box_t(tv.first, tv.second));
+    void add(const string& t, double v /*= empty_v*/,
+	     double x = 0, double y = 0, double w = 0, double h = 0,
+	     double b = 0, double e = 0) {
+      add(txt_val_box_time_t(t, v, x, y, w, h, b, e));
     }
 
     //
-    void add(const string& t, double v = empty_v,
-	     double x = 0, double y = 0, double w = 0, double h = 0) {
-      add(txt_val_box_t(t, v, x, y, w, h));
-    }
+    bool add_decode(const string&);
 
+    ///
+    void add_raw(const string& s) {
+      add(txt_val_box_time_t(s, empty_v));
+    }
+    
     //
     void set(const string& s, double v) {
-      txt_val_box.clear();
-      add(make_pair(s, v));
+      txt_val_box_time.clear();
+      add(s, v);
     }
 
     //
-    string get_text() const {
-      return empty() ? "" : txt_val_box[0].t;
+    string get_text() const {  // obs! this should be updated
+      return empty() ? "" : txt_val_box_time[0].t;
     }
 
     //
-    bool empty() const { return txt_val_box.empty(); }
+    bool empty() const { return txt_val_box_time.empty(); }
 
+    //
+    size_t size() const { return txt_val_box_time.size(); }
+    
+    //
+    const txt_val_box_time_t& operator[](size_t i) const {
+      return txt_val_box_time[i];
+    }
+    
+    //
+    txt_val_box_time_t& operator[](size_t i) {
+      return txt_val_box_time[i];
+    }
+    
     //
     DataBase *db;
 
     //
     size_t idx;
-
-    //
-    double start;
-
-    //
-    double end;
 
     //
     string index, field;
@@ -3449,7 +3484,7 @@ namespace picsom {
     string generator, evaluator;
 
     //      
-    vector<txt_val_box_t> txt_val_box;
+    vector<txt_val_box_time_t> txt_val_box_time;
 
   };  // class textline_t
 
@@ -3462,19 +3497,67 @@ namespace picsom {
     boxdata_t(const DataBase*, const vector<string>&);
 
     //
+    bool operator==(const boxdata_t& b) const {
+      return idx==b.idx && begin==b.begin && end==b.end &&
+	tl_x==b.tl_x && tl_y==b.tl_y && br_x==b.br_x && br_y==b.br_y;
+    }
+    
+    //
     string str() const;
 
     //
     bool match(const string& s, const string& r, const string& t) const {
-      return (s=="" || s==segm) && (r=="" || r ==recog) && (t=="" || t==type);
+      return (s=="" || s==segm) && (r=="" || r==recog) && (t=="" || t==type);
     }      
+
+    //
+    void clear_box() { tl_x = tl_y = br_x = br_y = 0; }      
+    
+    //
+    boxdata_t intersect(const boxdata_t& b) const {
+      boxdata_t r(*this);
+      if (b.tl_x>r.tl_x)
+	r.tl_x = b.tl_x;
+      if (b.tl_y>r.tl_y)
+	r.tl_y = b.tl_y;
+      if (b.br_x<r.br_x)
+	r.br_x = b.br_x;
+      if (b.br_y<r.br_y)
+	r.br_y = b.br_y;
+      if (r.tl_x>=r.br_x || r.tl_y>=r.br_y)
+	r.tl_x = r.tl_y = r.br_x = r.br_y = 0;
+      return r;
+    }
+    
+    //
+    double area() const { return (br_x-tl_x)*(br_y-tl_y); }
+
+    //
+    double intersect_area(const boxdata_t& b) const {
+      return intersect(b).area();
+    }
+
+    //
+    static vector<vector<boxdata_t> > to_vector_vector(const list<boxdata_t>&);
+
+    //
+    size_t best_match(const vector<boxdata_t>&) const;
     
     //
     const DataBase *db = NULL;
 
     //
     size_t idx = -1;
+
+    //
+    size_t begin = 0;
+
+    //
+    size_t end = 0;
     
+    //
+    double tl_x = 0, tl_y = 0, br_x = 0, br_y = 0;
+
     //
     string segm;
 
@@ -3482,18 +3565,67 @@ namespace picsom {
     string recog;
 
     //
-    double tl_x = 0, tl_y = 0, br_x = 0, br_y = 0;
-
-    //
-    double val = 0;
-    
-    //
     string type;
     
     //
     string txt;
     
-  };  // class textline_t
+    //
+    double val = 0;
+    
+  };  // class boxdata_t
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Used for texts with alternative word choices, probabilities and NERs
+  class alternative_text_t {
+  public:
+    ///
+    class alternative_text_e {
+    public:
+      //
+      alternative_text_e(const string& w = "", float p = -1.0,
+			 const string& n = "") :
+	word(w), prob(p), ner(n) {}
+
+      //
+      bool prob_set() const { return prob!=-1.0; }
+      
+      //
+      bool ner_set() const { return ner!=""; }
+
+      //
+      string word;
+
+      //
+      float prob = -1.0;
+
+      //
+      string ner;
+      
+    };  // class alternative_text_e
+
+    //
+    alternative_text_t(const string& s = "") {
+      parse(s);
+    }
+
+    //
+    bool parse(const string&);
+    
+    //
+    string str() const;
+
+    //
+    string plain() const;
+    
+    //
+    string dump() const;
+    
+    //
+    vector<vector<alternative_text_e> > words;
+
+  };  // class alternative_text_t
 
 } // namespace picsom
 

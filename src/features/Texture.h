@@ -9,7 +9,7 @@
    brightness of the 3x3 neightbouring pixels of each pixel in the
    image
   
-   \author Mats Sjöberg <mats.sjoberg@hut.fi>
+   \author Mats Sjoberg <mats.sjoberg@hut.fi>
    $Revision: 1.24 $
    $Date: 2008/10/31 09:44:28 $
    \bug May be some out there hiding.

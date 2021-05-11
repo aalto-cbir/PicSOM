@@ -1,4 +1,4 @@
-// -*- C++ -*- $Id: TextBased.h,v 1.35 2013/10/01 10:56:14 jorma Exp $
+// -*- C++ -*- $Id: TextBased.h,v 1.36 2021/05/11 14:48:42 jormal Exp $
 
 /**
    \file TextBased.h
@@ -10,8 +10,8 @@
    calculate features from text objects.
   
    \author Hannes Muurinen <hannes.muurinen@hut.fi>
-   $Revision: 1.35 $
-   $Date: 2013/10/01 10:56:14 $
+   $Revision: 1.36 $
+   $Date: 2021/05/11 14:48:42 $
    \bug May be some out there hiding.
    \warning Be warned against all odds!
    \todo So many things, so little time...
@@ -57,7 +57,7 @@ namespace picsom {
     weight_type WeightTypeIdf() const { return weight_type(weight/256*256); }
 
     ///
-    void WeightType(weight_type w) throw(logic_error) {
+    void WeightType(weight_type w) /*throw(logic_error)*/ {
       weight = w;
       int t = WeightTypeTf(), d = WeightTypeIdf()/256;
       if (t<1 || t>5 || d<1 || d>3) {
@@ -68,7 +68,7 @@ namespace picsom {
     }
 
     ///
-    void WeightType(const string& s) throw(logic_error) {
+    void WeightType(const string& s) /*throw(logic_error)*/ {
       weight_type w = WeightTypeName(s);
       if (!w)
 	throw logic_error("Not valid weight_type ["+s+"]");

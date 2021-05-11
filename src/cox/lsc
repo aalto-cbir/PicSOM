@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// $Id: lsc,v 1.3 2013/06/11 08:33:34 jorma Exp $	
+// $Id: lsc,v 1.4 2021/05/11 14:47:56 jormal Exp $	
 
 #ifndef _cox_lsc_
 #define _cox_lsc_
@@ -61,7 +61,7 @@ namespace cox {
     virtual size_t vector_length() const { return _l; }
 
     ///
-    virtual void vector_length(size_t l) throw(string) {
+    virtual void vector_length(size_t l) /*throw(string)*/ {
       if (l>_l || l<1)
 	throw "cox::lsc::vector_length(int) failed";
 
@@ -100,7 +100,7 @@ namespace cox {
 
     ///
     virtual double class_distance(const string& l, const vector<float>& v,
-				  double /*m*/) throw(string) {
+				  double /*m*/) /*throw(string)*/ {
       _lss_t::iterator j = _lss.find(l);
       if (j==_lss.end())
 	return  numeric_limits<double>::max();
@@ -110,7 +110,7 @@ namespace cox {
 
     ///
     virtual double class_similarity(const string&, const vector<float>&,
-				    double) throw(string) { return 0; }
+				    double) /*throw(string)*/ { return 0; }
     
     ///
     void convex(convex_t t) { _convex = t; }
@@ -142,7 +142,7 @@ namespace cox {
 
     ///
     template <class T>
-    const string& classify(const vector<T>& v) throw(string) {
+    const string& classify(const vector<T>& v) /*throw(string)*/ {
       tic("lsc::classify");
       double m = std::numeric_limits<double>::max();
       static string empty = "???";
@@ -193,7 +193,7 @@ namespace cox {
 
     ///
     template <class C>
-    void add(const C& c) throw(string) {
+    void add(const C& c) /*throw(string)*/ {
       try {
 	for (typename C::const_iterator i=c.begin(); i!=c.end(); i++)
 	  add(*i);
@@ -207,7 +207,7 @@ namespace cox {
 
     ///
     template <class V>
-    void add(const labeled<V>& v) throw(string) {
+    void add(const labeled<V>& v) /*throw(string)*/ {
       if (!_l)
 	_l = v.size();
       else if (v.size()!=_l)
@@ -394,7 +394,7 @@ namespace cox {
     }; // class lsc::_ss_t
 
     ///
-    void read_sompak(const string& fname) throw(string) {
+    void read_sompak(const string& fname) /*throw(string)*/ {
       _l = 0;
       _lss.clear();
 

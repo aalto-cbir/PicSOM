@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// $Id: knn,v 1.3 2010/09/08 19:50:21 jorma Exp $
+// $Id: knn,v 1.4 2021/05/11 14:47:56 jormal Exp $
 
 #ifndef _cox_knn_
 #define _cox_knn_
@@ -60,7 +60,7 @@ namespace cox {
     virtual size_t vector_length() const { return _l; }
 
     ///
-    virtual void vector_length(size_t l) throw(string) {
+    virtual void vector_length(size_t l) /*throw(string)*/ {
       if (l>_l || l<1)
 	throw "cox::knn::vector_length(int) failed";
 
@@ -93,7 +93,7 @@ namespace cox {
 
     ///
     virtual double class_distance(const string& l, const vector<float>& v,
-				  double /*md*/) throw(string) {
+				  double /*md*/) /*throw(string)*/ {
       const double mf = numeric_limits<double>::max();
       vector<double> dv(_k, mf);
       multiset<double> dl(dv.begin(), dv.end());
@@ -124,7 +124,7 @@ namespace cox {
 
     ///
     virtual double class_similarity(const string&, const vector<float>&,
-				    double) throw(string) { return 0; }
+				    double) /*throw(string)*/ { return 0; }
     
     ///
     template <class T>
@@ -217,12 +217,12 @@ namespace cox {
     typedef labeled<vector_t> lvector_t;
 
     /// 
-    void add(const vector_t& v, const string& l) throw(string) {
+    void add(const vector_t& v, const string& l) /*throw(string)*/ {
       add(lvector_t(v, l));
     }
 
     ///
-    void add(const lvector_t& lv) throw(string) {
+    void add(const lvector_t& lv) /*throw(string)*/ {
       if (_v.empty() && _l==0)
 	_l = lv.size();
 
@@ -270,7 +270,7 @@ namespace cox {
 
   protected:
     ///
-    void read_sompak(const string& fname) throw(string) {
+    void read_sompak(const string& fname) /*throw(string)*/ {
       _l = 0;
 
       sompak::data d(fname);
